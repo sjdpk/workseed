@@ -16,7 +16,7 @@ const createLeaveTypeSchema = z.object({
   color: z.string().optional(),
 });
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
@@ -26,8 +26,14 @@ export async function GET() {
       );
     }
 
+    const { searchParams } = new URL(request.url);
+    const includeInactive = searchParams.get("all") === "true";
+
+    // Only HR and above can see inactive leave types
+    const showAll = includeInactive && isHROrAbove(currentUser.role);
+
     const leaveTypes = await prisma.leaveType.findMany({
-      where: { isActive: true },
+      where: showAll ? {} : { isActive: true },
       orderBy: { name: "asc" },
     });
 

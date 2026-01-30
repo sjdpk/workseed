@@ -10,14 +10,30 @@ export default function LeaveTypesPage() {
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetch("/api/leave-types")
+  const fetchLeaveTypes = () => {
+    fetch("/api/leave-types?all=true")
       .then((r) => r.json())
       .then((data) => {
         if (data.success) setLeaveTypes(data.data.leaveTypes);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchLeaveTypes();
   }, []);
+
+  const toggleActive = async (id: string, currentStatus: boolean) => {
+    const res = await fetch(`/api/leave-types/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isActive: !currentStatus }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      fetchLeaveTypes();
+    }
+  };
 
   if (loading) {
     return (
@@ -44,12 +60,14 @@ export default function LeaveTypesPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {leaveTypes.map((lt) => (
-            <Card key={lt.id} className="relative overflow-hidden">
+            <Card key={lt.id} className={`relative overflow-hidden ${!lt.isActive ? "opacity-60" : ""}`}>
               <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: lt.color || "#3B82F6" }} />
               <div className="pl-2">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{lt.name}</h3>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">{lt.code}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{lt.code}</span>
+                  </div>
                 </div>
                 {lt.description && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{lt.description}</p>}
                 <div className="mt-3 flex flex-wrap gap-2 text-xs">
@@ -62,6 +80,22 @@ export default function LeaveTypesPage() {
                   {lt.carryForward && (
                     <span className="rounded bg-blue-50 px-2 py-0.5 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">Carry Forward</span>
                   )}
+                </div>
+                <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-3 dark:border-gray-700">
+                  <button
+                    onClick={() => toggleActive(lt.id, lt.isActive)}
+                    className={`inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-medium transition-colors ${
+                      lt.isActive
+                        ? "bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-900/50"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600"
+                    }`}
+                  >
+                    <span className={`h-2 w-2 rounded-full ${lt.isActive ? "bg-green-500" : "bg-gray-400"}`} />
+                    {lt.isActive ? "Active" : "Inactive"}
+                  </button>
+                  <Button variant="ghost" size="sm" onClick={() => router.push(`/dashboard/settings/leave-types/${lt.id}`)}>
+                    Edit
+                  </Button>
                 </div>
               </div>
             </Card>
