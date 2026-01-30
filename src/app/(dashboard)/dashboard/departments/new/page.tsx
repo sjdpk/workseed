@@ -5,10 +5,13 @@ import { useRouter } from "next/navigation";
 import { Button, Card, Input, Select } from "@/components";
 import type { Branch } from "@/types";
 
+const ALLOWED_ROLES = ["ADMIN", "HR"];
+
 export default function NewDepartmentPage() {
   const router = useRouter();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
@@ -19,12 +22,18 @@ export default function NewDepartmentPage() {
   });
 
   useEffect(() => {
-    fetch("/api/branches")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.success) setBranches(data.data.branches);
-      });
-  }, []);
+    Promise.all([
+      fetch("/api/auth/me").then(r => r.json()),
+      fetch("/api/branches").then(r => r.json()),
+    ]).then(([meData, branchesData]) => {
+      if (meData.success && !ALLOWED_ROLES.includes(meData.data.user.role)) {
+        router.replace("/dashboard");
+        return;
+      }
+      if (branchesData.success) setBranches(branchesData.data.branches);
+      setPageLoading(false);
+    });
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +64,14 @@ export default function NewDepartmentPage() {
       setLoading(false);
     }
   };
+
+  if (pageLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

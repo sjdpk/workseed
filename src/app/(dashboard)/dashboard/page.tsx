@@ -11,6 +11,20 @@ interface Stats {
   pendingLeaves: number;
 }
 
+interface UserInfo {
+  role: string;
+  firstName: string;
+  lastName: string;
+}
+
+const PERMISSIONS = {
+  VIEW_STATS: ["ADMIN", "HR"],
+  MANAGE_USERS: ["ADMIN", "HR"],
+  MANAGE_DEPARTMENTS: ["ADMIN", "HR"],
+  MANAGE_TEAMS: ["ADMIN", "HR"],
+  APPROVE_LEAVES: ["ADMIN", "HR", "MANAGER", "TEAM_LEAD"],
+};
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0,
@@ -18,15 +32,25 @@ export default function DashboardPage() {
     totalDepartments: 0,
     pendingLeaves: 0,
   });
+  const [user, setUser] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const hasPermission = (permission: keyof typeof PERMISSIONS) => {
+    if (!user) return false;
+    return PERMISSIONS[permission].includes(user.role);
+  };
 
   useEffect(() => {
     Promise.all([
+      fetch("/api/auth/me").then((r) => r.json()),
       fetch("/api/users?limit=1").then((r) => r.json()),
       fetch("/api/branches").then((r) => r.json()),
       fetch("/api/departments").then((r) => r.json()),
       fetch("/api/leave-requests?pending=true").then((r) => r.json()),
-    ]).then(([usersData, branchesData, deptData, leavesData]) => {
+    ]).then(([meData, usersData, branchesData, deptData, leavesData]) => {
+      if (meData.success) {
+        setUser(meData.data.user);
+      }
       setStats({
         totalUsers: usersData.data?.pagination?.total || 0,
         totalBranches: branchesData.data?.branches?.length || 0,
@@ -37,13 +61,6 @@ export default function DashboardPage() {
     });
   }, []);
 
-  const statCards = [
-    { name: "Total Users", value: stats.totalUsers, href: "/dashboard/users", icon: UsersIcon, color: "bg-blue-600" },
-    { name: "Departments", value: stats.totalDepartments, href: "/dashboard/departments", icon: BuildingIcon, color: "bg-green-600" },
-    { name: "Branches", value: stats.totalBranches, href: "/dashboard/branches", icon: LocationIcon, color: "bg-purple-600" },
-    { name: "Pending Leaves", value: stats.pendingLeaves, href: "/dashboard/leaves/requests", icon: ClockIcon, color: "bg-orange-600" },
-  ];
-
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -52,37 +69,136 @@ export default function DashboardPage() {
     );
   }
 
+  // Stats cards for HR/Admin
+  const adminStatCards = [
+    { name: "Total Users", value: stats.totalUsers, href: "/dashboard/users", icon: UsersIcon, color: "bg-blue-600" },
+    { name: "Departments", value: stats.totalDepartments, href: "/dashboard/departments", icon: BuildingIcon, color: "bg-green-600" },
+    { name: "Branches", value: stats.totalBranches, href: "/dashboard/branches", icon: LocationIcon, color: "bg-purple-600" },
+    { name: "Pending Leaves", value: stats.pendingLeaves, href: "/dashboard/leaves/requests", icon: ClockIcon, color: "bg-orange-600" },
+  ];
+
+  // Quick actions for HR/Admin
+  const adminQuickActions = [
+    { href: "/dashboard/users/new", icon: UsersIcon, title: "Add User", description: "Create new employee" },
+    { href: "/dashboard/departments/new", icon: BuildingIcon, title: "Add Department", description: "Create department" },
+    { href: "/dashboard/teams/new", icon: TeamIcon, title: "Add Team", description: "Create new team" },
+  ];
+
+  // Quick actions for all employees
+  const employeeQuickActions = [
+    { href: "/dashboard/leaves", icon: CalendarIcon, title: "Apply Leave", description: "Request time off" },
+  ];
+
+  // Manager/Team Lead can see pending leaves
+  const managerQuickActions = hasPermission("APPROVE_LEAVES") ? [
+    { href: "/dashboard/leaves/requests", icon: ClockIcon, title: "Pending Requests", description: "Review leave requests" },
+  ] : [];
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Dashboard</h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Welcome to the HRM System</p>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+          Welcome back, {user?.firstName}!
+        </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {statCards.map((stat) => (
-          <Link key={stat.name} href={stat.href}>
+      {/* Stats for HR/Admin */}
+      {hasPermission("VIEW_STATS") && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {adminStatCards.map((stat) => (
+            <Link key={stat.name} href={stat.href}>
+              <Card className="flex items-center gap-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
+                <div className={`rounded-md p-2.5 ${stat.color}`}>
+                  <stat.icon className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{stat.name}</p>
+                  <p className="text-2xl font-semibold text-gray-900 dark:text-white">{stat.value}</p>
+                </div>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* Manager/Team Lead Stats */}
+      {hasPermission("APPROVE_LEAVES") && !hasPermission("VIEW_STATS") && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Link href="/dashboard/leaves/requests">
             <Card className="flex items-center gap-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
-              <div className={`rounded-md p-2.5 ${stat.color}`}>
-                <stat.icon className="h-5 w-5 text-white" />
+              <div className="rounded-md p-2.5 bg-orange-600">
+                <ClockIcon className="h-5 w-5 text-white" />
               </div>
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{stat.name}</p>
-                <p className="text-2xl font-semibold text-gray-900 dark:text-white">{stat.value}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Pending Leaves</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.pendingLeaves}</p>
               </div>
             </Card>
           </Link>
-        ))}
-      </div>
+          <Link href="/dashboard/leaves">
+            <Card className="flex items-center gap-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
+              <div className="rounded-md p-2.5 bg-blue-600">
+                <CalendarIcon className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">My Leaves</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-white">View</p>
+              </div>
+            </Card>
+          </Link>
+        </div>
+      )}
 
+      {/* Employee Stats */}
+      {!hasPermission("APPROVE_LEAVES") && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Link href="/dashboard/leaves">
+            <Card className="flex items-center gap-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
+              <div className="rounded-md p-2.5 bg-blue-600">
+                <CalendarIcon className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">My Leaves</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-white">View Balance</p>
+              </div>
+            </Card>
+          </Link>
+        </div>
+      )}
+
+      {/* Quick Actions */}
       <Card>
         <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Quick Actions</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <QuickAction href="/dashboard/users/new" icon={UsersIcon} title="Add User" description="Create new employee" />
-          <QuickAction href="/dashboard/departments/new" icon={BuildingIcon} title="Add Department" description="Create department" />
-          <QuickAction href="/dashboard/teams/new" icon={TeamIcon} title="Add Team" description="Create new team" />
-          <QuickAction href="/dashboard/leaves" icon={CalendarIcon} title="Apply Leave" description="Request time off" />
+          {/* Admin/HR Actions */}
+          {hasPermission("MANAGE_USERS") && adminQuickActions.map((action) => (
+            <QuickAction key={action.href} {...action} />
+          ))}
+
+          {/* Manager Actions */}
+          {managerQuickActions.map((action) => (
+            <QuickAction key={action.href} {...action} />
+          ))}
+
+          {/* Employee Actions */}
+          {employeeQuickActions.map((action) => (
+            <QuickAction key={action.href} {...action} />
+          ))}
         </div>
+      </Card>
+
+      {/* Role Info Card */}
+      <Card>
+        <h2 className="mb-2 text-base font-semibold text-gray-900 dark:text-white">Your Access</h2>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          You are logged in as <span className="font-medium text-gray-900 dark:text-white">{user?.role}</span>.
+          {user?.role === "EMPLOYEE" && " You can view your leave balance and apply for leave."}
+          {user?.role === "TEAM_LEAD" && " You can approve leave requests for your team members."}
+          {user?.role === "MANAGER" && " You can approve leave requests for your department."}
+          {user?.role === "HR" && " You have access to manage users, departments, teams, and leave settings."}
+          {user?.role === "ADMIN" && " You have full administrative access to the system."}
+        </p>
       </Card>
     </div>
   );

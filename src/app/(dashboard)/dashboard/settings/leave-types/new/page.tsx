@@ -1,13 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Input } from "@/components";
+
+const ALLOWED_ROLES = ["ADMIN", "HR"];
 
 export default function NewLeaveTypePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && !ALLOWED_ROLES.includes(data.data.user.role)) {
+          router.replace("/dashboard");
+          return;
+        }
+        setPageLoading(false);
+      });
+  }, [router]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -53,6 +68,14 @@ export default function NewLeaveTypePage() {
       setLoading(false);
     }
   };
+
+  if (pageLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -4,6 +4,8 @@ import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Input } from "@/components";
 
+const ALLOWED_ROLES = ["ADMIN", "HR"];
+
 interface LeaveTypeData {
   id: string;
   name: string;
@@ -27,6 +29,7 @@ export default function EditLeaveTypePage({ params }: { params: Promise<{ id: st
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [hasPermission, setHasPermission] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -44,30 +47,38 @@ export default function EditLeaveTypePage({ params }: { params: Promise<{ id: st
   });
 
   useEffect(() => {
-    fetch(`/api/leave-types/${id}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.success) {
-          const lt = data.data.leaveType;
-          setLeaveType(lt);
-          setFormData({
-            name: lt.name || "",
-            code: lt.code || "",
-            description: lt.description || "",
-            defaultDays: lt.defaultDays || 0,
-            maxDays: lt.maxDays || 0,
-            carryForward: lt.carryForward || false,
-            maxCarryForward: lt.maxCarryForward || 0,
-            isPaid: lt.isPaid ?? true,
-            isActive: lt.isActive ?? true,
-            requiresApproval: lt.requiresApproval ?? true,
-            minDaysNotice: lt.minDaysNotice || 0,
-            color: lt.color || "#3B82F6",
-          });
+    Promise.all([
+      fetch("/api/auth/me").then(r => r.json()),
+      fetch(`/api/leave-types/${id}`).then(r => r.json()),
+    ]).then(([meData, leaveTypeData]) => {
+      if (meData.success) {
+        if (!ALLOWED_ROLES.includes(meData.data.user.role)) {
+          router.replace("/dashboard");
+          return;
         }
-        setLoading(false);
-      });
-  }, [id]);
+        setHasPermission(true);
+      }
+      if (leaveTypeData.success) {
+        const lt = leaveTypeData.data.leaveType;
+        setLeaveType(lt);
+        setFormData({
+          name: lt.name || "",
+          code: lt.code || "",
+          description: lt.description || "",
+          defaultDays: lt.defaultDays || 0,
+          maxDays: lt.maxDays || 0,
+          carryForward: lt.carryForward || false,
+          maxCarryForward: lt.maxCarryForward || 0,
+          isPaid: lt.isPaid ?? true,
+          isActive: lt.isActive ?? true,
+          requiresApproval: lt.requiresApproval ?? true,
+          minDaysNotice: lt.minDaysNotice || 0,
+          color: lt.color || "#3B82F6",
+        });
+      }
+      setLoading(false);
+    });
+  }, [id, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,7 +119,7 @@ export default function EditLeaveTypePage({ params }: { params: Promise<{ id: st
     );
   }
 
-  if (!leaveType) {
+  if (!leaveType || !hasPermission) {
     return <div className="p-8 text-center text-gray-500">Leave type not found</div>;
   }
 

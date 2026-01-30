@@ -13,19 +13,42 @@ interface Team {
   _count: { users: number };
 }
 
+interface CurrentUser {
+  role: string;
+}
+
+const PERMISSIONS = {
+  VIEW: ["ADMIN", "HR"],
+  CREATE: ["ADMIN", "HR"],
+};
+
 export default function TeamsPage() {
   const router = useRouter();
   const [teams, setTeams] = useState<Team[]>([]);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const hasPermission = (permission: keyof typeof PERMISSIONS) => {
+    if (!currentUser) return false;
+    return PERMISSIONS[permission].includes(currentUser.role);
+  };
+
   useEffect(() => {
-    fetch("/api/teams")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.success) setTeams(data.data.teams);
-        setLoading(false);
-      });
-  }, []);
+    Promise.all([
+      fetch("/api/auth/me").then(r => r.json()),
+      fetch("/api/teams").then(r => r.json()),
+    ]).then(([meData, teamsData]) => {
+      if (meData.success) {
+        setCurrentUser(meData.data.user);
+        if (!PERMISSIONS.VIEW.includes(meData.data.user.role)) {
+          router.replace("/dashboard");
+          return;
+        }
+      }
+      if (teamsData.success) setTeams(teamsData.data.teams);
+      setLoading(false);
+    });
+  }, [router]);
 
   if (loading) {
     return (
@@ -35,6 +58,10 @@ export default function TeamsPage() {
     );
   }
 
+  if (!hasPermission("VIEW")) {
+    return null;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -42,7 +69,9 @@ export default function TeamsPage() {
           <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Teams</h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Manage organization teams</p>
         </div>
-        <Button onClick={() => router.push("/dashboard/teams/new")}>Add Team</Button>
+        {hasPermission("CREATE") && (
+          <Button onClick={() => router.push("/dashboard/teams/new")}>Add Team</Button>
+        )}
       </div>
 
       {teams.length === 0 ? (

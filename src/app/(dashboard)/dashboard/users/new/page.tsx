@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button, Card, Input, Select } from "@/components";
 import type { Branch, Department, Team, Role, Gender, MaritalStatus, EmploymentType } from "@/types";
 
+const ALLOWED_ROLES = ["ADMIN", "HR"];
+
 export default function NewUserPage() {
   const router = useRouter();
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -12,6 +14,7 @@ export default function NewUserPage() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [managers, setManagers] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
@@ -44,19 +47,26 @@ export default function NewUserPage() {
 
   useEffect(() => {
     Promise.all([
+      fetch("/api/auth/me").then(r => r.json()),
       fetch("/api/branches").then(r => r.json()),
       fetch("/api/departments").then(r => r.json()),
       fetch("/api/teams").then(r => r.json()),
       fetch("/api/users?limit=100").then(r => r.json()),
-    ]).then(([branchesData, deptData, teamsData, usersData]) => {
+    ]).then(([meData, branchesData, deptData, teamsData, usersData]) => {
+      // Check permission
+      if (meData.success && !ALLOWED_ROLES.includes(meData.data.user.role)) {
+        router.replace("/dashboard");
+        return;
+      }
       if (branchesData.success) setBranches(branchesData.data.branches);
       if (deptData.success) setDepartments(deptData.data.departments);
       if (teamsData.success) setTeams(teamsData.data.teams);
       if (usersData.success) setManagers(usersData.data.users.filter((u: { role: string }) =>
         ["ADMIN", "HR", "MANAGER", "TEAM_LEAD"].includes(u.role)
       ));
+      setPageLoading(false);
     });
-  }, []);
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,6 +143,14 @@ export default function NewUserPage() {
     { value: "INACTIVE", label: "Inactive" },
     { value: "SUSPENDED", label: "Suspended" },
   ];
+
+  if (pageLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

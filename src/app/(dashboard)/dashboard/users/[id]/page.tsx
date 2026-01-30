@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button, Card, Input, Select } from "@/components";
 import type { Branch, Department, Team, Role, Gender, MaritalStatus, EmploymentType } from "@/types";
 
+const ALLOWED_ROLES = ["ADMIN", "HR"];
+
 interface UserData {
   id: string;
   employeeId: string;
@@ -34,10 +36,16 @@ interface UserData {
   managerId?: string;
 }
 
+interface CurrentUser {
+  id: string;
+  role: string;
+}
+
 export default function EditUserPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const [user, setUser] = useState<UserData | null>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -75,12 +83,21 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
 
   useEffect(() => {
     Promise.all([
+      fetch("/api/auth/me").then(r => r.json()),
       fetch(`/api/users/${id}`).then(r => r.json()),
       fetch("/api/branches").then(r => r.json()),
       fetch("/api/departments").then(r => r.json()),
       fetch("/api/teams").then(r => r.json()),
       fetch("/api/users?limit=100").then(r => r.json()),
-    ]).then(([userData, branchesData, deptData, teamsData, usersData]) => {
+    ]).then(([meData, userData, branchesData, deptData, teamsData, usersData]) => {
+      // Check permission - only HR/Admin can edit users
+      if (meData.success) {
+        setCurrentUser(meData.data.user);
+        if (!ALLOWED_ROLES.includes(meData.data.user.role)) {
+          router.replace("/dashboard");
+          return;
+        }
+      }
       if (userData.success) {
         const u = userData.data.user;
         setUser(u);
@@ -119,7 +136,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
       ));
       setLoading(false);
     });
-  }, [id]);
+  }, [id, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -188,7 +205,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
     );
   }
 
-  if (!user) {
+  if (!user || !currentUser || !ALLOWED_ROLES.includes(currentUser.role)) {
     return <div className="p-8 text-center text-gray-500">User not found</div>;
   }
 

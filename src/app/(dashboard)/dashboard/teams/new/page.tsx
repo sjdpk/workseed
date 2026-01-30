@@ -9,10 +9,13 @@ interface Department {
   name: string;
 }
 
+const ALLOWED_ROLES = ["ADMIN", "HR"];
+
 export default function NewTeamPage() {
   const router = useRouter();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
@@ -23,12 +26,18 @@ export default function NewTeamPage() {
   });
 
   useEffect(() => {
-    fetch("/api/departments")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.success) setDepartments(data.data.departments);
-      });
-  }, []);
+    Promise.all([
+      fetch("/api/auth/me").then(r => r.json()),
+      fetch("/api/departments").then(r => r.json()),
+    ]).then(([meData, deptData]) => {
+      if (meData.success && !ALLOWED_ROLES.includes(meData.data.user.role)) {
+        router.replace("/dashboard");
+        return;
+      }
+      if (deptData.success) setDepartments(deptData.data.departments);
+      setPageLoading(false);
+    });
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +65,14 @@ export default function NewTeamPage() {
       setLoading(false);
     }
   };
+
+  if (pageLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

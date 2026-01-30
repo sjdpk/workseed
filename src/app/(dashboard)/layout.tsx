@@ -6,22 +6,19 @@ import Link from "next/link";
 import { ThemeToggle, Button } from "@/components";
 import type { SessionUser } from "@/types";
 
-const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
-  { name: "Users", href: "/dashboard/users", icon: UsersIcon },
-  { name: "Departments", href: "/dashboard/departments", icon: BuildingIcon },
-  { name: "Teams", href: "/dashboard/teams", icon: TeamIcon },
-  { name: "Branches", href: "/dashboard/branches", icon: LocationIcon },
-];
-
-const leaveNavigation = [
-  { name: "My Leaves", href: "/dashboard/leaves", icon: CalendarIcon },
-  { name: "Leave Requests", href: "/dashboard/leaves/requests", icon: ClockIcon, roles: ["ADMIN", "HR", "MANAGER", "TEAM_LEAD"] },
-];
-
-const settingsNavigation = [
-  { name: "Leave Types", href: "/dashboard/settings/leave-types", icon: SettingsIcon, roles: ["ADMIN", "HR"] },
-];
+// Permission check based on roles
+const PERMISSIONS = {
+  USER_VIEW: ["ADMIN", "HR"],
+  USER_MANAGE: ["ADMIN", "HR"],
+  DEPARTMENT_VIEW: ["ADMIN", "HR"],
+  DEPARTMENT_MANAGE: ["ADMIN", "HR"],
+  TEAM_VIEW: ["ADMIN", "HR"],
+  TEAM_MANAGE: ["ADMIN", "HR"],
+  BRANCH_VIEW: ["ADMIN", "HR"],
+  BRANCH_MANAGE: ["ADMIN", "HR"],
+  LEAVE_APPROVE: ["ADMIN", "HR", "MANAGER", "TEAM_LEAD"],
+  SETTINGS_VIEW: ["ADMIN", "HR"],
+};
 
 export default function DashboardLayout({
   children,
@@ -51,9 +48,9 @@ export default function DashboardLayout({
     router.push("/login");
   };
 
-  const canAccess = (roles?: string[]) => {
-    if (!roles) return true;
-    return user && roles.includes(user.role);
+  const hasPermission = (permission: keyof typeof PERMISSIONS) => {
+    if (!user) return false;
+    return PERMISSIONS[permission].includes(user.role);
   };
 
   if (!user) {
@@ -63,6 +60,24 @@ export default function DashboardLayout({
       </div>
     );
   }
+
+  // Build navigation based on permissions
+  const mainNavigation = [
+    { name: "Dashboard", href: "/dashboard", icon: HomeIcon, show: true },
+    { name: "Users", href: "/dashboard/users", icon: UsersIcon, show: hasPermission("USER_VIEW") },
+    { name: "Departments", href: "/dashboard/departments", icon: BuildingIcon, show: hasPermission("DEPARTMENT_VIEW") },
+    { name: "Teams", href: "/dashboard/teams", icon: TeamIcon, show: hasPermission("TEAM_VIEW") },
+    { name: "Branches", href: "/dashboard/branches", icon: LocationIcon, show: hasPermission("BRANCH_VIEW") },
+  ].filter(item => item.show);
+
+  const leaveNavigation = [
+    { name: "My Leaves", href: "/dashboard/leaves", icon: CalendarIcon, show: true },
+    { name: "Leave Requests", href: "/dashboard/leaves/requests", icon: ClockIcon, show: hasPermission("LEAVE_APPROVE") },
+  ].filter(item => item.show);
+
+  const settingsNavigation = [
+    { name: "Leave Types", href: "/dashboard/settings/leave-types", icon: SettingsIcon, show: hasPermission("SETTINGS_VIEW") },
+  ].filter(item => item.show);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -99,8 +114,8 @@ export default function DashboardLayout({
             <div>
               <p className="px-3 text-xs font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">Main</p>
               <div className="mt-2 space-y-1">
-                {navigation.map((item) => {
-                  const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+                {mainNavigation.map((item) => {
+                  const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
                   return (
                     <Link
                       key={item.name}
@@ -122,7 +137,7 @@ export default function DashboardLayout({
             <div>
               <p className="px-3 text-xs font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">Leave</p>
               <div className="mt-2 space-y-1">
-                {leaveNavigation.filter(item => canAccess(item.roles)).map((item) => {
+                {leaveNavigation.map((item) => {
                   const isActive = pathname === item.href;
                   return (
                     <Link
@@ -142,12 +157,12 @@ export default function DashboardLayout({
               </div>
             </div>
 
-            {canAccess(["ADMIN", "HR"]) && (
+            {settingsNavigation.length > 0 && (
               <div>
                 <p className="px-3 text-xs font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">Settings</p>
                 <div className="mt-2 space-y-1">
-                  {settingsNavigation.filter(item => canAccess(item.roles)).map((item) => {
-                    const isActive = pathname === item.href;
+                  {settingsNavigation.map((item) => {
+                    const isActive = pathname.startsWith(item.href);
                     return (
                       <Link
                         key={item.name}

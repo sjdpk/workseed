@@ -13,19 +13,42 @@ interface Department {
   _count: { users: number; teams: number };
 }
 
+interface CurrentUser {
+  role: string;
+}
+
+const PERMISSIONS = {
+  VIEW: ["ADMIN", "HR"],
+  CREATE: ["ADMIN", "HR"],
+};
+
 export default function DepartmentsPage() {
   const router = useRouter();
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const hasPermission = (permission: keyof typeof PERMISSIONS) => {
+    if (!currentUser) return false;
+    return PERMISSIONS[permission].includes(currentUser.role);
+  };
+
   useEffect(() => {
-    fetch("/api/departments")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.success) setDepartments(data.data.departments);
-        setLoading(false);
-      });
-  }, []);
+    Promise.all([
+      fetch("/api/auth/me").then(r => r.json()),
+      fetch("/api/departments").then(r => r.json()),
+    ]).then(([meData, deptData]) => {
+      if (meData.success) {
+        setCurrentUser(meData.data.user);
+        if (!PERMISSIONS.VIEW.includes(meData.data.user.role)) {
+          router.replace("/dashboard");
+          return;
+        }
+      }
+      if (deptData.success) setDepartments(deptData.data.departments);
+      setLoading(false);
+    });
+  }, [router]);
 
   if (loading) {
     return (
@@ -35,6 +58,10 @@ export default function DepartmentsPage() {
     );
   }
 
+  if (!hasPermission("VIEW")) {
+    return null;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -42,7 +69,9 @@ export default function DepartmentsPage() {
           <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Departments</h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Manage organization departments</p>
         </div>
-        <Button onClick={() => router.push("/dashboard/departments/new")}>Add Department</Button>
+        {hasPermission("CREATE") && (
+          <Button onClick={() => router.push("/dashboard/departments/new")}>Add Department</Button>
+        )}
       </div>
 
       {departments.length === 0 ? (

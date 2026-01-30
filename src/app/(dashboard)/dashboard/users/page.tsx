@@ -18,21 +18,59 @@ interface User {
   branch?: { id: string; name: string };
 }
 
+interface CurrentUser {
+  id: string;
+  role: string;
+}
+
+const PERMISSIONS = {
+  VIEW: ["ADMIN", "HR"],
+  CREATE: ["ADMIN", "HR"],
+  EDIT: ["ADMIN", "HR"],
+};
+
 export default function UsersPage() {
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const hasPermission = (permission: keyof typeof PERMISSIONS) => {
+    if (!currentUser) return false;
+    return PERMISSIONS[permission].includes(currentUser.role);
+  };
+
   useEffect(() => {
-    fetch("/api/users")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          setUsers(data.data.users);
+    Promise.all([
+      fetch("/api/auth/me").then(r => r.json()),
+      fetch("/api/users").then(r => r.json()),
+    ]).then(([meData, usersData]) => {
+      if (meData.success) {
+        setCurrentUser(meData.data.user);
+        // Redirect if no permission
+        if (!PERMISSIONS.VIEW.includes(meData.data.user.role)) {
+          router.replace("/dashboard");
+          return;
         }
-        setLoading(false);
-      });
-  }, []);
+      }
+      if (usersData.success) {
+        setUsers(usersData.data.users);
+      }
+      setLoading(false);
+    });
+  }, [router]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!hasPermission("VIEW")) {
+    return null;
+  }
 
   return (
     <div className="space-y-6">
@@ -41,15 +79,13 @@ export default function UsersPage() {
           <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Users</h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Manage employees and users</p>
         </div>
-        <Button onClick={() => router.push("/dashboard/users/new")}>Add User</Button>
+        {hasPermission("CREATE") && (
+          <Button onClick={() => router.push("/dashboard/users/new")}>Add User</Button>
+        )}
       </div>
 
       <Card className="overflow-hidden p-0">
-        {loading ? (
-          <div className="flex items-center justify-center p-8">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-          </div>
-        ) : users.length === 0 ? (
+        {users.length === 0 ? (
           <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">No users found</div>
         ) : (
           <div className="overflow-x-auto">
@@ -61,7 +97,9 @@ export default function UsersPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Role</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Department</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Actions</th>
+                  {hasPermission("EDIT") && (
+                    <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Actions</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
@@ -94,11 +132,13 @@ export default function UsersPage() {
                         {user.status}
                       </span>
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right">
-                      <Button variant="ghost" size="sm" onClick={() => router.push(`/dashboard/users/${user.id}`)}>
-                        Edit
-                      </Button>
-                    </td>
+                    {hasPermission("EDIT") && (
+                      <td className="whitespace-nowrap px-4 py-3 text-right">
+                        <Button variant="ghost" size="sm" onClick={() => router.push(`/dashboard/users/${user.id}`)}>
+                          Edit
+                        </Button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

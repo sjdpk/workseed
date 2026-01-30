@@ -5,9 +5,16 @@ import { useRouter } from "next/navigation";
 import { Button, Card } from "@/components";
 import type { LeaveType } from "@/types";
 
+const ALLOWED_ROLES = ["ADMIN", "HR"];
+
+interface CurrentUser {
+  role: string;
+}
+
 export default function LeaveTypesPage() {
   const router = useRouter();
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchLeaveTypes = () => {
@@ -15,13 +22,25 @@ export default function LeaveTypesPage() {
       .then((r) => r.json())
       .then((data) => {
         if (data.success) setLeaveTypes(data.data.leaveTypes);
-        setLoading(false);
       });
   };
 
   useEffect(() => {
-    fetchLeaveTypes();
-  }, []);
+    Promise.all([
+      fetch("/api/auth/me").then(r => r.json()),
+      fetch("/api/leave-types?all=true").then(r => r.json()),
+    ]).then(([meData, leaveTypesData]) => {
+      if (meData.success) {
+        setCurrentUser(meData.data.user);
+        if (!ALLOWED_ROLES.includes(meData.data.user.role)) {
+          router.replace("/dashboard");
+          return;
+        }
+      }
+      if (leaveTypesData.success) setLeaveTypes(leaveTypesData.data.leaveTypes);
+      setLoading(false);
+    });
+  }, [router]);
 
   const toggleActive = async (id: string, currentStatus: boolean) => {
     const res = await fetch(`/api/leave-types/${id}`, {
