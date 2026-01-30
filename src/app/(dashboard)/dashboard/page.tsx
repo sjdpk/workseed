@@ -134,7 +134,7 @@ export default function DashboardPage() {
           {notices.map((notice) => {
             const config = typeConfig[notice.type];
             return (
-              <div key={notice.id} className={`rounded-lg border p-4 ${config.bg} ${config.border}`}>
+              <div key={notice.id} className={`rounded border p-4 ${config.bg} ${config.border}`}>
                 <div className="flex items-start gap-3">
                   <div className={`mt-0.5 ${config.icon}`}>
                     {notice.type === "URGENT" ? (

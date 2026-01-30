@@ -161,7 +161,7 @@ export default function OrganizationSettingsPage() {
                   Logo Preview
                 </label>
                 <div className="flex items-center gap-4">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800">
+                  <div className="flex h-16 w-16 items-center justify-center rounded border-2 border-dashed border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800">
                     {!logoError ? (
                       <img
                         src={formData.logoUrl}

@@ -75,7 +75,7 @@ export default function OrgChartPage() {
 
   const PersonCard = ({ user, isRoot = false }: { user: User & { children?: User[] }; isRoot?: boolean }) => (
     <div className={`flex flex-col items-center ${isRoot ? "" : "mt-4"}`}>
-      <div className={`rounded-lg border p-4 bg-white dark:bg-gray-800 ${
+      <div className={`rounded border p-4 bg-white dark:bg-gray-800 ${
         isRoot ? "border-blue-300 dark:border-blue-700" : "border-gray-200 dark:border-gray-700"
       }`}>
         <div className="flex items-center gap-3">
@@ -143,7 +143,7 @@ export default function OrgChartPage() {
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">View company structure and reporting lines</p>
         </div>
 
-        <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 p-1">
+        <div className="flex rounded border border-gray-200 dark:border-gray-700 p-1">
           <button
             onClick={() => setViewMode("hierarchy")}
             className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
@@ -188,7 +188,7 @@ export default function OrgChartPage() {
           {Object.entries(departments).sort(([a], [b]) => a.localeCompare(b)).map(([deptName, deptUsers]) => (
             <Card key={deptName}>
               <div className="mb-4 flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                <div className="flex h-8 w-8 items-center justify-center rounded bg-blue-100 dark:bg-blue-900/30">
                   <svg className="h-4 w-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
@@ -201,7 +201,7 @@ export default function OrgChartPage() {
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {deptUsers.map((user) => (
-                  <div key={user.id} className="flex items-center gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                  <div key={user.id} className="flex items-center gap-3 rounded border border-gray-200 p-3 dark:border-gray-700">
                     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-sm font-semibold text-white">
                       {user.firstName[0]}{user.lastName[0]}
                     </div>

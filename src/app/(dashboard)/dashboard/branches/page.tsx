@@ -100,9 +100,18 @@ export default function BranchesPage() {
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{branch.name}</h3>
                   <span className="mt-1 inline-flex rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">{branch.code}</span>
                 </div>
-                <span className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${branch.isActive ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300" : "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300"}`}>
-                  {branch.isActive ? "Active" : "Inactive"}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${branch.isActive ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300" : "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300"}`}>
+                    {branch.isActive ? "Active" : "Inactive"}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push(`/dashboard/branches/${branch.id}`)}
+                  >
+                    Edit
+                  </Button>
+                </div>
               </div>
               {(branch.address || branch.city) && (
                 <p className="mt-3 text-xs text-gray-600 dark:text-gray-400">

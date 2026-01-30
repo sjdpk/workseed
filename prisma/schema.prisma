@@ -101,6 +101,7 @@ model Department {
   branchId    String?  @db.Uuid
   branch      Branch?  @relation(fields: [branchId], references: [id])
   headId      String?  @db.Uuid
+  head        User?    @relation("DepartmentHead", fields: [headId], references: [id])
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -188,6 +189,7 @@ model User {
   leaveApprovals  LeaveRequest[]  @relation("LeaveApprover")
   notices         Notice[]        @relation("NoticeCreator")
   teamsLed        Team[]          @relation("TeamLead")
+  departmentsLed  Department[]    @relation("DepartmentHead")
 
   @@map("users")
 }

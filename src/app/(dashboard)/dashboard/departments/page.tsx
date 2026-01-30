@@ -108,6 +108,13 @@ export default function DepartmentsPage() {
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{dept.name}</h3>
                   <span className="text-xs text-gray-500 dark:text-gray-400">{dept.code}</span>
                 </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push(`/dashboard/departments/${dept.id}`)}
+                >
+                  Edit
+                </Button>
               </div>
               {dept.description && <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{dept.description}</p>}
               <div className="mt-3 flex gap-4 text-xs text-gray-600 dark:text-gray-400">

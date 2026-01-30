@@ -102,7 +102,7 @@ export default function DirectoryPage() {
     const sameDept = isSameDepartment(user);
 
     return (
-      <div className={`relative rounded-lg border p-4 ${
+      <div className={`relative rounded border p-4 ${
         sameTeam
           ? "border-green-300 bg-green-50/50 dark:border-green-700 dark:bg-green-900/10"
           : sameDept
@@ -111,7 +111,7 @@ export default function DirectoryPage() {
       }`}>
         {/* Same team/dept badge */}
         {(sameTeam || sameDept) && (
-          <div className={`absolute -top-2 right-3 rounded-full px-2 py-0.5 text-xs font-medium ${
+          <div className={`absolute -top-2 right-3 rounded px-2 py-0.5 text-xs font-medium ${
             sameTeam
               ? "bg-green-500 text-white"
               : "bg-blue-500 text-white"
@@ -200,7 +200,7 @@ export default function DirectoryPage() {
         </div>
 
         {/* View mode toggle */}
-        <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 p-1">
+        <div className="flex rounded border border-gray-200 dark:border-gray-700 p-1">
           {[
             { key: "all", label: "All" },
             { key: "department", label: "By Department" },
@@ -268,7 +268,7 @@ export default function DirectoryPage() {
           {Object.entries(groupedByDepartment).sort(([a], [b]) => a.localeCompare(b)).map(([deptName, deptUsers]) => (
             <div key={deptName}>
               <div className="mb-3 flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                <div className="flex h-8 w-8 items-center justify-center rounded bg-blue-100 dark:bg-blue-900/30">
                   <svg className="h-4 w-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
@@ -278,7 +278,7 @@ export default function DirectoryPage() {
                   <p className="text-xs text-gray-500 dark:text-gray-400">{deptUsers.length} members</p>
                 </div>
                 {currentUser?.departmentId && deptUsers[0]?.department?.id === currentUser.departmentId && (
-                  <span className="rounded-full bg-blue-500 px-2 py-0.5 text-xs font-medium text-white">Your Dept</span>
+                  <span className="rounded bg-blue-500 px-2 py-0.5 text-xs font-medium text-white">Your Dept</span>
                 )}
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -295,7 +295,7 @@ export default function DirectoryPage() {
           {Object.entries(groupedByTeam).sort(([a], [b]) => a.localeCompare(b)).map(([teamName, teamUsers]) => (
             <div key={teamName}>
               <div className="mb-3 flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30">
+                <div className="flex h-8 w-8 items-center justify-center rounded bg-green-100 dark:bg-green-900/30">
                   <svg className="h-4 w-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
@@ -305,7 +305,7 @@ export default function DirectoryPage() {
                   <p className="text-xs text-gray-500 dark:text-gray-400">{teamUsers.length} members</p>
                 </div>
                 {currentUser?.teamId && teamUsers[0]?.team?.id === currentUser.teamId && (
-                  <span className="rounded-full bg-green-500 px-2 py-0.5 text-xs font-medium text-white">Your Team</span>
+                  <span className="rounded bg-green-500 px-2 py-0.5 text-xs font-medium text-white">Your Team</span>
                 )}
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

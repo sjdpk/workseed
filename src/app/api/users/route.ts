@@ -70,17 +70,28 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
     const search = searchParams.get("search") || "";
+    const teamId = searchParams.get("teamId");
+    const departmentId = searchParams.get("departmentId");
 
-    const where = search
-      ? {
-          OR: [
-            { email: { contains: search, mode: "insensitive" as const } },
-            { firstName: { contains: search, mode: "insensitive" as const } },
-            { lastName: { contains: search, mode: "insensitive" as const } },
-            { employeeId: { contains: search, mode: "insensitive" as const } },
-          ],
-        }
-      : {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {};
+
+    if (search) {
+      where.OR = [
+        { email: { contains: search, mode: "insensitive" as const } },
+        { firstName: { contains: search, mode: "insensitive" as const } },
+        { lastName: { contains: search, mode: "insensitive" as const } },
+        { employeeId: { contains: search, mode: "insensitive" as const } },
+      ];
+    }
+
+    if (teamId) {
+      where.teamId = teamId;
+    }
+
+    if (departmentId) {
+      where.departmentId = departmentId;
+    }
 
     const [users, total] = await Promise.all([
       prisma.user.findMany({

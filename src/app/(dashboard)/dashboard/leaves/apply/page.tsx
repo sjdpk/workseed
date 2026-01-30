@@ -150,7 +150,7 @@ export default function ApplyLeavePage() {
                   type="button"
                   onClick={() => hasBalance && setFormData({ ...formData, leaveTypeId: lt.id })}
                   disabled={!hasBalance}
-                  className={`relative flex items-center justify-between rounded-lg border-2 p-3 text-left transition-all ${
+                  className={`relative flex items-center justify-between rounded border-2 p-3 text-left transition-all ${
                     isSelected
                       ? "border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20"
                       : hasBalance
@@ -245,7 +245,7 @@ export default function ApplyLeavePage() {
               )}
             </label>
             {formData.startDate && formData.endDate && (
-              <div className="rounded-lg bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+              <div className="rounded bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
                 {formData.days} {formData.days === 1 || formData.days === 0.5 ? "day" : "days"}
               </div>
             )}
@@ -263,13 +263,13 @@ export default function ApplyLeavePage() {
             value={formData.reason}
             onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
             placeholder="Enter reason for leave..."
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
+            className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
           />
         </Card>
 
         {/* Summary & Submit */}
         {formData.leaveTypeId && formData.startDate && formData.endDate && (
-          <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
+          <div className="rounded border-2 border-dashed border-gray-300 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
