@@ -6,23 +6,21 @@ import Link from "next/link";
 import { ThemeToggle, Button } from "@/components";
 import type { SessionUser } from "@/types";
 
-// Permission check based on roles
-const PERMISSIONS = {
-  USER_VIEW: ["ADMIN", "HR"],
-  USER_MANAGE: ["ADMIN", "HR"],
-  DEPARTMENT_VIEW: ["ADMIN", "HR"],
-  DEPARTMENT_MANAGE: ["ADMIN", "HR"],
-  TEAM_VIEW: ["ADMIN", "HR"],
-  TEAM_MANAGE: ["ADMIN", "HR"],
-  BRANCH_VIEW: ["ADMIN", "HR"],
-  BRANCH_MANAGE: ["ADMIN", "HR"],
-  LEAVE_APPROVE: ["ADMIN", "HR", "MANAGER", "TEAM_LEAD"],
-  SETTINGS_VIEW: ["ADMIN", "HR"],
-};
 
 interface OrgSettings {
   name: string;
   logoUrl: string | null;
+  permissions?: {
+    roleAccess?: {
+      users?: string[];
+      departments?: string[];
+      teams?: string[];
+      branches?: string[];
+      leaveTypes?: string[];
+      leaveRequests?: string[];
+      reports?: string[];
+    };
+  };
 }
 
 export default function DashboardLayout({
@@ -59,9 +57,25 @@ export default function DashboardLayout({
     router.push("/login");
   };
 
-  const hasPermission = (permission: keyof typeof PERMISSIONS) => {
+  // Check role access from organization settings
+  const hasRoleAccess = (feature: string) => {
     if (!user) return false;
-    return PERMISSIONS[permission].includes(user.role);
+
+    // Default permissions if not configured
+    const defaults: Record<string, string[]> = {
+      users: ["ADMIN", "HR"],
+      departments: ["ADMIN", "HR"],
+      teams: ["ADMIN", "HR"],
+      branches: ["ADMIN", "HR"],
+      leaveTypes: ["ADMIN", "HR"],
+      leaveRequests: ["ADMIN", "HR", "MANAGER", "TEAM_LEAD"],
+      reports: ["ADMIN", "HR", "MANAGER"],
+    };
+
+    const roleAccess = orgSettings?.permissions?.roleAccess;
+    // Use configured roles if available, otherwise use defaults
+    const allowedRoles = roleAccess?.[feature as keyof typeof roleAccess] ?? defaults[feature] ?? [];
+    return allowedRoles.includes(user.role);
   };
 
   if (!user) {
@@ -78,22 +92,22 @@ export default function DashboardLayout({
     { name: "Dashboard", href: "/dashboard", icon: HomeIcon, show: true },
     { name: "Directory", href: "/dashboard/directory", icon: ContactIcon, show: !isHROrAbove },
     { name: "Org Chart", href: "/dashboard/org-chart", icon: OrgChartIcon, show: true },
-    { name: "Users", href: "/dashboard/users", icon: UsersIcon, show: hasPermission("USER_VIEW") },
-    { name: "Departments", href: "/dashboard/departments", icon: BuildingIcon, show: hasPermission("DEPARTMENT_VIEW") },
-    { name: "Teams", href: "/dashboard/teams", icon: TeamIcon, show: hasPermission("TEAM_VIEW") },
-    { name: "Branches", href: "/dashboard/branches", icon: LocationIcon, show: hasPermission("BRANCH_VIEW") },
+    { name: "Users", href: "/dashboard/users", icon: UsersIcon, show: hasRoleAccess("users") },
+    { name: "Departments", href: "/dashboard/departments", icon: BuildingIcon, show: hasRoleAccess("departments") },
+    { name: "Teams", href: "/dashboard/teams", icon: TeamIcon, show: hasRoleAccess("teams") },
+    { name: "Branches", href: "/dashboard/branches", icon: LocationIcon, show: hasRoleAccess("branches") },
     { name: "Notices", href: "/dashboard/notices", icon: MegaphoneIcon, show: isHROrAbove },
   ].filter(item => item.show);
 
   const leaveNavigation = [
     { name: "My Leaves", href: "/dashboard/leaves", icon: CalendarIcon, show: true },
-    { name: "Leave Requests", href: "/dashboard/leaves/requests", icon: ClockIcon, show: hasPermission("LEAVE_APPROVE") },
+    { name: "Leave Requests", href: "/dashboard/leaves/requests", icon: ClockIcon, show: hasRoleAccess("leaveRequests") },
   ].filter(item => item.show);
 
   const settingsNavigation = [
     { name: "Organization", href: "/dashboard/settings/organization", icon: BuildingIcon, show: user?.role === "ADMIN" },
     { name: "Permissions", href: "/dashboard/settings/permissions", icon: ShieldIcon, show: user?.role === "ADMIN" },
-    { name: "Leave Types", href: "/dashboard/settings/leave-types", icon: SettingsIcon, show: hasPermission("SETTINGS_VIEW") },
+    { name: "Leave Types", href: "/dashboard/settings/leave-types", icon: SettingsIcon, show: hasRoleAccess("leaveTypes") },
   ].filter(item => item.show);
 
   return (

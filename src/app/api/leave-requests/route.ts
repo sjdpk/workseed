@@ -32,10 +32,44 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get("userId");
     const status = searchParams.get("status");
     const pending = searchParams.get("pending"); // For managers to see pending approvals
+    const all = searchParams.get("all"); // For authorized roles to see all requests
+
+    // Get organization permissions
+    const orgSettings = await prisma.organizationSettings.findFirst();
+    const permissions = (orgSettings?.permissions as Record<string, unknown>) || {};
+    const roleAccess = (permissions.roleAccess as Record<string, string[]>) || {};
+    const leaveRequestsAccess = roleAccess.leaveRequests || ["ADMIN", "HR", "MANAGER", "TEAM_LEAD"];
+    const canViewAllRequests = leaveRequestsAccess.includes(currentUser.role);
+
+    // Check approval permissions
+    const teamLeadCanApprove = permissions.teamLeadCanApproveLeaves !== false;
+    const managerCanApprove = permissions.managerCanApproveLeaves !== false;
+    const hrCanApprove = permissions.hrCanApproveLeaves !== false;
 
     let where: Record<string, unknown> = {};
 
-    if (pending === "true" && isManagerOrAbove(currentUser.role)) {
+    if (all === "true" && canViewAllRequests) {
+      // Authorized roles can see all leave requests based on their role
+      if (isHROrAbove(currentUser.role)) {
+        where = {}; // HR/Admin see all
+      } else if (currentUser.role === "MANAGER") {
+        // Managers see their department's requests or their direct reports
+        where = {
+          OR: [
+            { user: { managerId: currentUser.id } },
+            { user: { departmentId: currentUser.departmentId } },
+          ],
+        };
+      } else if (currentUser.role === "TEAM_LEAD") {
+        // Team leads see their team's requests or their direct reports
+        where = {
+          OR: [
+            { user: { managerId: currentUser.id } },
+            { user: { teamId: currentUser.teamId } },
+          ],
+        };
+      }
+    } else if (pending === "true" && isManagerOrAbove(currentUser.role)) {
       // Get pending requests from subordinates or all (for HR/Admin)
       if (isHROrAbove(currentUser.role)) {
         where = { status: "PENDING" };
@@ -221,9 +255,26 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    // Get organization permissions
+    const orgSettings = await prisma.organizationSettings.findFirst();
+    const permissions = (orgSettings?.permissions as Record<string, unknown>) || {};
+    const teamLeadCanApprove = permissions.teamLeadCanApproveLeaves !== false;
+    const managerCanApprove = permissions.managerCanApproveLeaves !== false;
+    const hrCanApprove = permissions.hrCanApproveLeaves !== false;
+
     // Check permissions
     const isOwner = leaveRequest.userId === currentUser.id;
-    const canApprove = isManagerOrAbove(currentUser.role);
+    let canApprove = false;
+
+    if (currentUser.role === "ADMIN") {
+      canApprove = true;
+    } else if (currentUser.role === "HR" && hrCanApprove) {
+      canApprove = true;
+    } else if (currentUser.role === "MANAGER" && managerCanApprove) {
+      canApprove = true;
+    } else if (currentUser.role === "TEAM_LEAD" && teamLeadCanApprove) {
+      canApprove = true;
+    }
 
     if (data.status === "CANCELLED") {
       if (!isOwner) {

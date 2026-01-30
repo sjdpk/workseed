@@ -93,5 +93,5 @@ export function isHROrAbove(role: string): boolean {
 }
 
 export function isManagerOrAbove(role: string): boolean {
-  return ["ADMIN", "HR", "MANAGER"].includes(role);
+  return ["ADMIN", "HR", "MANAGER", "TEAM_LEAD"].includes(role);
 }
