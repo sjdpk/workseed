@@ -9,17 +9,52 @@ const createUserSchema = z.object({
   lastName: z.string().min(1, "Last name is required"),
   phone: z.string().optional(),
   role: z.enum(["ADMIN", "HR", "MANAGER", "TEAM_LEAD", "EMPLOYEE"]),
+  dateOfBirth: z.string().optional(),
+  gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
+  maritalStatus: z.enum(["SINGLE", "MARRIED", "DIVORCED", "WIDOWED"]).optional(),
+  nationality: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  country: z.string().optional(),
+  postalCode: z.string().optional(),
+  emergencyContact: z.string().optional(),
+  emergencyContactPhone: z.string().optional(),
+  employmentType: z.enum(["FULL_TIME", "PART_TIME", "CONTRACT", "INTERN"]).optional(),
+  joiningDate: z.string().optional(),
+  designation: z.string().optional(),
   branchId: z.string().uuid().optional(),
+  departmentId: z.string().uuid().optional(),
+  teamId: z.string().uuid().optional(),
+  managerId: z.string().uuid().optional(),
 });
 
-// Generate employee ID
 async function generateEmployeeId(): Promise<string> {
   const count = await prisma.user.count();
   const paddedNumber = String(count + 1).padStart(5, "0");
   return `EMP${paddedNumber}`;
 }
 
-// GET - List users
+// Allocate default leaves for new user
+async function allocateDefaultLeaves(userId: string) {
+  const leaveTypes = await prisma.leaveType.findMany({
+    where: { isActive: true },
+  });
+
+  const currentYear = new Date().getFullYear();
+
+  for (const leaveType of leaveTypes) {
+    await prisma.leaveAllocation.create({
+      data: {
+        userId,
+        leaveTypeId: leaveType.id,
+        year: currentYear,
+        allocated: leaveType.defaultDays,
+      },
+    });
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
@@ -58,10 +93,14 @@ export async function GET(request: NextRequest) {
           phone: true,
           role: true,
           status: true,
+          designation: true,
+          employmentType: true,
+          joiningDate: true,
           createdAt: true,
-          branch: {
-            select: { id: true, name: true },
-          },
+          branch: { select: { id: true, name: true } },
+          department: { select: { id: true, name: true } },
+          team: { select: { id: true, name: true } },
+          manager: { select: { id: true, firstName: true, lastName: true } },
         },
         skip: (page - 1) * limit,
         take: limit,
@@ -91,7 +130,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create user
 export async function POST(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
@@ -102,7 +140,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Only ADMIN can create ADMIN or HR users
     const body = await request.json();
     const data = createUserSchema.parse(body);
 
@@ -116,7 +153,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if email already exists
     const existingUser = await prisma.user.findUnique({
       where: { email: data.email },
     });
@@ -133,9 +169,31 @@ export async function POST(request: NextRequest) {
 
     const user = await prisma.user.create({
       data: {
-        ...data,
         employeeId,
+        email: data.email,
         password: hashedPassword,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone,
+        role: data.role,
+        dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
+        gender: data.gender,
+        maritalStatus: data.maritalStatus,
+        nationality: data.nationality,
+        address: data.address,
+        city: data.city,
+        state: data.state,
+        country: data.country,
+        postalCode: data.postalCode,
+        emergencyContact: data.emergencyContact,
+        emergencyContactPhone: data.emergencyContactPhone,
+        employmentType: data.employmentType || "FULL_TIME",
+        joiningDate: data.joiningDate ? new Date(data.joiningDate) : undefined,
+        designation: data.designation,
+        branchId: data.branchId,
+        departmentId: data.departmentId,
+        teamId: data.teamId,
+        managerId: data.managerId,
         createdBy: currentUser.id,
       },
       select: {
@@ -144,14 +202,13 @@ export async function POST(request: NextRequest) {
         email: true,
         firstName: true,
         lastName: true,
-        phone: true,
         role: true,
         status: true,
-        branch: {
-          select: { id: true, name: true },
-        },
       },
     });
+
+    // Allocate default leaves
+    await allocateDefaultLeaves(user.id);
 
     return NextResponse.json(
       { success: true, data: { user } },

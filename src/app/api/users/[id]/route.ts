@@ -8,11 +8,27 @@ const updateUserSchema = z.object({
   phone: z.string().optional().nullable(),
   role: z.enum(["ADMIN", "HR", "MANAGER", "TEAM_LEAD", "EMPLOYEE"]).optional(),
   status: z.enum(["ACTIVE", "INACTIVE", "SUSPENDED"]).optional(),
+  dateOfBirth: z.string().optional().nullable(),
+  gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional().nullable(),
+  maritalStatus: z.enum(["SINGLE", "MARRIED", "DIVORCED", "WIDOWED"]).optional().nullable(),
+  nationality: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
+  state: z.string().optional().nullable(),
+  country: z.string().optional().nullable(),
+  postalCode: z.string().optional().nullable(),
+  emergencyContact: z.string().optional().nullable(),
+  emergencyContactPhone: z.string().optional().nullable(),
+  employmentType: z.enum(["FULL_TIME", "PART_TIME", "CONTRACT", "INTERN"]).optional(),
+  joiningDate: z.string().optional().nullable(),
+  designation: z.string().optional().nullable(),
   branchId: z.string().uuid().optional().nullable(),
+  departmentId: z.string().uuid().optional().nullable(),
+  teamId: z.string().uuid().optional().nullable(),
+  managerId: z.string().uuid().optional().nullable(),
   password: z.string().min(8).optional(),
 });
 
-// GET - Get single user
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -39,11 +55,29 @@ export async function GET(
         phone: true,
         role: true,
         status: true,
+        dateOfBirth: true,
+        gender: true,
+        maritalStatus: true,
+        nationality: true,
+        address: true,
+        city: true,
+        state: true,
+        country: true,
+        postalCode: true,
+        emergencyContact: true,
+        emergencyContactPhone: true,
+        employmentType: true,
+        joiningDate: true,
+        designation: true,
         branchId: true,
-        branch: {
-          select: { id: true, name: true },
-        },
+        departmentId: true,
+        teamId: true,
+        managerId: true,
         createdAt: true,
+        branch: { select: { id: true, name: true } },
+        department: { select: { id: true, name: true } },
+        team: { select: { id: true, name: true } },
+        manager: { select: { id: true, firstName: true, lastName: true } },
       },
     });
 
@@ -54,7 +88,6 @@ export async function GET(
       );
     }
 
-    // Users can only view their own profile unless they're HR or above
     if (user.id !== currentUser.id && !isHROrAbove(currentUser.role)) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
@@ -75,7 +108,6 @@ export async function GET(
   }
 }
 
-// PATCH - Update user
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -93,7 +125,6 @@ export async function PATCH(
     const body = await request.json();
     const data = updateUserSchema.parse(body);
 
-    // Get the user to be updated
     const targetUser = await prisma.user.findUnique({
       where: { id },
     });
@@ -108,7 +139,6 @@ export async function PATCH(
     const isSelf = currentUser.id === id;
     const isHRAdmin = isHROrAbove(currentUser.role);
 
-    // Check permissions
     if (!isSelf && !isHRAdmin) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
@@ -116,31 +146,49 @@ export async function PATCH(
       );
     }
 
-    // Self can only update: firstName, lastName, phone, password
-    // HR/Admin can update: all fields
-    // Only ADMIN can change role to ADMIN/HR or change status
     const updateData: Record<string, unknown> = {};
 
+    // Self-editable fields
     if (data.firstName) updateData.firstName = data.firstName;
     if (data.lastName) updateData.lastName = data.lastName;
     if (data.phone !== undefined) updateData.phone = data.phone;
     if (data.password) updateData.password = await hashPassword(data.password);
+    if (data.address !== undefined) updateData.address = data.address;
+    if (data.city !== undefined) updateData.city = data.city;
+    if (data.state !== undefined) updateData.state = data.state;
+    if (data.country !== undefined) updateData.country = data.country;
+    if (data.postalCode !== undefined) updateData.postalCode = data.postalCode;
+    if (data.emergencyContact !== undefined) updateData.emergencyContact = data.emergencyContact;
+    if (data.emergencyContactPhone !== undefined) updateData.emergencyContactPhone = data.emergencyContactPhone;
 
     // HR/Admin only fields
-    if (isHRAdmin) {
+    if (isHRAdmin && !isSelf) {
+      if (data.dateOfBirth !== undefined) {
+        updateData.dateOfBirth = data.dateOfBirth ? new Date(data.dateOfBirth) : null;
+      }
+      if (data.gender !== undefined) updateData.gender = data.gender;
+      if (data.maritalStatus !== undefined) updateData.maritalStatus = data.maritalStatus;
+      if (data.nationality !== undefined) updateData.nationality = data.nationality;
+      if (data.employmentType) updateData.employmentType = data.employmentType;
+      if (data.joiningDate !== undefined) {
+        updateData.joiningDate = data.joiningDate ? new Date(data.joiningDate) : null;
+      }
+      if (data.designation !== undefined) updateData.designation = data.designation;
       if (data.branchId !== undefined) updateData.branchId = data.branchId;
+      if (data.departmentId !== undefined) updateData.departmentId = data.departmentId;
+      if (data.teamId !== undefined) updateData.teamId = data.teamId;
+      if (data.managerId !== undefined) updateData.managerId = data.managerId;
 
-      // Only ADMIN can change roles
+      // Role changes
       if (data.role && currentUser.role === "ADMIN") {
         updateData.role = data.role;
       } else if (data.role && currentUser.role === "HR") {
-        // HR can only assign MANAGER, TEAM_LEAD, EMPLOYEE
         if (!["ADMIN", "HR"].includes(data.role)) {
           updateData.role = data.role;
         }
       }
 
-      // Only ADMIN can change status
+      // Status changes (ADMIN only)
       if (data.status && currentUser.role === "ADMIN") {
         updateData.status = data.status;
       }
@@ -158,9 +206,9 @@ export async function PATCH(
         phone: true,
         role: true,
         status: true,
-        branch: {
-          select: { id: true, name: true },
-        },
+        branch: { select: { id: true, name: true } },
+        department: { select: { id: true, name: true } },
+        team: { select: { id: true, name: true } },
       },
     });
 

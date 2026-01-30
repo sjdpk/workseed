@@ -20,6 +20,56 @@ enum UserStatus {
   SUSPENDED
 }
 
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERN
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum DocumentType {
+  ID_PROOF
+  ADDRESS_PROOF
+  EDUCATION
+  EXPERIENCE
+  CONTRACT
+  OTHER
+}
+
+// Organization Settings
+model OrganizationSettings {
+  id                    String   @id @default(uuid()) @db.Uuid
+  name                  String   @default("Organization")
+  fiscalYearStart       Int      @default(1) // Month (1-12)
+  workingDaysPerWeek    Int      @default(5)
+  defaultLeaveAllocation Json?   // Default leave allocation for new employees
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("organization_settings")
+}
+
+// Branch/Location
 model Branch {
   id        String   @id @default(uuid()) @db.Uuid
   name      String   @unique
@@ -34,34 +84,201 @@ model Branch {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users User[]
+  users       User[]
+  departments Department[]
 
   @@map("branches")
 }
 
+// Department
+model Department {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  code        String   @unique
+  description String?
+  branchId    String?  @db.Uuid
+  branch      Branch?  @relation(fields: [branchId], references: [id])
+  headId      String?  @db.Uuid
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users User[]
+  teams Team[]
+
+  @@map("departments")
+}
+
+// Team
+model Team {
+  id           String      @id @default(uuid()) @db.Uuid
+  name         String
+  code         String      @unique
+  description  String?
+  departmentId String      @db.Uuid
+  department   Department  @relation(fields: [departmentId], references: [id])
+  leadId       String?     @db.Uuid
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  users User[]
+
+  @@map("teams")
+}
+
+// User/Employee
 model User {
-  id           String     @id @default(uuid()) @db.Uuid
-  employeeId   String     @unique
-  email        String     @unique
-  password     String
-  firstName    String
-  lastName     String
-  phone        String?
-  role         Role       @default(EMPLOYEE)
-  status       UserStatus @default(ACTIVE)
-  branchId     String?    @db.Uuid
-  branch       Branch?    @relation(fields: [branchId], references: [id])
-  managerId    String?    @db.Uuid
-  manager      User?      @relation("ManagerEmployee", fields: [managerId], references: [id])
-  subordinates User[]     @relation("ManagerEmployee")
-  lastLoginAt  DateTime?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  createdBy    String?    @db.Uuid
+  id             String          @id @default(uuid()) @db.Uuid
+  employeeId     String          @unique
+  email          String          @unique
+  password       String
+  firstName      String
+  lastName       String
+  phone          String?
+  role           Role            @default(EMPLOYEE)
+  status         UserStatus      @default(ACTIVE)
+
+  // Personal Info
+  dateOfBirth    DateTime?
+  gender         Gender?
+  maritalStatus  MaritalStatus?
+  nationality    String?
+  address        String?
+  city           String?
+  state          String?
+  country        String?
+  postalCode     String?
+  emergencyContact     String?
+  emergencyContactPhone String?
+
+  // Employment Info
+  employmentType EmploymentType  @default(FULL_TIME)
+  joiningDate    DateTime?
+  probationEndDate DateTime?
+  confirmationDate DateTime?
+  resignationDate  DateTime?
+  lastWorkingDate  DateTime?
+
+  // Organization
+  branchId       String?         @db.Uuid
+  branch         Branch?         @relation(fields: [branchId], references: [id])
+  departmentId   String?         @db.Uuid
+  department     Department?     @relation(fields: [departmentId], references: [id])
+  teamId         String?         @db.Uuid
+  team           Team?           @relation(fields: [teamId], references: [id])
+  managerId      String?         @db.Uuid
+  manager        User?           @relation("ManagerEmployee", fields: [managerId], references: [id])
+  subordinates   User[]          @relation("ManagerEmployee")
+  designation    String?
+
+  // Metadata
+  lastLoginAt    DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  createdBy      String?         @db.Uuid
+
+  // Relations
+  documents       UserDocument[]
+  leaveAllocations LeaveAllocation[]
+  leaveRequests   LeaveRequest[]
+  leaveApprovals  LeaveRequest[]  @relation("LeaveApprover")
 
   @@map("users")
 }
 
+// User Documents
+model UserDocument {
+  id          String       @id @default(uuid()) @db.Uuid
+  userId      String       @db.Uuid
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        DocumentType
+  name        String
+  fileName    String
+  filePath    String
+  fileSize    Int?
+  mimeType    String?
+  expiryDate  DateTime?
+  isVerified  Boolean      @default(false)
+  verifiedBy  String?      @db.Uuid
+  verifiedAt  DateTime?
+  notes       String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("user_documents")
+}
+
+// Leave Type (Organization-wide)
+model LeaveType {
+  id                String   @id @default(uuid()) @db.Uuid
+  name              String   @unique
+  code              String   @unique
+  description       String?
+  defaultDays       Float    @default(0)  // Default annual allocation
+  maxDays           Float?   // Max days that can be allocated
+  carryForward      Boolean  @default(false)
+  maxCarryForward   Float?   // Max days that can be carried forward
+  isPaid            Boolean  @default(true)
+  isActive          Boolean  @default(true)
+  requiresApproval  Boolean  @default(true)
+  minDaysNotice     Int      @default(0)  // Minimum days in advance to apply
+  color             String?  // For UI display
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  allocations  LeaveAllocation[]
+  requests     LeaveRequest[]
+
+  @@map("leave_types")
+}
+
+// Leave Allocation (Per User, Per Year)
+model LeaveAllocation {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @db.Uuid
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leaveTypeId   String    @db.Uuid
+  leaveType     LeaveType @relation(fields: [leaveTypeId], references: [id])
+  year          Int
+  allocated     Float     // Total allocated days
+  used          Float     @default(0)  // Days used
+  carriedOver   Float     @default(0)  // Days carried from previous year
+  adjusted      Float     @default(0)  // Manual adjustments
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([userId, leaveTypeId, year])
+  @@map("leave_allocations")
+}
+
+// Leave Request
+model LeaveRequest {
+  id            String      @id @default(uuid()) @db.Uuid
+  userId        String      @db.Uuid
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leaveTypeId   String      @db.Uuid
+  leaveType     LeaveType   @relation(fields: [leaveTypeId], references: [id])
+  startDate     DateTime
+  endDate       DateTime
+  days          Float       // Number of days (can be 0.5 for half day)
+  isHalfDay     Boolean     @default(false)
+  halfDayType   String?     // "FIRST_HALF" or "SECOND_HALF"
+  reason        String?
+  status        LeaveStatus @default(PENDING)
+  approverId    String?     @db.Uuid
+  approver      User?       @relation("LeaveApprover", fields: [approverId], references: [id])
+  approvedAt    DateTime?
+  rejectionReason String?
+  cancelReason  String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("leave_requests")
+}
+
+// Audit Log
 model AuditLog {
   id        String   @id @default(uuid()) @db.Uuid
   userId    String   @db.Uuid
