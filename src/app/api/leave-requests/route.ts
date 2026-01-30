@@ -83,6 +83,13 @@ export async function GET(request: NextRequest) {
         status: "APPROVED", // Only show approved leaves to team members
       };
       scope = "team_approved";
+    } else if (searchParams.get("department") === "true" && employeesCanViewDepartmentLeaves && currentUser.departmentId) {
+      // Employees viewing department leaves (if permission enabled)
+      where = {
+        user: { departmentId: currentUser.departmentId },
+        status: "APPROVED", // Only show approved leaves to department members
+      };
+      scope = "department_approved";
     } else if (pending === "true" && isManagerOrAbove(currentUser.role)) {
       // Get pending requests for approval
       if (isHROrAbove(currentUser.role)) {

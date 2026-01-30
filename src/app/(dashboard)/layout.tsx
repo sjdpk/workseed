@@ -103,12 +103,14 @@ export default function DashboardLayout({
     { name: "Notices", href: "/dashboard/notices", icon: MegaphoneIcon, show: isHROrAbove },
   ].filter(item => item.show);
 
-  // Check if employee can view team leaves
+  // Check if employee can view team/department leaves
   const canViewTeamLeaves = orgSettings?.permissions?.employeesCanViewTeamLeaves === true && user?.teamId;
+  const canViewDeptLeaves = orgSettings?.permissions?.employeesCanViewDepartmentLeaves === true && user?.departmentId;
+  const canViewWhosOut = canViewTeamLeaves || canViewDeptLeaves;
 
   const leaveNavigation = [
     { name: "My Leaves", href: "/dashboard/leaves", icon: CalendarIcon, show: true },
-    { name: "Team Leaves", href: "/dashboard/leaves/team", icon: UsersIcon, show: canViewTeamLeaves },
+    { name: "Who's Out", href: "/dashboard/leaves/whos-out", icon: UsersIcon, show: canViewWhosOut },
     { name: "Leave Requests", href: "/dashboard/leaves/requests", icon: ClockIcon, show: hasRoleAccess("leaveRequests") },
   ].filter(item => item.show);
 
