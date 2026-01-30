@@ -10,6 +10,7 @@ const ALLOWED_ROLES = ["ADMIN", "HR"];
 export default function NewUserPage() {
   const router = useRouter();
   const toast = useToast();
+  const [currentUserRole, setCurrentUserRole] = useState<string>("");
   const [branches, setBranches] = useState<Branch[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -55,9 +56,12 @@ export default function NewUserPage() {
       fetch("/api/users?limit=100").then(r => r.json()),
     ]).then(([meData, branchesData, deptData, teamsData, usersData]) => {
       // Check permission
-      if (meData.success && !ALLOWED_ROLES.includes(meData.data.user.role)) {
-        router.replace("/dashboard");
-        return;
+      if (meData.success) {
+        if (!ALLOWED_ROLES.includes(meData.data.user.role)) {
+          router.replace("/dashboard");
+          return;
+        }
+        setCurrentUserRole(meData.data.user.role);
       }
       if (branchesData.success) setBranches(branchesData.data.branches);
       if (deptData.success) setDepartments(deptData.data.departments);
@@ -110,12 +114,15 @@ export default function NewUserPage() {
     }
   };
 
+  // Only ADMIN can assign ADMIN or HR roles
   const roleOptions = [
     { value: "EMPLOYEE", label: "Employee" },
     { value: "TEAM_LEAD", label: "Team Lead" },
     { value: "MANAGER", label: "Manager" },
-    { value: "HR", label: "HR" },
-    { value: "ADMIN", label: "Admin" },
+    ...(currentUserRole === "ADMIN" ? [
+      { value: "HR", label: "HR" },
+      { value: "ADMIN", label: "Admin" },
+    ] : []),
   ];
 
   const genderOptions = [
@@ -212,7 +219,12 @@ export default function NewUserPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Input id="employeeId" label="Employee ID" placeholder="Auto-generated if empty" value={formData.employeeId} onChange={(e) => setFormData({ ...formData, employeeId: e.target.value.toUpperCase() })} />
             <Select id="role" label="Role *" options={roleOptions} value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value as Role })} />
-            <Select id="status" label="Status" options={statusOptions} value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} />
+            <div>
+              <Select id="status" label="Status" options={statusOptions} value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} disabled={currentUserRole !== "ADMIN"} />
+              {currentUserRole !== "ADMIN" && (
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Only Admin can set status</p>
+              )}
+            </div>
             <Select id="employmentType" label="Employment Type" options={employmentOptions} value={formData.employmentType} onChange={(e) => setFormData({ ...formData, employmentType: e.target.value as EmploymentType })} />
             <Input id="designation" label="Designation" value={formData.designation} onChange={(e) => setFormData({ ...formData, designation: e.target.value })} />
             <Input id="joiningDate" type="date" label="Joining Date" value={formData.joiningDate} onChange={(e) => setFormData({ ...formData, joiningDate: e.target.value })} />

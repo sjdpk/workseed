@@ -313,12 +313,15 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
     return <div className="p-8 text-center text-gray-500">User not found</div>;
   }
 
+  // Only ADMIN can assign ADMIN or HR roles
   const roleOptions = [
     { value: "EMPLOYEE", label: "Employee" },
     { value: "TEAM_LEAD", label: "Team Lead" },
     { value: "MANAGER", label: "Manager" },
-    { value: "HR", label: "HR" },
-    { value: "ADMIN", label: "Admin" },
+    ...(currentUser.role === "ADMIN" ? [
+      { value: "HR", label: "HR" },
+      { value: "ADMIN", label: "Admin" },
+    ] : []),
   ];
 
   const statusOptions = [
@@ -378,9 +381,33 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
             <Input id="password" type="password" label="New Password (leave empty to keep)" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="••••••••" />
           </div>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <Select id="role" label="Role" options={roleOptions} value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value as Role })} />
-            <Select id="status" label="Status" options={statusOptions} value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} />
+            <Select
+              id="role"
+              label="Role"
+              options={roleOptions}
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value as Role })}
+              disabled={currentUser.role !== "ADMIN" && ["ADMIN", "HR"].includes(user.role)}
+            />
+            <Select
+              id="status"
+              label="Status"
+              options={statusOptions}
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              disabled={currentUser.role !== "ADMIN"}
+            />
           </div>
+          {currentUser.role !== "ADMIN" && ["ADMIN", "HR"].includes(user.role) && (
+            <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+              Only Admin can modify role for Admin/HR users
+            </p>
+          )}
+          {currentUser.role !== "ADMIN" && (
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              Only Admin can change user status
+            </p>
+          )}
         </Card>
 
         <Card>
