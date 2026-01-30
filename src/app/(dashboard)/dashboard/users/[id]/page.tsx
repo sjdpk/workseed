@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Input, Select } from "@/components";
-import type { Branch, Department, Team, Role, Gender, MaritalStatus, EmploymentType } from "@/types";
+import type { Branch, Department, Team, Role, Gender, MaritalStatus, EmploymentType, LeaveType } from "@/types";
 
 const ALLOWED_ROLES = ["ADMIN", "HR"];
 
@@ -41,6 +41,19 @@ interface CurrentUser {
   role: string;
 }
 
+interface Allocation {
+  id: string;
+  leaveTypeId: string;
+  leaveType: LeaveType;
+  year: number;
+  allocated: number;
+  used: number;
+  carriedOver: number;
+  adjusted: number;
+  balance: number;
+  notes?: string;
+}
+
 export default function EditUserPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
@@ -50,9 +63,14 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
   const [departments, setDepartments] = useState<Department[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [managers, setManagers] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
+  const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
+  const [allocations, setAllocations] = useState<Allocation[]>([]);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingAllocation, setSavingAllocation] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -81,6 +99,14 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
     managerId: "",
   });
 
+  const fetchAllocations = async () => {
+    const res = await fetch(`/api/leave-allocations?userId=${id}&year=${selectedYear}`);
+    const data = await res.json();
+    if (data.success) {
+      setAllocations(data.data.allocations);
+    }
+  };
+
   useEffect(() => {
     Promise.all([
       fetch("/api/auth/me").then(r => r.json()),
@@ -89,8 +115,9 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
       fetch("/api/departments").then(r => r.json()),
       fetch("/api/teams").then(r => r.json()),
       fetch("/api/users?limit=100").then(r => r.json()),
-    ]).then(([meData, userData, branchesData, deptData, teamsData, usersData]) => {
-      // Check permission - only HR/Admin can edit users
+      fetch("/api/leave-types").then(r => r.json()),
+      fetch(`/api/leave-allocations?userId=${id}&year=${selectedYear}`).then(r => r.json()),
+    ]).then(([meData, userData, branchesData, deptData, teamsData, usersData, leaveTypesData, allocData]) => {
       if (meData.success) {
         setCurrentUser(meData.data.user);
         if (!ALLOWED_ROLES.includes(meData.data.user.role)) {
@@ -134,13 +161,22 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
       if (usersData.success) setManagers(usersData.data.users.filter((u: { id: string; role: string }) =>
         ["ADMIN", "HR", "MANAGER", "TEAM_LEAD"].includes(u.role) && u.id !== id
       ));
+      if (leaveTypesData.success) setLeaveTypes(leaveTypesData.data.leaveTypes);
+      if (allocData.success) setAllocations(allocData.data.allocations);
       setLoading(false);
     });
   }, [id, router]);
 
+  useEffect(() => {
+    if (!loading && id) {
+      fetchAllocations();
+    }
+  }, [selectedYear]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
     setSaving(true);
 
     try {
@@ -161,7 +197,6 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
         payload.password = formData.password;
       }
 
-      // HR/Admin fields
       payload.role = formData.role;
       payload.status = formData.status;
       payload.dateOfBirth = formData.dateOfBirth || null;
@@ -189,11 +224,50 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
         return;
       }
 
-      router.push("/dashboard/users");
+      setSuccess("User updated successfully!");
     } catch {
       setError("Something went wrong");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleUpdateAllocation = async (allocationId: string, field: string, value: number | string) => {
+    setSavingAllocation(allocationId);
+    try {
+      const res = await fetch(`/api/leave-allocations/${allocationId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: value }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchAllocations();
+      }
+    } finally {
+      setSavingAllocation(null);
+    }
+  };
+
+  const handleCreateAllocation = async (leaveTypeId: string, allocated: number) => {
+    setSavingAllocation(leaveTypeId);
+    try {
+      const res = await fetch("/api/leave-allocations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: id,
+          leaveTypeId,
+          year: selectedYear,
+          allocated,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchAllocations();
+      }
+    } finally {
+      setSavingAllocation(null);
     }
   };
 
@@ -245,6 +319,16 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
     { value: "INTERN", label: "Intern" },
   ];
 
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: 5 }, (_, i) => ({
+    value: (currentYear - 2 + i).toString(),
+    label: (currentYear - 2 + i).toString(),
+  }));
+
+  // Get missing leave types
+  const allocatedTypeIds = allocations.map((a) => a.leaveTypeId);
+  const missingLeaveTypes = leaveTypes.filter((lt) => !allocatedTypeIds.includes(lt.id));
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -252,11 +336,14 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
           <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Edit User</h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{user.firstName} {user.lastName} ({user.employeeId})</p>
         </div>
-        <Button variant="outline" onClick={() => router.back()}>Cancel</Button>
+        <Button variant="outline" onClick={() => router.back()}>Back</Button>
       </div>
 
       {error && (
         <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</div>
+      )}
+      {success && (
+        <div className="rounded-md bg-green-50 p-3 text-sm text-green-600 dark:bg-green-900/20 dark:text-green-400">{success}</div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -324,6 +411,127 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
           <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
         </div>
       </form>
+
+      {/* Leave Allocations Section */}
+      <Card>
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Leave Allocations</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Manage leave balance for this employee</p>
+          </div>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+          >
+            {yearOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="border-b border-gray-200 dark:border-gray-700">
+              <tr>
+                <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Leave Type</th>
+                <th className="px-3 py-2 text-center text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Allocated</th>
+                <th className="px-3 py-2 text-center text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Used</th>
+                <th className="px-3 py-2 text-center text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Adjust</th>
+                <th className="px-3 py-2 text-center text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Balance</th>
+                <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Notes</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {allocations.map((alloc) => (
+                <tr key={alloc.id}>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <div className="h-3 w-1 rounded-full" style={{ backgroundColor: alloc.leaveType?.color || "#3B82F6" }} />
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">{alloc.leaveType?.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-3 py-2 text-center">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      value={alloc.allocated}
+                      onChange={(e) => handleUpdateAllocation(alloc.id, "allocated", parseFloat(e.target.value) || 0)}
+                      disabled={savingAllocation === alloc.id}
+                      className="w-16 rounded border border-gray-300 px-2 py-1 text-center text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    />
+                  </td>
+                  <td className="px-3 py-2 text-center text-sm text-gray-600 dark:text-gray-300">{alloc.used}</td>
+                  <td className="px-3 py-2 text-center">
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={alloc.adjusted}
+                      onChange={(e) => handleUpdateAllocation(alloc.id, "adjusted", parseFloat(e.target.value) || 0)}
+                      disabled={savingAllocation === alloc.id}
+                      className="w-16 rounded border border-gray-300 px-2 py-1 text-center text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    />
+                  </td>
+                  <td className="px-3 py-2 text-center">
+                    <span className={`text-sm font-medium ${alloc.balance >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                      {alloc.balance}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2">
+                    <input
+                      type="text"
+                      value={alloc.notes || ""}
+                      onChange={(e) => handleUpdateAllocation(alloc.id, "notes", e.target.value)}
+                      disabled={savingAllocation === alloc.id}
+                      placeholder="Note..."
+                      className="w-full rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    />
+                  </td>
+                </tr>
+              ))}
+              {missingLeaveTypes.map((lt) => (
+                <tr key={lt.id} className="bg-gray-50 dark:bg-gray-800/50">
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <div className="h-3 w-1 rounded-full" style={{ backgroundColor: lt.color || "#3B82F6" }} />
+                      <span className="text-sm text-gray-500 dark:text-gray-400">{lt.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-3 py-2 text-center">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      defaultValue={lt.defaultDays}
+                      id={`new-alloc-${lt.id}`}
+                      className="w-16 rounded border border-gray-300 px-2 py-1 text-center text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    />
+                  </td>
+                  <td className="px-3 py-2 text-center text-sm text-gray-400">-</td>
+                  <td className="px-3 py-2 text-center text-sm text-gray-400">-</td>
+                  <td className="px-3 py-2 text-center text-sm text-gray-400">-</td>
+                  <td className="px-3 py-2">
+                    <Button
+                      size="sm"
+                      disabled={savingAllocation === lt.id}
+                      onClick={() => {
+                        const input = document.getElementById(`new-alloc-${lt.id}`) as HTMLInputElement;
+                        handleCreateAllocation(lt.id, parseFloat(input.value) || lt.defaultDays);
+                      }}
+                    >
+                      {savingAllocation === lt.id ? "..." : "Add"}
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+          <strong>Tip:</strong> For mid-year joiners, reduce &quot;Allocated&quot; or use negative &quot;Adjust&quot; value. Balance = Allocated + Adjust - Used
+        </p>
+      </Card>
     </div>
   );
 }
