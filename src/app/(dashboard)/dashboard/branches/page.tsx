@@ -94,7 +94,7 @@ export default function BranchesPage() {
             Create New Branch
           </h2>
           {formError && (
-            <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/30 dark:text-red-400">
+            <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
               {formError}
             </div>
           )}
@@ -173,7 +173,7 @@ export default function BranchesPage() {
                 }
               />
             </div>
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-2">
               <Button
                 type="button"
                 variant="outline"
@@ -208,15 +208,15 @@ export default function BranchesPage() {
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
                     {branch.name}
                   </h3>
-                  <span className="inline-flex rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                  <span className="mt-1 inline-flex rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
                     {branch.code}
                   </span>
                 </div>
                 <span
                   className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${
                     branch.isActive
-                      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                      : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                      ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                      : "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300"
                   }`}
                 >
                   {branch.isActive ? "Active" : "Inactive"}

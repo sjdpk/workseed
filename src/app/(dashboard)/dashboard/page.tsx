@@ -34,19 +34,19 @@ export default function DashboardPage() {
       name: "Total Users",
       value: stats.totalUsers,
       icon: UsersIcon,
-      color: "bg-blue-500",
+      color: "bg-blue-600",
     },
     {
       name: "Branches",
       value: stats.totalBranches,
       icon: BuildingIcon,
-      color: "bg-green-500",
+      color: "bg-green-600",
     },
     {
       name: "Active Users",
       value: stats.activeUsers,
       icon: ActiveIcon,
-      color: "bg-purple-500",
+      color: "bg-purple-600",
     },
   ];
 
@@ -119,7 +119,7 @@ function QuickAction({
       className="flex items-start gap-3 rounded-md border border-gray-200 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700/50"
     >
       <div className="rounded-md bg-gray-100 p-2 dark:bg-gray-700">
-        <Icon className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+        <Icon className="h-4 w-4 text-gray-600 dark:text-gray-300" />
       </div>
       <div>
         <h3 className="text-sm font-medium text-gray-900 dark:text-white">{title}</h3>
