@@ -21,6 +21,7 @@ export default function NewUserPage() {
     lastName: "",
     phone: "",
     role: "EMPLOYEE" as Role,
+    status: "ACTIVE",
     dateOfBirth: "",
     gender: "" as Gender | "",
     maritalStatus: "" as MaritalStatus | "",
@@ -65,6 +66,7 @@ export default function NewUserPage() {
     try {
       const payload = {
         ...formData,
+        status: formData.status,
         gender: formData.gender || undefined,
         maritalStatus: formData.maritalStatus || undefined,
         branchId: formData.branchId || undefined,
@@ -124,6 +126,12 @@ export default function NewUserPage() {
     { value: "PART_TIME", label: "Part Time" },
     { value: "CONTRACT", label: "Contract" },
     { value: "INTERN", label: "Intern" },
+  ];
+
+  const statusOptions = [
+    { value: "ACTIVE", label: "Active" },
+    { value: "INACTIVE", label: "Inactive" },
+    { value: "SUSPENDED", label: "Suspended" },
   ];
 
   return (
@@ -187,6 +195,7 @@ export default function NewUserPage() {
           <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Employment Details</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Select id="role" label="Role *" options={roleOptions} value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value as Role })} />
+            <Select id="status" label="Status" options={statusOptions} value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} />
             <Select id="employmentType" label="Employment Type" options={employmentOptions} value={formData.employmentType} onChange={(e) => setFormData({ ...formData, employmentType: e.target.value as EmploymentType })} />
             <Input id="designation" label="Designation" value={formData.designation} onChange={(e) => setFormData({ ...formData, designation: e.target.value })} />
             <Input id="joiningDate" type="date" label="Joining Date" value={formData.joiningDate} onChange={(e) => setFormData({ ...formData, joiningDate: e.target.value })} />
