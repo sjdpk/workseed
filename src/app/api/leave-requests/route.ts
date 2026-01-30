@@ -33,57 +33,90 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
     const pending = searchParams.get("pending"); // For managers to see pending approvals
     const all = searchParams.get("all"); // For authorized roles to see all requests
+    const team = searchParams.get("team"); // For employees to see team leaves
 
     // Get organization permissions
     const orgSettings = await prisma.organizationSettings.findFirst();
     const permissions = (orgSettings?.permissions as Record<string, unknown>) || {};
     const roleAccess = (permissions.roleAccess as Record<string, string[]>) || {};
     const leaveRequestsAccess = roleAccess.leaveRequests || ["ADMIN", "HR", "MANAGER", "TEAM_LEAD"];
-    const canViewAllRequests = leaveRequestsAccess.includes(currentUser.role);
+    const canViewLeaveRequests = leaveRequestsAccess.includes(currentUser.role);
 
-    // Check approval permissions
-    const teamLeadCanApprove = permissions.teamLeadCanApproveLeaves !== false;
-    const managerCanApprove = permissions.managerCanApproveLeaves !== false;
-    const hrCanApprove = permissions.hrCanApproveLeaves !== false;
+    // Leave visibility permissions
+    const employeesCanViewTeamLeaves = permissions.employeesCanViewTeamLeaves === true;
+    const employeesCanViewDepartmentLeaves = permissions.employeesCanViewDepartmentLeaves === true;
 
     let where: Record<string, unknown> = {};
+    let scope = "own"; // Track scope for UI
 
-    if (all === "true" && canViewAllRequests) {
-      // Authorized roles can see all leave requests based on their role
+    if (all === "true" && canViewLeaveRequests) {
+      // Hierarchical leave viewing based on role
       if (isHROrAbove(currentUser.role)) {
-        where = {}; // HR/Admin see all
+        // HR/Admin see all leave requests
+        where = {};
+        scope = "all";
       } else if (currentUser.role === "MANAGER") {
-        // Managers see their department's requests or their direct reports
+        // Managers see only their direct reports' leaves
         where = {
-          OR: [
-            { user: { managerId: currentUser.id } },
-            { user: { departmentId: currentUser.departmentId } },
-          ],
+          user: { managerId: currentUser.id },
         };
+        scope = "direct_reports";
       } else if (currentUser.role === "TEAM_LEAD") {
-        // Team leads see their team's requests or their direct reports
-        where = {
-          OR: [
-            { user: { managerId: currentUser.id } },
-            { user: { teamId: currentUser.teamId } },
-          ],
-        };
+        // Team Leads see their team members' leaves
+        if (currentUser.teamId) {
+          where = {
+            user: { teamId: currentUser.teamId },
+          };
+          scope = "team";
+        } else {
+          // If no team, only see direct reports
+          where = {
+            user: { managerId: currentUser.id },
+          };
+          scope = "direct_reports";
+        }
       }
+    } else if (team === "true" && employeesCanViewTeamLeaves && currentUser.teamId) {
+      // Employees viewing team leaves (if permission enabled)
+      where = {
+        user: { teamId: currentUser.teamId },
+        status: "APPROVED", // Only show approved leaves to team members
+      };
+      scope = "team_approved";
     } else if (pending === "true" && isManagerOrAbove(currentUser.role)) {
-      // Get pending requests from subordinates or all (for HR/Admin)
+      // Get pending requests for approval
       if (isHROrAbove(currentUser.role)) {
         where = { status: "PENDING" };
-      } else {
-        // Manager/Team Lead - get their team's pending requests
+        scope = "all_pending";
+      } else if (currentUser.role === "MANAGER") {
+        // Manager sees pending from direct reports
         where = {
           status: "PENDING",
           user: { managerId: currentUser.id },
         };
+        scope = "direct_reports_pending";
+      } else if (currentUser.role === "TEAM_LEAD") {
+        // Team Lead sees pending from team members
+        if (currentUser.teamId) {
+          where = {
+            status: "PENDING",
+            user: { teamId: currentUser.teamId },
+          };
+          scope = "team_pending";
+        } else {
+          where = {
+            status: "PENDING",
+            user: { managerId: currentUser.id },
+          };
+          scope = "direct_reports_pending";
+        }
       }
     } else if (userId && isHROrAbove(currentUser.role)) {
       where = { userId };
+      scope = "specific_user";
     } else {
       where = { userId: currentUser.id };
+      scope = "own";
     }
 
     if (status) {
@@ -112,7 +145,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: { leaveRequests },
+      data: { leaveRequests, scope },
     });
   } catch (error) {
     console.error("List leave requests error:", error);

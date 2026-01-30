@@ -18,8 +18,11 @@ interface OrgSettings {
       branches?: string[];
       leaveTypes?: string[];
       leaveRequests?: string[];
+      auditLogs?: string[];
       reports?: string[];
     };
+    employeesCanViewTeamLeaves?: boolean;
+    employeesCanViewDepartmentLeaves?: boolean;
   };
 }
 
@@ -100,8 +103,12 @@ export default function DashboardLayout({
     { name: "Notices", href: "/dashboard/notices", icon: MegaphoneIcon, show: isHROrAbove },
   ].filter(item => item.show);
 
+  // Check if employee can view team leaves
+  const canViewTeamLeaves = orgSettings?.permissions?.employeesCanViewTeamLeaves === true && user?.teamId;
+
   const leaveNavigation = [
     { name: "My Leaves", href: "/dashboard/leaves", icon: CalendarIcon, show: true },
+    { name: "Team Leaves", href: "/dashboard/leaves/team", icon: UsersIcon, show: canViewTeamLeaves },
     { name: "Leave Requests", href: "/dashboard/leaves/requests", icon: ClockIcon, show: hasRoleAccess("leaveRequests") },
   ].filter(item => item.show);
 

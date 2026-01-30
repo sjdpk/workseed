@@ -15,7 +15,6 @@ interface PermissionSettings {
   // Leave settings
   employeesCanViewTeamLeaves: boolean;
   employeesCanViewDepartmentLeaves: boolean;
-  managersCanViewAllLeaves: boolean;
 
   // Self-service settings
   employeesCanEditOwnProfile: boolean;
@@ -46,7 +45,6 @@ const defaultPermissions: PermissionSettings = {
 
   employeesCanViewTeamLeaves: false,
   employeesCanViewDepartmentLeaves: false,
-  managersCanViewAllLeaves: false,
 
   employeesCanEditOwnProfile: true,
   employeesCanViewOwnDocuments: true,
@@ -219,6 +217,16 @@ export default function PermissionsPage() {
         <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Leave Visibility</h2>
         <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">Control who can see leave information</p>
 
+        {/* Default Hierarchy Info */}
+        <div className="mb-4 rounded bg-blue-50 p-3 dark:bg-blue-900/20">
+          <p className="text-xs font-medium text-blue-800 dark:text-blue-300">Default Leave Viewing Hierarchy:</p>
+          <ul className="mt-1 space-y-0.5 text-xs text-blue-700 dark:text-blue-400">
+            <li>• <strong>Admin/HR:</strong> View all organization leave requests</li>
+            <li>• <strong>Manager:</strong> View only their direct reports' leave requests</li>
+            <li>• <strong>Team Lead:</strong> View their team members' leave requests</li>
+          </ul>
+        </div>
+
         <div className="space-y-3">
           <label className="flex items-center gap-3">
             <input
@@ -228,8 +236,8 @@ export default function PermissionsPage() {
               className="rounded border-gray-300 dark:border-gray-600"
             />
             <div>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">Team Leave Calendar</span>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Employees can see when team members are on leave</p>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">Employees View Team Leaves</span>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Employees can see approved leaves of their team members</p>
             </div>
           </label>
 
@@ -241,21 +249,8 @@ export default function PermissionsPage() {
               className="rounded border-gray-300 dark:border-gray-600"
             />
             <div>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">Department Leave Calendar</span>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Employees can see when department members are on leave</p>
-            </div>
-          </label>
-
-          <label className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              checked={permissions.managersCanViewAllLeaves}
-              onChange={(e) => setPermissions({ ...permissions, managersCanViewAllLeaves: e.target.checked })}
-              className="rounded border-gray-300 dark:border-gray-600"
-            />
-            <div>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">Managers View All Leaves</span>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Managers can see leave requests across the organization</p>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">Employees View Department Leaves</span>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Employees can see approved leaves of their department members</p>
             </div>
           </label>
         </div>

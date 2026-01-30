@@ -32,6 +32,7 @@ export default function LeaveRequestsPage() {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [canApprove, setCanApprove] = useState(false);
   const [hasAccess, setHasAccess] = useState(false);
+  const [scope, setScope] = useState<string>("own");
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -39,8 +40,19 @@ export default function LeaveRequestsPage() {
     const data = await res.json();
     if (data.success) {
       setRequests(data.data.leaveRequests);
+      setScope(data.data.scope || "own");
     }
     setLoading(false);
+  };
+
+  const getScopeLabel = () => {
+    switch (scope) {
+      case "all": return "All Organization";
+      case "direct_reports": return "Your Direct Reports";
+      case "team": return "Your Team Members";
+      case "team_approved": return "Team (Approved Only)";
+      default: return "";
+    }
   };
 
   useEffect(() => {
@@ -167,8 +179,20 @@ export default function LeaveRequestsPage() {
       {/* Header with Stats */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Leave Requests</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Review and manage employee leave applications</p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Leave Requests</h1>
+            {getScopeLabel() && (
+              <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                {getScopeLabel()}
+              </span>
+            )}
+          </div>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            {scope === "all" && "Viewing all leave requests in the organization"}
+            {scope === "direct_reports" && "Viewing leave requests from your direct reports"}
+            {scope === "team" && "Viewing leave requests from your team members"}
+            {!["all", "direct_reports", "team"].includes(scope) && "Review and manage employee leave applications"}
+          </p>
         </div>
 
         {/* Quick Stats */}
