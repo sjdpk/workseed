@@ -76,6 +76,9 @@ export async function GET(request: NextRequest) {
         branch: {
           select: { id: true, name: true },
         },
+        manager: {
+          select: { id: true, firstName: true, lastName: true },
+        },
       },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     });
