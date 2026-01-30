@@ -10,7 +10,8 @@ export type AuditAction =
   | "REJECT"
   | "CANCEL"
   | "VIEW"
-  | "EXPORT";
+  | "EXPORT"
+  | "IMPORT";
 
 export type AuditEntity =
   | "USER"
