@@ -141,23 +141,23 @@ export default function DashboardLayout({
         </div>
 
         <div className="flex flex-col h-[calc(100vh-3.5rem)] overflow-y-auto">
-          <nav className="flex-1 p-3 space-y-6">
+          <nav className="flex-1 px-3 py-4 space-y-5">
             <div>
-              <p className="px-3 text-xs font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">Main</p>
-              <div className="mt-2 space-y-1">
+              <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Main</p>
+              <div className="mt-1.5 space-y-0.5">
                 {mainNavigation.map((item) => {
                   const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
-                      className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                      className={`flex items-center gap-2.5 rounded px-3 py-1.5 text-[13px] font-medium transition-colors ${
                         isActive
                           ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
                           : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
                       }`}
                     >
-                      <item.icon className="h-5 w-5" />
+                      <item.icon className="h-4 w-4" />
                       {item.name}
                     </Link>
                   );
@@ -166,21 +166,21 @@ export default function DashboardLayout({
             </div>
 
             <div>
-              <p className="px-3 text-xs font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">Leave</p>
-              <div className="mt-2 space-y-1">
+              <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Leave</p>
+              <div className="mt-1.5 space-y-0.5">
                 {leaveNavigation.map((item) => {
                   const isActive = pathname === item.href;
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
-                      className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                      className={`flex items-center gap-2.5 rounded px-3 py-1.5 text-[13px] font-medium transition-colors ${
                         isActive
                           ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
                           : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
                       }`}
                     >
-                      <item.icon className="h-5 w-5" />
+                      <item.icon className="h-4 w-4" />
                       {item.name}
                     </Link>
                   );
@@ -190,21 +190,21 @@ export default function DashboardLayout({
 
             {settingsNavigation.length > 0 && (
               <div>
-                <p className="px-3 text-xs font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">Settings</p>
-                <div className="mt-2 space-y-1">
+                <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Settings</p>
+                <div className="mt-1.5 space-y-0.5">
                   {settingsNavigation.map((item) => {
                     const isActive = pathname.startsWith(item.href);
                     return (
                       <Link
                         key={item.name}
                         href={item.href}
-                        className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                        className={`flex items-center gap-2.5 rounded px-3 py-1.5 text-[13px] font-medium transition-colors ${
                           isActive
                             ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
                             : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
                         }`}
                       >
-                        <item.icon className="h-5 w-5" />
+                        <item.icon className="h-4 w-4" />
                         {item.name}
                       </Link>
                     );
@@ -215,15 +215,15 @@ export default function DashboardLayout({
           </nav>
 
           <div className="border-t border-gray-200 p-3 dark:border-gray-800">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-gray-100 text-sm font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded bg-gray-100 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                 {user.firstName[0]}{user.lastName[0]}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="truncate text-sm font-medium text-gray-900 dark:text-white">
+                <p className="truncate text-[13px] font-medium text-gray-900 dark:text-white">
                   {user.firstName} {user.lastName}
                 </p>
-                <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                <p className="truncate text-[11px] text-gray-500 dark:text-gray-400">
                   {user.role}
                 </p>
               </div>

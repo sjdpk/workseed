@@ -116,19 +116,19 @@ export default function DashboardPage() {
   ] : [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Dashboard</h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Dashboard</h1>
+        <p className="mt-1 text-base text-gray-500 dark:text-gray-400">
           Welcome back, {user?.firstName}!
         </p>
       </div>
 
       {/* Notices Section */}
       {notices.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <MegaphoneIcon className="h-4 w-4" />
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <MegaphoneIcon className="h-5 w-5" />
             Announcements
           </h2>
           {notices.map((notice) => {
@@ -150,12 +150,12 @@ export default function DashboardPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-gray-900 dark:text-white">{notice.title}</h3>
-                      <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${config.badge}`}>
+                      <span className={`rounded px-2 py-0.5 text-xs font-semibold ${config.badge}`}>
                         {notice.type}
                       </span>
                     </div>
-                    <p className="mt-1 text-sm text-gray-700 dark:text-gray-300 line-clamp-2">{notice.content}</p>
-                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    <p className="mt-1.5 text-sm leading-relaxed text-gray-600 dark:text-gray-300 line-clamp-2">{notice.content}</p>
+                    <p className="mt-2 text-xs font-medium text-gray-400 dark:text-gray-500">
                       {notice.createdBy.firstName} {notice.createdBy.lastName} · {new Date(notice.publishedAt).toLocaleDateString()}
                     </p>
                   </div>
@@ -172,12 +172,12 @@ export default function DashboardPage() {
           {adminStatCards.map((stat) => (
             <Link key={stat.name} href={stat.href}>
               <Card className="flex items-center gap-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
-                <div className={`rounded-md p-2.5 ${stat.color}`}>
-                  <stat.icon className="h-5 w-5 text-white" />
+                <div className={`rounded p-3 ${stat.color}`}>
+                  <stat.icon className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{stat.name}</p>
-                  <p className="text-2xl font-semibold text-gray-900 dark:text-white">{stat.value}</p>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{stat.name}</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
                 </div>
               </Card>
             </Link>
@@ -190,23 +190,23 @@ export default function DashboardPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Link href="/dashboard/leaves/requests">
             <Card className="flex items-center gap-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
-              <div className="rounded-md p-2.5 bg-orange-600">
-                <ClockIcon className="h-5 w-5 text-white" />
+              <div className="rounded p-3 bg-orange-600">
+                <ClockIcon className="h-6 w-6 text-white" />
               </div>
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Pending Leaves</p>
-                <p className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.pendingLeaves}</p>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Pending Leaves</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.pendingLeaves}</p>
               </div>
             </Card>
           </Link>
           <Link href="/dashboard/leaves">
             <Card className="flex items-center gap-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
-              <div className="rounded-md p-2.5 bg-blue-600">
-                <CalendarIcon className="h-5 w-5 text-white" />
+              <div className="rounded p-3 bg-blue-600">
+                <CalendarIcon className="h-6 w-6 text-white" />
               </div>
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">My Leaves</p>
-                <p className="text-2xl font-semibold text-gray-900 dark:text-white">View</p>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">My Leaves</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-white">View</p>
               </div>
             </Card>
           </Link>
@@ -218,12 +218,12 @@ export default function DashboardPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Link href="/dashboard/leaves">
             <Card className="flex items-center gap-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
-              <div className="rounded-md p-2.5 bg-blue-600">
-                <CalendarIcon className="h-5 w-5 text-white" />
+              <div className="rounded p-3 bg-blue-600">
+                <CalendarIcon className="h-6 w-6 text-white" />
               </div>
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">My Leaves</p>
-                <p className="text-2xl font-semibold text-gray-900 dark:text-white">View Balance</p>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">My Leaves</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-white">View Balance</p>
               </div>
             </Card>
           </Link>
@@ -232,7 +232,7 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       <Card>
-        <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Quick Actions</h2>
+        <h2 className="mb-5 text-lg font-semibold text-gray-900 dark:text-white">Quick Actions</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {/* Admin/HR Actions */}
           {hasPermission("MANAGE_USERS") && adminQuickActions.map((action) => (
@@ -256,13 +256,13 @@ export default function DashboardPage() {
 
 function QuickAction({ href, icon: Icon, title, description }: { href: string; icon: React.ComponentType<{ className?: string }>; title: string; description: string }) {
   return (
-    <Link href={href} className="flex items-start gap-3 rounded-md border border-gray-200 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
-      <div className="rounded-md bg-gray-100 p-2 dark:bg-gray-700">
-        <Icon className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+    <Link href={href} className="flex items-start gap-3 rounded border border-gray-200 p-4 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
+      <div className="rounded bg-gray-100 p-2.5 dark:bg-gray-700">
+        <Icon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
       </div>
       <div>
-        <h3 className="text-sm font-medium text-gray-900 dark:text-white">{title}</h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400">{description}</p>
+        <h3 className="font-medium text-gray-900 dark:text-white">{title}</h3>
+        <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{description}</p>
       </div>
     </Link>
   );
