@@ -54,6 +54,33 @@ export default function BranchesPage() {
     );
   });
 
+  const exportToCSV = () => {
+    const headers = ["Name", "Code", "Address", "City", "State", "Country", "Phone", "Email", "Status"];
+    const rows = filteredBranches.map(branch => [
+      branch.name,
+      branch.code,
+      branch.address || "",
+      branch.city || "",
+      branch.state || "",
+      branch.country || "",
+      branch.phone || "",
+      branch.email || "",
+      branch.isActive ? "Active" : "Inactive",
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `branches_${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -73,9 +100,12 @@ export default function BranchesPage() {
           <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Branches</h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Manage company branches</p>
         </div>
-        {hasPermission("CREATE") && (
-          <Button onClick={() => router.push("/dashboard/branches/new")}>Add Branch</Button>
-        )}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={exportToCSV}>Export CSV</Button>
+          {hasPermission("CREATE") && (
+            <Button onClick={() => router.push("/dashboard/branches/new")}>Add Branch</Button>
+          )}
+        </div>
       </div>
 
       <Card className="p-3">

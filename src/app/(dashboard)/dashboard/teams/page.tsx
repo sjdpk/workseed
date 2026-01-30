@@ -63,6 +63,30 @@ export default function TeamsPage() {
     );
   });
 
+  const exportToCSV = () => {
+    const headers = ["Name", "Code", "Description", "Department", "Lead", "Members"];
+    const rows = filteredTeams.map(team => [
+      team.name,
+      team.code,
+      team.description || "",
+      team.department?.name || "",
+      team.lead ? `${team.lead.firstName} ${team.lead.lastName}` : "",
+      team._count.users,
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `teams_${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -82,9 +106,12 @@ export default function TeamsPage() {
           <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Teams</h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Manage organization teams</p>
         </div>
-        {hasPermission("CREATE") && (
-          <Button onClick={() => router.push("/dashboard/teams/new")}>Add Team</Button>
-        )}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={exportToCSV}>Export CSV</Button>
+          {hasPermission("CREATE") && (
+            <Button onClick={() => router.push("/dashboard/teams/new")}>Add Team</Button>
+          )}
+        </div>
       </div>
 
       <Card className="p-3">

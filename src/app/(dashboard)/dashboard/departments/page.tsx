@@ -62,6 +62,30 @@ export default function DepartmentsPage() {
     );
   });
 
+  const exportToCSV = () => {
+    const headers = ["Name", "Code", "Description", "Branch", "Employees", "Teams"];
+    const rows = filteredDepartments.map(dept => [
+      dept.name,
+      dept.code,
+      dept.description || "",
+      dept.branch?.name || "",
+      dept._count.users,
+      dept._count.teams,
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `departments_${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -81,9 +105,12 @@ export default function DepartmentsPage() {
           <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Departments</h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Manage organization departments</p>
         </div>
-        {hasPermission("CREATE") && (
-          <Button onClick={() => router.push("/dashboard/departments/new")}>Add Department</Button>
-        )}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={exportToCSV}>Export CSV</Button>
+          {hasPermission("CREATE") && (
+            <Button onClick={() => router.push("/dashboard/departments/new")}>Add Department</Button>
+          )}
+        </div>
       </div>
 
       <Card className="p-3">

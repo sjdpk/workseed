@@ -73,6 +73,33 @@ export default function UsersPage() {
     );
   });
 
+  const exportToCSV = () => {
+    const headers = ["Employee ID", "First Name", "Last Name", "Email", "Role", "Designation", "Department", "Branch", "Status"];
+    const rows = filteredUsers.map(user => [
+      user.employeeId,
+      user.firstName,
+      user.lastName,
+      user.email,
+      user.role,
+      user.designation || "",
+      user.department?.name || "",
+      user.branch?.name || "",
+      user.status,
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `users_${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -92,9 +119,12 @@ export default function UsersPage() {
           <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Users</h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Manage employees and users</p>
         </div>
-        {hasPermission("CREATE") && (
-          <Button onClick={() => router.push("/dashboard/users/new")}>Add User</Button>
-        )}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={exportToCSV}>Export CSV</Button>
+          {hasPermission("CREATE") && (
+            <Button onClick={() => router.push("/dashboard/users/new")}>Add User</Button>
+          )}
+        </div>
       </div>
 
       <Card className="p-3">
