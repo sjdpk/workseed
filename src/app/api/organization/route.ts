@@ -4,6 +4,7 @@ import { z } from "zod/v4";
 
 const updateOrgSchema = z.object({
   name: z.string().min(1).optional(),
+  logoUrl: z.string().url().optional().or(z.literal("")),
   fiscalYearStart: z.number().min(1).max(12).optional(),
   workingDaysPerWeek: z.number().min(1).max(7).optional(),
 });
@@ -59,18 +60,25 @@ export async function PATCH(request: NextRequest) {
 
     let settings = await prisma.organizationSettings.findFirst();
 
+    // Convert empty logoUrl to null
+    const updateData = {
+      ...data,
+      logoUrl: data.logoUrl === "" ? null : data.logoUrl,
+    };
+
     if (!settings) {
       settings = await prisma.organizationSettings.create({
         data: {
-          name: data.name || "My Organization",
-          fiscalYearStart: data.fiscalYearStart || 1,
-          workingDaysPerWeek: data.workingDaysPerWeek || 5,
+          name: updateData.name || "My Organization",
+          logoUrl: updateData.logoUrl,
+          fiscalYearStart: updateData.fiscalYearStart || 1,
+          workingDaysPerWeek: updateData.workingDaysPerWeek || 5,
         },
       });
     } else {
       settings = await prisma.organizationSettings.update({
         where: { id: settings.id },
-        data,
+        data: updateData,
       });
     }
 

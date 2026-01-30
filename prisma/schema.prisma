@@ -60,6 +60,7 @@ enum DocumentType {
 model OrganizationSettings {
   id                    String   @id @default(uuid()) @db.Uuid
   name                  String   @default("Organization")
+  logoUrl               String?  // URL to organization logo
   fiscalYearStart       Int      @default(1) // Month (1-12)
   workingDaysPerWeek    Int      @default(5)
   defaultLeaveAllocation Json?   // Default leave allocation for new employees

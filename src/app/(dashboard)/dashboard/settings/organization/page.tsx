@@ -9,6 +9,7 @@ const ALLOWED_ROLES = ["ADMIN"];
 interface OrgSettings {
   id: string;
   name: string;
+  logoUrl: string | null;
   fiscalYearStart: number;
   workingDaysPerWeek: number;
 }
@@ -23,9 +24,11 @@ export default function OrganizationSettingsPage() {
 
   const [formData, setFormData] = useState({
     name: "",
+    logoUrl: "",
     fiscalYearStart: 1,
     workingDaysPerWeek: 5,
   });
+  const [logoError, setLogoError] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -40,6 +43,7 @@ export default function OrganizationSettingsPage() {
         setSettings(orgData.data.settings);
         setFormData({
           name: orgData.data.settings.name || "",
+          logoUrl: orgData.data.settings.logoUrl || "",
           fiscalYearStart: orgData.data.settings.fiscalYearStart || 1,
           workingDaysPerWeek: orgData.data.settings.workingDaysPerWeek || 5,
         });
@@ -135,6 +139,62 @@ export default function OrganizationSettingsPage() {
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
             />
+            <div className="sm:col-span-2">
+              <Input
+                id="logoUrl"
+                label="Logo URL"
+                type="url"
+                placeholder="https://example.com/logo.png"
+                value={formData.logoUrl}
+                onChange={(e) => {
+                  setFormData({ ...formData, logoUrl: e.target.value });
+                  setLogoError(false);
+                }}
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Enter a URL to your organization logo (PNG, JPG, SVG recommended)
+              </p>
+            </div>
+            {formData.logoUrl && (
+              <div className="sm:col-span-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Logo Preview
+                </label>
+                <div className="flex items-center gap-4">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800">
+                    {!logoError ? (
+                      <img
+                        src={formData.logoUrl}
+                        alt="Logo preview"
+                        className="h-14 w-14 object-contain"
+                        onError={() => setLogoError(true)}
+                      />
+                    ) : (
+                      <span className="text-xs text-red-500">Invalid</span>
+                    )}
+                  </div>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700">
+                    {!logoError ? (
+                      <img
+                        src={formData.logoUrl}
+                        alt="Logo small"
+                        className="h-8 w-8 object-contain"
+                        onError={() => setLogoError(true)}
+                      />
+                    ) : (
+                      <span className="text-xs text-red-500">!</span>
+                    )}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    {logoError ? (
+                      <span className="text-red-500">Failed to load image. Please check the URL.</span>
+                    ) : (
+                      <span>Preview shows how your logo will appear in the header</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="border-t border-gray-200 pt-6 dark:border-gray-700">
