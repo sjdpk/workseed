@@ -2,20 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, Input, Select } from "@/components";
+import { Button, Card, Input, Select, useToast } from "@/components";
 import type { Branch, Department, Team, Role, Gender, MaritalStatus, EmploymentType } from "@/types";
 
 const ALLOWED_ROLES = ["ADMIN", "HR"];
 
 export default function NewUserPage() {
   const router = useRouter();
+  const toast = useToast();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [managers, setManagers] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
-  const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
     email: "",
@@ -70,7 +70,6 @@ export default function NewUserPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
     try {
@@ -96,13 +95,14 @@ export default function NewUserPage() {
       const data = await res.json();
 
       if (!data.success) {
-        setError(data.error || "Failed to create user");
+        toast.error(data.error || "Failed to create user");
         return;
       }
 
+      toast.success("User created successfully");
       router.push("/dashboard/users");
     } catch {
-      setError("Something went wrong");
+      toast.error("Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -161,10 +161,6 @@ export default function NewUserPage() {
         </div>
         <Button variant="outline" onClick={() => router.back()}>Cancel</Button>
       </div>
-
-      {error && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</div>
-      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>

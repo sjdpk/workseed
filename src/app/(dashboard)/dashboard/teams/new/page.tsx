@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, Input, Select } from "@/components";
+import { Button, Card, Input, Select, useToast } from "@/components";
 
 interface Department {
   id: string;
@@ -13,10 +13,10 @@ const ALLOWED_ROLES = ["ADMIN", "HR"];
 
 export default function NewTeamPage() {
   const router = useRouter();
+  const toast = useToast();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
-  const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -41,7 +41,6 @@ export default function NewTeamPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
     try {
@@ -54,13 +53,14 @@ export default function NewTeamPage() {
       const data = await res.json();
 
       if (!data.success) {
-        setError(data.error || "Failed to create team");
+        toast.error(data.error || "Failed to create team");
         return;
       }
 
+      toast.success("Team created successfully");
       router.push("/dashboard/teams");
     } catch {
-      setError("Something went wrong");
+      toast.error("Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -83,10 +83,6 @@ export default function NewTeamPage() {
         </div>
         <Button variant="outline" onClick={() => router.back()}>Cancel</Button>
       </div>
-
-      {error && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</div>
-      )}
 
       <form onSubmit={handleSubmit}>
         <Card className="space-y-4">

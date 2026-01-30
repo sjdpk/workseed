@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button, Card } from "@/components";
+import { Button, Card, useToast } from "@/components";
 import type { LeaveAllocation, LeaveRequest } from "@/types";
 
 type TabType = "all" | "pending" | "approved" | "rejected" | "cancelled";
@@ -10,10 +10,10 @@ type TabType = "all" | "pending" | "approved" | "rejected" | "cancelled";
 export default function MyLeavesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const toast = useToast();
   const [allocations, setAllocations] = useState<(LeaveAllocation & { balance: number })[]>([]);
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [successMsg, setSuccessMsg] = useState("");
   const [activeTab, setActiveTab] = useState<TabType>("all");
 
   const fetchData = async () => {
@@ -30,23 +30,30 @@ export default function MyLeavesPage() {
   useEffect(() => {
     fetchData();
     if (searchParams.get("success") === "1") {
-      setSuccessMsg("Leave request submitted successfully!");
+      toast.success("Leave request submitted successfully!");
       window.history.replaceState(null, "", "/dashboard/leaves");
     }
-  }, [searchParams]);
+  }, [searchParams, toast]);
 
   const handleCancel = async (id: string) => {
     if (!confirm("Are you sure you want to cancel this leave request?")) return;
 
-    const res = await fetch(`/api/leave-requests?id=${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "CANCELLED" }),
-    });
+    try {
+      const res = await fetch(`/api/leave-requests?id=${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "CANCELLED" }),
+      });
 
-    const data = await res.json();
-    if (data.success) {
-      fetchData();
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Leave request cancelled successfully");
+        fetchData();
+      } else {
+        toast.error(data.error || "Failed to cancel leave request");
+      }
+    } catch {
+      toast.error("An error occurred. Please try again.");
     }
   };
 
@@ -99,19 +106,6 @@ export default function MyLeavesPage() {
         </Button>
       </div>
 
-      {successMsg && (
-        <div className="flex items-center gap-2 rounded bg-green-50 p-3 text-sm text-green-700 dark:bg-green-900/20 dark:text-green-300">
-          <svg className="h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-          </svg>
-          {successMsg}
-          <button onClick={() => setSuccessMsg("")} className="ml-auto">
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      )}
 
       {/* Compact Leave Balance */}
       <Card className="p-4">

@@ -2,16 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, Input } from "@/components";
+import { Button, Card, Input, useToast } from "@/components";
 import type { LeaveType, LeaveAllocation } from "@/types";
 
 export default function ApplyLeavePage() {
   const router = useRouter();
+  const toast = useToast();
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
   const [allocations, setAllocations] = useState<(LeaveAllocation & { balance: number })[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
     leaveTypeId: "",
@@ -55,29 +55,28 @@ export default function ApplyLeavePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setSubmitting(true);
 
     if (!formData.leaveTypeId) {
-      setError("Please select a leave type");
+      toast.error("Please select a leave type");
       setSubmitting(false);
       return;
     }
 
     if (!formData.startDate || !formData.endDate) {
-      setError("Please select dates");
+      toast.error("Please select dates");
       setSubmitting(false);
       return;
     }
 
     if (new Date(formData.startDate) > new Date(formData.endDate)) {
-      setError("End date must be after start date");
+      toast.error("End date must be after start date");
       setSubmitting(false);
       return;
     }
 
     if (selectedAllocation && formData.days > selectedAllocation.balance) {
-      setError(`Insufficient balance. You have ${selectedAllocation.balance} days available.`);
+      toast.error(`Insufficient balance. You have ${selectedAllocation.balance} days available.`);
       setSubmitting(false);
       return;
     }
@@ -95,14 +94,14 @@ export default function ApplyLeavePage() {
       const data = await res.json();
 
       if (!data.success) {
-        setError(data.error || "Failed to submit leave request");
+        toast.error(data.error || "Failed to submit leave request");
         setSubmitting(false);
         return;
       }
 
       router.push("/dashboard/leaves?success=1");
     } catch {
-      setError("Something went wrong");
+      toast.error("Something went wrong");
       setSubmitting(false);
     }
   };
@@ -127,10 +126,6 @@ export default function ApplyLeavePage() {
           Cancel
         </Button>
       </div>
-
-      {error && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</div>
-      )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Leave Type Selection */}

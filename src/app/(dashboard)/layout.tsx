@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { ThemeToggle, Button } from "@/components";
+import { ThemeToggle, Button, ToastProvider } from "@/components";
 import type { SessionUser } from "@/types";
 
 
@@ -122,6 +122,7 @@ export default function DashboardLayout({
   ].filter(item => item.show);
 
   return (
+    <ToastProvider>
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {sidebarOpen && (
         <div
@@ -276,6 +277,7 @@ export default function DashboardLayout({
         <main className="p-4 lg:p-6">{children}</main>
       </div>
     </div>
+    </ToastProvider>
   );
 }
 

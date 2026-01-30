@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, Input, Select } from "@/components";
+import { Button, Card, Input, Select, useToast } from "@/components";
 
 const ALLOWED_ROLES = ["ADMIN"];
 
@@ -16,11 +16,10 @@ interface OrgSettings {
 
 export default function OrganizationSettingsPage() {
   const router = useRouter();
+  const toast = useToast();
   const [settings, setSettings] = useState<OrgSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -54,8 +53,6 @@ export default function OrganizationSettingsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
     setSaving(true);
 
     try {
@@ -68,14 +65,14 @@ export default function OrganizationSettingsPage() {
       const data = await res.json();
 
       if (!data.success) {
-        setError(data.error || "Failed to save settings");
+        toast.error(data.error || "Failed to save settings");
         return;
       }
 
-      setSuccess("Settings saved successfully!");
+      toast.success("Settings saved successfully");
       setSettings(data.data.settings);
     } catch {
-      setError("Something went wrong");
+      toast.error("Something went wrong");
     } finally {
       setSaving(false);
     }
@@ -116,13 +113,6 @@ export default function OrganizationSettingsPage() {
         <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Organization Settings</h1>
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Manage company-wide settings</p>
       </div>
-
-      {error && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</div>
-      )}
-      {success && (
-        <div className="rounded-md bg-green-50 p-3 text-sm text-green-600 dark:bg-green-900/20 dark:text-green-400">{success}</div>
-      )}
 
       <form onSubmit={handleSubmit}>
         <Card className="space-y-6">

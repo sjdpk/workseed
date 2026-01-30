@@ -2,18 +2,16 @@
 
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, Input } from "@/components";
+import { Button, Card, Input, useToast } from "@/components";
 
 const ALLOWED_ROLES = ["ADMIN", "HR"];
 
 export default function EditBranchPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [deleteError, setDeleteError] = useState("");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -56,8 +54,6 @@ export default function EditBranchPage({ params }: { params: Promise<{ id: strin
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
     setLoading(true);
 
     try {
@@ -70,13 +66,13 @@ export default function EditBranchPage({ params }: { params: Promise<{ id: strin
       const data = await res.json();
 
       if (!data.success) {
-        setError(data.error || "Failed to update branch");
+        toast.error(data.error || "Failed to update branch");
         return;
       }
 
-      setSuccess("Branch updated successfully!");
+      toast.success("Branch updated successfully");
     } catch {
-      setError("Something went wrong");
+      toast.error("Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -87,7 +83,6 @@ export default function EditBranchPage({ params }: { params: Promise<{ id: strin
       return;
     }
 
-    setDeleteError("");
     try {
       const res = await fetch(`/api/branches/${id}`, {
         method: "DELETE",
@@ -96,13 +91,14 @@ export default function EditBranchPage({ params }: { params: Promise<{ id: strin
       const data = await res.json();
 
       if (!data.success) {
-        setDeleteError(data.error || "Failed to delete branch");
+        toast.error(data.error || "Failed to delete branch");
         return;
       }
 
+      toast.success("Branch deleted successfully");
       router.push("/dashboard/branches");
     } catch {
-      setDeleteError("Something went wrong");
+      toast.error("Something went wrong");
     }
   };
 
@@ -125,13 +121,6 @@ export default function EditBranchPage({ params }: { params: Promise<{ id: strin
           Back
         </Button>
       </div>
-
-      {error && (
-        <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-600 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">{error}</div>
-      )}
-      {success && (
-        <div className="rounded border border-green-200 bg-green-50 p-3 text-sm text-green-600 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">{success}</div>
-      )}
 
       <form onSubmit={handleSubmit}>
         <Card className="space-y-4">
@@ -237,11 +226,6 @@ export default function EditBranchPage({ params }: { params: Promise<{ id: strin
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
           Permanently delete this branch. This action cannot be undone.
         </p>
-        {deleteError && (
-          <div className="mt-3 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-600 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
-            {deleteError}
-          </div>
-        )}
         <div className="mt-4">
           <Button variant="outline" onClick={handleDelete} className="border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20">
             Delete Branch

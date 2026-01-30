@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, Input, Select } from "@/components";
+import { Button, Card, Input, Select, useToast } from "@/components";
 import type { Branch, Department, Team, Role, Gender, MaritalStatus, EmploymentType, LeaveType } from "@/types";
 
 const ALLOWED_ROLES = ["ADMIN", "HR"];
@@ -62,6 +62,7 @@ interface Allocation {
 export default function EditUserPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const toast = useToast();
   const [user, setUser] = useState<UserData | null>(null);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -74,8 +75,6 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingAllocation, setSavingAllocation] = useState<string | null>(null);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -190,8 +189,6 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
     setSaving(true);
 
     try {
@@ -240,13 +237,13 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
       const data = await res.json();
 
       if (!data.success) {
-        setError(data.error || "Failed to update user");
+        toast.error(data.error || "Failed to update user");
         return;
       }
 
-      setSuccess("User updated successfully!");
+      toast.success("User updated successfully");
     } catch {
-      setError("Something went wrong");
+      toast.error("Something went wrong");
     } finally {
       setSaving(false);
     }
@@ -262,8 +259,13 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
       });
       const data = await res.json();
       if (data.success) {
+        toast.success("Allocation updated");
         fetchAllocations();
+      } else {
+        toast.error(data.error || "Failed to update allocation");
       }
+    } catch {
+      toast.error("An error occurred");
     } finally {
       setSavingAllocation(null);
     }
@@ -284,8 +286,13 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
       });
       const data = await res.json();
       if (data.success) {
+        toast.success("Allocation added");
         fetchAllocations();
+      } else {
+        toast.error(data.error || "Failed to create allocation");
       }
+    } catch {
+      toast.error("An error occurred");
     } finally {
       setSavingAllocation(null);
     }
@@ -358,13 +365,6 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
         </div>
         <Button variant="outline" onClick={() => router.back()}>Back</Button>
       </div>
-
-      {error && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</div>
-      )}
-      {success && (
-        <div className="rounded-md bg-green-50 p-3 text-sm text-green-600 dark:bg-green-900/20 dark:text-green-400">{success}</div>
-      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>

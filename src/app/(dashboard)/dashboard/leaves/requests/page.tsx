@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, Input } from "@/components";
+import { Button, Card, Input, useToast } from "@/components";
 import type { LeaveRequest } from "@/types";
 
 type StatusFilter = "ALL" | "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
@@ -25,6 +25,7 @@ interface OrgPermissions {
 
 export default function LeaveRequestsPage() {
   const router = useRouter();
+  const toast = useToast();
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
@@ -95,15 +96,22 @@ export default function LeaveRequestsPage() {
   }, [router]);
 
   const handleAction = async (id: string, action: "APPROVED" | "REJECTED", reason?: string) => {
-    const res = await fetch(`/api/leave-requests?id=${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: action, rejectionReason: reason }),
-    });
+    try {
+      const res = await fetch(`/api/leave-requests?id=${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: action, rejectionReason: reason }),
+      });
 
-    const data = await res.json();
-    if (data.success) {
-      fetchRequests();
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Leave request ${action.toLowerCase()} successfully`);
+        fetchRequests();
+      } else {
+        toast.error(data.error || `Failed to ${action.toLowerCase()} leave request`);
+      }
+    } catch {
+      toast.error("An error occurred. Please try again.");
     }
   };
 

@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, Input } from "@/components";
+import { Button, Card, Input, useToast } from "@/components";
 
 const ALLOWED_ROLES = ["ADMIN", "HR"];
 
 export default function NewLeaveTypePage() {
   const router = useRouter();
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
-  const [error, setError] = useState("");
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -40,7 +40,6 @@ export default function NewLeaveTypePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
     try {
@@ -57,13 +56,14 @@ export default function NewLeaveTypePage() {
       const data = await res.json();
 
       if (!data.success) {
-        setError(data.error || "Failed to create leave type");
+        toast.error(data.error || "Failed to create leave type");
         return;
       }
 
+      toast.success("Leave type created successfully");
       router.push("/dashboard/settings/leave-types");
     } catch {
-      setError("Something went wrong");
+      toast.error("Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -86,10 +86,6 @@ export default function NewLeaveTypePage() {
         </div>
         <Button variant="outline" onClick={() => router.back()}>Cancel</Button>
       </div>
-
-      {error && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</div>
-      )}
 
       <form onSubmit={handleSubmit}>
         <Card className="space-y-4">

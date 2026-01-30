@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, Input } from "@/components";
+import { Button, Card, Input, useToast } from "@/components";
 
 const ALLOWED_ROLES = ["ADMIN", "HR"];
 
@@ -25,10 +25,10 @@ interface LeaveTypeData {
 export default function EditLeaveTypePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const toast = useToast();
   const [leaveType, setLeaveType] = useState<LeaveTypeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
   const [hasPermission, setHasPermission] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -82,7 +82,6 @@ export default function EditLeaveTypePage({ params }: { params: Promise<{ id: st
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setSaving(true);
 
     try {
@@ -99,13 +98,14 @@ export default function EditLeaveTypePage({ params }: { params: Promise<{ id: st
       const data = await res.json();
 
       if (!data.success) {
-        setError(data.error || "Failed to update leave type");
+        toast.error(data.error || "Failed to update leave type");
         return;
       }
 
+      toast.success("Leave type updated successfully");
       router.push("/dashboard/settings/leave-types");
     } catch {
-      setError("Something went wrong");
+      toast.error("Something went wrong");
     } finally {
       setSaving(false);
     }
@@ -132,10 +132,6 @@ export default function EditLeaveTypePage({ params }: { params: Promise<{ id: st
         </div>
         <Button variant="outline" onClick={() => router.back()}>Cancel</Button>
       </div>
-
-      {error && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</div>
-      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>

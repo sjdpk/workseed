@@ -5,3 +5,4 @@ export { Card } from "./Card";
 export { Avatar, AvatarWithFallback } from "./Avatar";
 export { ThemeProvider } from "./ThemeProvider";
 export { ThemeToggle } from "./ThemeToggle";
+export { ToastProvider, useToast } from "./Toast";

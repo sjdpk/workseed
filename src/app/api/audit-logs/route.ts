@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Get user details for the logs
-    const userIds = [...new Set(logs.map((log) => log.userId))];
+    const userIds = [...new Set(logs.map((log:any) => log.userId))];
     const users = await prisma.user.findMany({
       where: { id: { in: userIds } },
       select: {
@@ -77,9 +77,9 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const usersMap = new Map(users.map((u) => [u.id, u]));
+    const usersMap = new Map(users.map((u:any) => [u.id, u]));
 
-    const logsWithUsers = logs.map((log) => ({
+    const logsWithUsers = logs.map((log:any) => ({
       ...log,
       user: usersMap.get(log.userId) || null,
     }));

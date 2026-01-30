@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, Input, Select } from "@/components";
+import { Button, Card, Input, Select, useToast } from "@/components";
 
 interface Department {
   id: string;
@@ -31,12 +31,11 @@ const ALLOWED_ROLES = ["ADMIN", "HR"];
 export default function EditTeamPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const toast = useToast();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [teamMembers, setTeamMembers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -77,8 +76,6 @@ export default function EditTeamPage({ params }: { params: Promise<{ id: string 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
     setLoading(true);
 
     try {
@@ -94,13 +91,13 @@ export default function EditTeamPage({ params }: { params: Promise<{ id: string 
       const data = await res.json();
 
       if (!data.success) {
-        setError(data.error || "Failed to update team");
+        toast.error(data.error || "Failed to update team");
         return;
       }
 
-      setSuccess("Team updated successfully!");
+      toast.success("Team updated successfully");
     } catch {
-      setError("Something went wrong");
+      toast.error("Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -128,13 +125,6 @@ export default function EditTeamPage({ params }: { params: Promise<{ id: string 
           Back
         </Button>
       </div>
-
-      {error && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</div>
-      )}
-      {success && (
-        <div className="rounded-md bg-green-50 p-3 text-sm text-green-600 dark:bg-green-900/20 dark:text-green-400">{success}</div>
-      )}
 
       <form onSubmit={handleSubmit}>
         <Card className="space-y-4">

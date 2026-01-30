@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card } from "@/components";
+import { Button, Card, useToast } from "@/components";
 
 const ALLOWED_ROLES = ["ADMIN"];
 
@@ -69,11 +69,10 @@ const ALL_ROLES = ["ADMIN", "HR", "MANAGER", "TEAM_LEAD", "EMPLOYEE"];
 
 export default function PermissionsPage() {
   const router = useRouter();
+  const toast = useToast();
   const [permissions, setPermissions] = useState<PermissionSettings>(defaultPermissions);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   useEffect(() => {
     Promise.all([
@@ -92,8 +91,6 @@ export default function PermissionsPage() {
   }, [router]);
 
   const handleSave = async () => {
-    setError("");
-    setSuccess("");
     setSaving(true);
 
     try {
@@ -106,13 +103,13 @@ export default function PermissionsPage() {
       const data = await res.json();
 
       if (!data.success) {
-        setError(data.error || "Failed to save permissions");
+        toast.error(data.error || "Failed to save permissions");
         return;
       }
 
-      setSuccess("Permissions saved successfully!");
+      toast.success("Permissions saved successfully");
     } catch {
-      setError("Something went wrong");
+      toast.error("Something went wrong");
     } finally {
       setSaving(false);
     }
@@ -157,13 +154,6 @@ export default function PermissionsPage() {
           {saving ? "Saving..." : "Save Changes"}
         </Button>
       </div>
-
-      {error && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</div>
-      )}
-      {success && (
-        <div className="rounded-md bg-green-50 p-3 text-sm text-green-600 dark:bg-green-900/20 dark:text-green-400">{success}</div>
-      )}
 
       {/* Employee Visibility Settings */}
       <Card>

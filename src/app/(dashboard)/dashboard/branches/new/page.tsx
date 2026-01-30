@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, Input } from "@/components";
+import { Button, Card, Input, useToast } from "@/components";
 
 const ALLOWED_ROLES = ["ADMIN", "HR"];
 
 export default function NewBranchPage() {
   const router = useRouter();
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
-  const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -37,7 +37,6 @@ export default function NewBranchPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
     try {
@@ -50,13 +49,14 @@ export default function NewBranchPage() {
       const data = await res.json();
 
       if (!data.success) {
-        setError(data.error || "Failed to create branch");
+        toast.error(data.error || "Failed to create branch");
         return;
       }
 
+      toast.success("Branch created successfully");
       router.push("/dashboard/branches");
     } catch {
-      setError("Something went wrong");
+      toast.error("Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -79,10 +79,6 @@ export default function NewBranchPage() {
         </div>
         <Button variant="outline" onClick={() => router.back()}>Cancel</Button>
       </div>
-
-      {error && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</div>
-      )}
 
       <form onSubmit={handleSubmit}>
         <Card className="space-y-4">
