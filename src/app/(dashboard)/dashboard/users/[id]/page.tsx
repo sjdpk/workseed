@@ -14,6 +14,11 @@ interface UserData {
   firstName: string;
   lastName: string;
   phone?: string;
+  profilePicture?: string;
+  linkedIn?: string;
+  twitter?: string;
+  github?: string;
+  website?: string;
   role: Role;
   status: string;
   dateOfBirth?: string;
@@ -76,6 +81,11 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
     firstName: "",
     lastName: "",
     phone: "",
+    profilePicture: "",
+    linkedIn: "",
+    twitter: "",
+    github: "",
+    website: "",
     password: "",
     role: "EMPLOYEE" as Role,
     status: "ACTIVE",
@@ -132,6 +142,11 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
           firstName: u.firstName || "",
           lastName: u.lastName || "",
           phone: u.phone || "",
+          profilePicture: u.profilePicture || "",
+          linkedIn: u.linkedIn || "",
+          twitter: u.twitter || "",
+          github: u.github || "",
+          website: u.website || "",
           password: "",
           role: u.role,
           status: u.status,
@@ -184,6 +199,11 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
         firstName: formData.firstName,
         lastName: formData.lastName,
         phone: formData.phone || null,
+        profilePicture: formData.profilePicture || null,
+        linkedIn: formData.linkedIn || null,
+        twitter: formData.twitter || null,
+        github: formData.github || null,
+        website: formData.website || null,
         address: formData.address || null,
         city: formData.city || null,
         state: formData.state || null,
@@ -369,6 +389,59 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
             <Select id="gender" label="Gender" options={genderOptions} value={formData.gender} onChange={(e) => setFormData({ ...formData, gender: e.target.value as Gender })} />
             <Select id="maritalStatus" label="Marital Status" options={maritalOptions} value={formData.maritalStatus} onChange={(e) => setFormData({ ...formData, maritalStatus: e.target.value as MaritalStatus })} />
             <Input id="nationality" label="Nationality" value={formData.nationality} onChange={(e) => setFormData({ ...formData, nationality: e.target.value })} />
+          </div>
+        </Card>
+
+        <Card>
+          <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Profile & Social Links</h2>
+          <div className="mb-4">
+            <Input
+              id="profilePicture"
+              label="Profile Picture URL"
+              value={formData.profilePicture}
+              onChange={(e) => setFormData({ ...formData, profilePicture: e.target.value })}
+              placeholder="https://example.com/photo.jpg"
+            />
+            {formData.profilePicture && (
+              <div className="mt-2">
+                <img
+                  src={formData.profilePicture}
+                  alt="Profile preview"
+                  className="h-16 w-16 rounded-full object-cover border border-gray-200 dark:border-gray-700"
+                  onError={(e) => { e.currentTarget.style.display = "none"; }}
+                />
+              </div>
+            )}
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              id="linkedIn"
+              label="LinkedIn"
+              value={formData.linkedIn}
+              onChange={(e) => setFormData({ ...formData, linkedIn: e.target.value })}
+              placeholder="https://linkedin.com/in/username"
+            />
+            <Input
+              id="twitter"
+              label="Twitter / X"
+              value={formData.twitter}
+              onChange={(e) => setFormData({ ...formData, twitter: e.target.value })}
+              placeholder="https://twitter.com/username"
+            />
+            <Input
+              id="github"
+              label="GitHub"
+              value={formData.github}
+              onChange={(e) => setFormData({ ...formData, github: e.target.value })}
+              placeholder="https://github.com/username"
+            />
+            <Input
+              id="website"
+              label="Website"
+              value={formData.website}
+              onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+              placeholder="https://example.com"
+            />
           </div>
         </Card>
 

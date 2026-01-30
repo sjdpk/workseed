@@ -140,8 +140,15 @@ model User {
   firstName      String
   lastName       String
   phone          String?
+  profilePicture String?         // URL to profile picture
   role           Role            @default(EMPLOYEE)
   status         UserStatus      @default(ACTIVE)
+
+  // Social Links
+  linkedIn       String?
+  twitter        String?
+  github         String?
+  website        String?
 
   // Personal Info
   dateOfBirth    DateTime?

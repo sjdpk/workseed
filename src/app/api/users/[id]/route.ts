@@ -6,6 +6,11 @@ const updateUserSchema = z.object({
   firstName: z.string().min(1).optional(),
   lastName: z.string().min(1).optional(),
   phone: z.string().optional().nullable(),
+  profilePicture: z.string().url().optional().nullable().or(z.literal("")),
+  linkedIn: z.string().url().optional().nullable().or(z.literal("")),
+  twitter: z.string().url().optional().nullable().or(z.literal("")),
+  github: z.string().url().optional().nullable().or(z.literal("")),
+  website: z.string().url().optional().nullable().or(z.literal("")),
   role: z.enum(["ADMIN", "HR", "MANAGER", "TEAM_LEAD", "EMPLOYEE"]).optional(),
   status: z.enum(["ACTIVE", "INACTIVE", "SUSPENDED"]).optional(),
   dateOfBirth: z.string().optional().nullable(),
@@ -53,6 +58,11 @@ export async function GET(
         firstName: true,
         lastName: true,
         phone: true,
+        profilePicture: true,
+        linkedIn: true,
+        twitter: true,
+        github: true,
+        website: true,
         role: true,
         status: true,
         dateOfBirth: true,
@@ -77,7 +87,7 @@ export async function GET(
         branch: { select: { id: true, name: true } },
         department: { select: { id: true, name: true } },
         team: { select: { id: true, name: true } },
-        manager: { select: { id: true, firstName: true, lastName: true } },
+        manager: { select: { id: true, firstName: true, lastName: true, profilePicture: true } },
       },
     });
 
@@ -152,6 +162,11 @@ export async function PATCH(
     if (data.firstName) updateData.firstName = data.firstName;
     if (data.lastName) updateData.lastName = data.lastName;
     if (data.phone !== undefined) updateData.phone = data.phone;
+    if (data.profilePicture !== undefined) updateData.profilePicture = data.profilePicture || null;
+    if (data.linkedIn !== undefined) updateData.linkedIn = data.linkedIn || null;
+    if (data.twitter !== undefined) updateData.twitter = data.twitter || null;
+    if (data.github !== undefined) updateData.github = data.github || null;
+    if (data.website !== undefined) updateData.website = data.website || null;
     if (data.password) updateData.password = await hashPassword(data.password);
     if (data.address !== undefined) updateData.address = data.address;
     if (data.city !== undefined) updateData.city = data.city;
@@ -204,6 +219,11 @@ export async function PATCH(
         firstName: true,
         lastName: true,
         phone: true,
+        profilePicture: true,
+        linkedIn: true,
+        twitter: true,
+        github: true,
+        website: true,
         role: true,
         status: true,
         branch: { select: { id: true, name: true } },

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card } from "@/components";
+import { Card, Avatar } from "@/components";
 
 interface User {
   id: string;
@@ -10,6 +10,8 @@ interface User {
   role: string;
   designation?: string;
   email: string;
+  profilePicture?: string | null;
+  linkedIn?: string | null;
   department?: { id: string; name: string };
   team?: { id: string; name: string };
   managerId?: string;
@@ -35,16 +37,13 @@ export default function OrgChartPage() {
       });
   }, []);
 
-  // Build hierarchy tree
   const buildHierarchy = (users: User[]): TreeNode[] => {
     const userMap = new Map<string, TreeNode>();
-
     users.forEach((user) => {
       userMap.set(user.id, { ...user, children: [] });
     });
 
     const roots: TreeNode[] = [];
-
     userMap.forEach((user) => {
       if (user.managerId && userMap.has(user.managerId)) {
         userMap.get(user.managerId)!.children.push(user);
@@ -56,7 +55,6 @@ export default function OrgChartPage() {
     return roots;
   };
 
-  // Group by department
   const groupByDepartment = (users: User[]) => {
     return users.reduce((acc, user) => {
       const deptName = user.department?.name || "No Department";
@@ -68,31 +66,51 @@ export default function OrgChartPage() {
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case "ADMIN": return { bg: "bg-purple-500", light: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" };
-      case "HR": return { bg: "bg-pink-500", light: "bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300" };
-      case "MANAGER": return { bg: "bg-blue-500", light: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" };
-      case "TEAM_LEAD": return { bg: "bg-green-500", light: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" };
-      default: return { bg: "bg-gray-500", light: "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300" };
+      case "ADMIN": return "bg-purple-500";
+      case "HR": return "bg-pink-500";
+      case "MANAGER": return "bg-blue-500";
+      case "TEAM_LEAD": return "bg-green-500";
+      default: return "bg-gray-500";
     }
   };
 
-  // Tree Node Component with proper connectors
-  const TreeNodeCard = ({ node, isLast = false, level = 0 }: { node: TreeNode; isLast?: boolean; level?: number }) => {
+  const LinkedInIcon = () => (
+    <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+    </svg>
+  );
+
+  const TreeNodeCard = ({ node }: { node: TreeNode }) => {
     const roleColor = getRoleColor(node.role);
     const hasChildren = node.children.length > 0;
 
     return (
       <div className="flex flex-col items-center">
-        {/* The person card */}
         <div className="relative">
-          <div className="flex items-center gap-3 rounded border border-gray-200 bg-white px-4 py-3 shadow-sm dark:border-gray-700 dark:bg-gray-800 min-w-[200px]">
-            <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${roleColor.bg} text-sm font-semibold text-white`}>
-              {node.firstName[0]}{node.lastName[0]}
-            </div>
-            <div className="min-w-0">
-              <p className="font-medium text-gray-900 dark:text-white truncate">
-                {node.firstName} {node.lastName}
-              </p>
+          <div className="flex items-center gap-3 rounded border border-gray-200 bg-white px-4 py-3 shadow-sm dark:border-gray-700 dark:bg-gray-800 min-w-[220px]">
+            <Avatar
+              src={node.profilePicture}
+              name={`${node.firstName} ${node.lastName}`}
+              size="md"
+              colorClass={roleColor}
+            />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <p className="font-medium text-gray-900 dark:text-white truncate">
+                  {node.firstName} {node.lastName}
+                </p>
+                {node.linkedIn && (
+                  <a
+                    href={node.linkedIn}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:text-blue-600"
+                    title="LinkedIn Profile"
+                  >
+                    <LinkedInIcon />
+                  </a>
+                )}
+              </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                 {node.designation || node.role.replace("_", " ")}
               </p>
@@ -105,35 +123,20 @@ export default function OrgChartPage() {
           </div>
         </div>
 
-        {/* Children with connectors */}
         {hasChildren && (
           <div className="flex flex-col items-center">
-            {/* Vertical line down from parent */}
             <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
-
-            {/* Horizontal connector bar for multiple children */}
             {node.children.length > 1 && (
-              <div className="relative w-full flex justify-center">
-                <div
-                  className="h-px bg-gray-300 dark:bg-gray-600"
-                  style={{
-                    width: `calc(100% - ${100 / node.children.length}%)`,
-                  }}
-                />
-              </div>
+              <div
+                className="h-px bg-gray-300 dark:bg-gray-600"
+                style={{ width: `${(node.children.length - 1) * 240}px` }}
+              />
             )}
-
-            {/* Children row */}
             <div className="flex gap-8">
-              {node.children.map((child, idx) => (
+              {node.children.map((child) => (
                 <div key={child.id} className="flex flex-col items-center">
-                  {/* Vertical line down to child */}
                   <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
-                  <TreeNodeCard
-                    node={child}
-                    isLast={idx === node.children.length - 1}
-                    level={level + 1}
-                  />
+                  <TreeNodeCard node={child} />
                 </div>
               ))}
             </div>
@@ -228,20 +231,31 @@ export default function OrgChartPage() {
                   const roleColor = getRoleColor(user.role);
                   return (
                     <div key={user.id} className="flex items-center gap-3 rounded border border-gray-100 p-2.5 dark:border-gray-700/50">
-                      <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full ${roleColor.bg} text-xs font-semibold text-white`}>
-                        {user.firstName[0]}{user.lastName[0]}
-                      </div>
+                      <Avatar
+                        src={user.profilePicture}
+                        name={`${user.firstName} ${user.lastName}`}
+                        size="sm"
+                        colorClass={roleColor}
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                             {user.firstName} {user.lastName}
                           </p>
-                          <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${roleColor.light}`}>
-                            {user.role.replace("_", " ")}
-                          </span>
+                          {user.linkedIn && (
+                            <a
+                              href={user.linkedIn}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-500 hover:text-blue-600"
+                              title="LinkedIn Profile"
+                            >
+                              <LinkedInIcon />
+                            </a>
+                          )}
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                          {user.designation || "—"}
+                          {user.designation || user.role.replace("_", " ")}
                         </p>
                       </div>
                     </div>
@@ -257,26 +271,18 @@ export default function OrgChartPage() {
       {users.length > 0 && (
         <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
           <span className="font-medium">Roles:</span>
-          <div className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-purple-500" />
-            <span>Admin</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-pink-500" />
-            <span>HR</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />
-            <span>Manager</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
-            <span>Team Lead</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-gray-500" />
-            <span>Employee</span>
-          </div>
+          {[
+            { color: "bg-purple-500", label: "Admin" },
+            { color: "bg-pink-500", label: "HR" },
+            { color: "bg-blue-500", label: "Manager" },
+            { color: "bg-green-500", label: "Team Lead" },
+            { color: "bg-gray-500", label: "Employee" },
+          ].map((item) => (
+            <div key={item.label} className="flex items-center gap-1.5">
+              <span className={`h-2.5 w-2.5 rounded-full ${item.color}`} />
+              <span>{item.label}</span>
+            </div>
+          ))}
         </div>
       )}
     </div>

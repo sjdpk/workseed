@@ -12,12 +12,14 @@ export async function GET() {
     }
 
     const users = await prisma.user.findMany({
-      where: { status: "ACTIVE" },
+      // Show all users regardless of status for org chart
       select: {
         id: true,
         firstName: true,
         lastName: true,
         email: true,
+        profilePicture: true,
+        linkedIn: true,
         role: true,
         designation: true,
         managerId: true,

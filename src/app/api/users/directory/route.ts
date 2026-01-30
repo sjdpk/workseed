@@ -30,7 +30,6 @@ export async function GET(request: NextRequest) {
     const canViewAll = permissions.employeesCanViewAllEmployees ?? false;
 
     let whereClause: Record<string, unknown> = {
-      status: "ACTIVE",
       id: { not: currentUser.id }, // Exclude self
     };
 
@@ -64,6 +63,8 @@ export async function GET(request: NextRequest) {
         email: true,
         firstName: true,
         lastName: true,
+        profilePicture: true,
+        linkedIn: true,
         role: true,
         designation: true,
         phone: true,
@@ -77,7 +78,7 @@ export async function GET(request: NextRequest) {
           select: { id: true, name: true },
         },
         manager: {
-          select: { id: true, firstName: true, lastName: true },
+          select: { id: true, firstName: true, lastName: true, profilePicture: true },
         },
       },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],

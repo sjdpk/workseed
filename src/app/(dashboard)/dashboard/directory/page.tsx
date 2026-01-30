@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, Input } from "@/components";
+import { Card, Input, Avatar } from "@/components";
 
 interface User {
   id: string;
@@ -10,12 +10,14 @@ interface User {
   email: string;
   firstName: string;
   lastName: string;
+  profilePicture?: string | null;
+  linkedIn?: string | null;
   role: string;
   designation?: string;
   phone?: string;
   department?: { id: string; name: string };
   team?: { id: string; name: string };
-  manager?: { id: string; firstName: string; lastName: string };
+  manager?: { id: string; firstName: string; lastName: string; profilePicture?: string | null };
 }
 
 interface CurrentUser {
@@ -23,6 +25,12 @@ interface CurrentUser {
   teamId?: string | null;
   departmentId?: string | null;
 }
+
+const LinkedInIcon = () => (
+  <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+  </svg>
+);
 
 export default function DirectoryPage() {
   const router = useRouter();
@@ -68,7 +76,6 @@ export default function DirectoryPage() {
     );
   });
 
-  // Group users by department
   const groupedByDepartment = filteredUsers.reduce((acc, user) => {
     const deptName = user.department?.name || "No Department";
     if (!acc[deptName]) acc[deptName] = [];
@@ -76,7 +83,6 @@ export default function DirectoryPage() {
     return acc;
   }, {} as Record<string, User[]>);
 
-  // Group users by team
   const groupedByTeam = filteredUsers.reduce((acc, user) => {
     const teamName = user.team?.name || "No Team";
     if (!acc[teamName]) acc[teamName] = [];
@@ -97,6 +103,16 @@ export default function DirectoryPage() {
     }
   };
 
+  const getRoleAvatarColor = (role: string) => {
+    switch (role) {
+      case "ADMIN": return "bg-purple-500";
+      case "HR": return "bg-pink-500";
+      case "MANAGER": return "bg-blue-500";
+      case "TEAM_LEAD": return "bg-green-500";
+      default: return "bg-gray-500";
+    }
+  };
+
   const UserCard = ({ user }: { user: User }) => {
     const sameTeam = isSameTeam(user);
     const sameDept = isSameDepartment(user);
@@ -109,26 +125,37 @@ export default function DirectoryPage() {
           ? "border-blue-300 bg-blue-50/50 dark:border-blue-700 dark:bg-blue-900/10"
           : "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
       }`}>
-        {/* Same team/dept badge */}
         {(sameTeam || sameDept) && (
           <div className={`absolute -top-2 right-3 rounded px-2 py-0.5 text-xs font-medium ${
-            sameTeam
-              ? "bg-green-500 text-white"
-              : "bg-blue-500 text-white"
+            sameTeam ? "bg-green-500 text-white" : "bg-blue-500 text-white"
           }`}>
             {sameTeam ? "Same Team" : "Same Dept"}
           </div>
         )}
 
         <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-sm font-semibold text-white">
-            {user.firstName[0]}{user.lastName[0]}
-          </div>
+          <Avatar
+            src={user.profilePicture}
+            name={`${user.firstName} ${user.lastName}`}
+            size="lg"
+            colorClass={getRoleAvatarColor(user.role)}
+          />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <p className="font-medium text-gray-900 dark:text-white truncate">
                 {user.firstName} {user.lastName}
               </p>
+              {user.linkedIn && (
+                <a
+                  href={user.linkedIn}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:text-blue-600"
+                  title="LinkedIn Profile"
+                >
+                  <LinkedInIcon />
+                </a>
+              )}
               <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${getRoleBadgeColor(user.role)}`}>
                 {user.role.replace("_", " ")}
               </span>
@@ -155,11 +182,18 @@ export default function DirectoryPage() {
             </div>
 
             {user.manager && (
-              <div className="mt-2 flex items-center gap-1.5 text-xs">
+              <div className="mt-2 flex items-center gap-2 text-xs">
                 <span className="text-gray-400 dark:text-gray-500">Reports to:</span>
-                <span className="font-medium text-gray-700 dark:text-gray-300">
-                  {user.manager.firstName} {user.manager.lastName}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <Avatar
+                    src={user.manager.profilePicture}
+                    name={`${user.manager.firstName} ${user.manager.lastName}`}
+                    size="xs"
+                  />
+                  <span className="font-medium text-gray-700 dark:text-gray-300">
+                    {user.manager.firstName} {user.manager.lastName}
+                  </span>
+                </div>
               </div>
             )}
           </div>
@@ -199,7 +233,6 @@ export default function DirectoryPage() {
           </p>
         </div>
 
-        {/* View mode toggle */}
         <div className="flex rounded border border-gray-200 dark:border-gray-700 p-1">
           {[
             { key: "all", label: "All" },
@@ -209,7 +242,7 @@ export default function DirectoryPage() {
             <button
               key={mode.key}
               onClick={() => setViewMode(mode.key as typeof viewMode)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${
                 viewMode === mode.key
                   ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
                   : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
@@ -221,7 +254,6 @@ export default function DirectoryPage() {
         </div>
       </div>
 
-      {/* Legend */}
       <div className="flex flex-wrap gap-4 text-xs">
         <div className="flex items-center gap-1.5">
           <span className="h-3 w-3 rounded-full bg-green-500"></span>
@@ -256,14 +288,12 @@ export default function DirectoryPage() {
           </div>
         </Card>
       ) : viewMode === "all" ? (
-        // All view - simple grid
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredUsers.map((user) => (
             <UserCard key={user.id} user={user} />
           ))}
         </div>
       ) : viewMode === "department" ? (
-        // Grouped by department
         <div className="space-y-6">
           {Object.entries(groupedByDepartment).sort(([a], [b]) => a.localeCompare(b)).map(([deptName, deptUsers]) => (
             <div key={deptName}>
@@ -290,7 +320,6 @@ export default function DirectoryPage() {
           ))}
         </div>
       ) : (
-        // Grouped by team
         <div className="space-y-6">
           {Object.entries(groupedByTeam).sort(([a], [b]) => a.localeCompare(b)).map(([teamName, teamUsers]) => (
             <div key={teamName}>
