@@ -22,6 +22,7 @@ export default function NewUserPage() {
     password: "",
     firstName: "",
     lastName: "",
+    employeeId: "",
     phone: "",
     role: "EMPLOYEE" as Role,
     status: "ACTIVE",
@@ -75,6 +76,7 @@ export default function NewUserPage() {
     try {
       const payload = {
         ...formData,
+        employeeId: formData.employeeId || undefined, // Auto-generate if empty
         status: formData.status,
         gender: formData.gender || undefined,
         maritalStatus: formData.maritalStatus || undefined,
@@ -208,6 +210,7 @@ export default function NewUserPage() {
         <Card>
           <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Employment Details</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Input id="employeeId" label="Employee ID" placeholder="Auto-generated if empty" value={formData.employeeId} onChange={(e) => setFormData({ ...formData, employeeId: e.target.value.toUpperCase() })} />
             <Select id="role" label="Role *" options={roleOptions} value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value as Role })} />
             <Select id="status" label="Status" options={statusOptions} value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} />
             <Select id="employmentType" label="Employment Type" options={employmentOptions} value={formData.employmentType} onChange={(e) => setFormData({ ...formData, employmentType: e.target.value as EmploymentType })} />

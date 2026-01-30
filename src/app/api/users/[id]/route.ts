@@ -3,6 +3,7 @@ import { prisma, getCurrentUser, isHROrAbove, hashPassword, createAuditLog, getR
 import { z } from "zod/v4";
 
 const updateUserSchema = z.object({
+  employeeId: z.string().min(1).optional(),
   firstName: z.string().min(1).optional(),
   lastName: z.string().min(1).optional(),
   phone: z.string().optional().nullable(),
@@ -177,6 +178,23 @@ export async function PATCH(
     if (data.emergencyContactPhone !== undefined) updateData.emergencyContactPhone = data.emergencyContactPhone;
 
     // HR/Admin only fields
+    if (isHRAdmin) {
+      // Employee ID can be changed by HR/Admin (including for self if admin)
+      if (data.employeeId && data.employeeId !== targetUser.employeeId) {
+        const existingEmployeeId = await prisma.user.findUnique({
+          where: { employeeId: data.employeeId },
+        });
+        if (existingEmployeeId && existingEmployeeId.id !== id) {
+          return NextResponse.json(
+            { success: false, error: "Employee ID already exists" },
+            { status: 400 }
+          );
+        }
+        updateData.employeeId = data.employeeId;
+      }
+    }
+
+    // HR/Admin only fields (not for self)
     if (isHRAdmin && !isSelf) {
       if (data.dateOfBirth !== undefined) {
         updateData.dateOfBirth = data.dateOfBirth ? new Date(data.dateOfBirth) : null;

@@ -7,6 +7,7 @@ const createUserSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
+  employeeId: z.string().min(1).optional(), // Optional - auto-generated if not provided
   phone: z.string().optional(),
   profilePicture: z.string().url().optional().or(z.literal("")),
   role: z.enum(["ADMIN", "HR", "MANAGER", "TEAM_LEAD", "EMPLOYEE"]),
@@ -188,8 +189,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if custom employee ID is provided and unique
+    let employeeId: string;
+    if (data.employeeId) {
+      const existingEmployeeId = await prisma.user.findUnique({
+        where: { employeeId: data.employeeId },
+      });
+      if (existingEmployeeId) {
+        return NextResponse.json(
+          { success: false, error: "Employee ID already exists" },
+          { status: 400 }
+        );
+      }
+      employeeId = data.employeeId;
+    } else {
+      employeeId = await generateEmployeeId();
+    }
+
     const hashedPassword = await hashPassword(data.password);
-    const employeeId = await generateEmployeeId();
 
     const user = await prisma.user.create({
       data: {

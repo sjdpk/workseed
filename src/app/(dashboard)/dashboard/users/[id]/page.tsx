@@ -77,6 +77,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
   const [savingAllocation, setSavingAllocation] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
+    employeeId: "",
     firstName: "",
     lastName: "",
     phone: "",
@@ -138,6 +139,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
         const u = userData.data.user;
         setUser(u);
         setFormData({
+          employeeId: u.employeeId || "",
           firstName: u.firstName || "",
           lastName: u.lastName || "",
           phone: u.phone || "",
@@ -193,6 +195,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
 
     try {
       const payload: Record<string, unknown> = {
+        employeeId: formData.employeeId,
         firstName: formData.firstName,
         lastName: formData.lastName,
         phone: formData.phone || null,
@@ -369,7 +372,8 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Account Information</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Input id="employeeId" label="Employee ID *" value={formData.employeeId} onChange={(e) => setFormData({ ...formData, employeeId: e.target.value.toUpperCase() })} required />
             <Input id="email" type="email" label="Email" value={user.email} disabled />
             <Input id="password" type="password" label="New Password (leave empty to keep)" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="••••••••" />
           </div>
