@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         department: { select: { id: true, name: true } },
+        lead: { select: { id: true, firstName: true, lastName: true } },
         _count: { select: { users: true } },
       },
       orderBy: { name: "asc" },

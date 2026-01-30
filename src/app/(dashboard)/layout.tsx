@@ -77,10 +77,12 @@ export default function DashboardLayout({
   const mainNavigation = [
     { name: "Dashboard", href: "/dashboard", icon: HomeIcon, show: true },
     { name: "Directory", href: "/dashboard/directory", icon: ContactIcon, show: !isHROrAbove },
+    { name: "Org Chart", href: "/dashboard/org-chart", icon: OrgChartIcon, show: true },
     { name: "Users", href: "/dashboard/users", icon: UsersIcon, show: hasPermission("USER_VIEW") },
     { name: "Departments", href: "/dashboard/departments", icon: BuildingIcon, show: hasPermission("DEPARTMENT_VIEW") },
     { name: "Teams", href: "/dashboard/teams", icon: TeamIcon, show: hasPermission("TEAM_VIEW") },
     { name: "Branches", href: "/dashboard/branches", icon: LocationIcon, show: hasPermission("BRANCH_VIEW") },
+    { name: "Notices", href: "/dashboard/notices", icon: MegaphoneIcon, show: isHROrAbove },
   ].filter(item => item.show);
 
   const leaveNavigation = [
@@ -330,6 +332,22 @@ function ContactIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  );
+}
+
+function OrgChartIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+    </svg>
+  );
+}
+
+function MegaphoneIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
     </svg>
   );
 }

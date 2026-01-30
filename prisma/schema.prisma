@@ -120,6 +120,7 @@ model Team {
   departmentId String      @db.Uuid
   department   Department  @relation(fields: [departmentId], references: [id])
   leadId       String?     @db.Uuid
+  lead         User?       @relation("TeamLead", fields: [leadId], references: [id])
   isActive     Boolean     @default(true)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
@@ -185,6 +186,8 @@ model User {
   leaveAllocations LeaveAllocation[]
   leaveRequests   LeaveRequest[]
   leaveApprovals  LeaveRequest[]  @relation("LeaveApprover")
+  notices         Notice[]        @relation("NoticeCreator")
+  teamsLed        Team[]          @relation("TeamLead")
 
   @@map("users")
 }
@@ -293,4 +296,21 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   @@map("audit_logs")
+}
+
+// Notice/Announcement
+model Notice {
+  id          String    @id @default(uuid()) @db.Uuid
+  title       String
+  content     String
+  type        String    @default("GENERAL") // GENERAL, IMPORTANT, URGENT
+  isActive    Boolean   @default(true)
+  publishedAt DateTime  @default(now())
+  expiresAt   DateTime?
+  createdById String    @db.Uuid
+  createdBy   User      @relation("NoticeCreator", fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("notices")
 }

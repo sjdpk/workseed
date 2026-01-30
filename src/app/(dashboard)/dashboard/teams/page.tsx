@@ -10,6 +10,7 @@ interface Team {
   code: string;
   description?: string;
   department?: { id: string; name: string };
+  lead?: { id: string; firstName: string; lastName: string };
   _count: { users: number };
 }
 
@@ -108,9 +109,27 @@ export default function TeamsPage() {
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{team.name}</h3>
                   <span className="text-xs text-gray-500 dark:text-gray-400">{team.code}</span>
                 </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push(`/dashboard/teams/${team.id}`)}
+                >
+                  Edit
+                </Button>
               </div>
               {team.description && <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{team.description}</p>}
-              <div className="mt-3 text-xs text-gray-600 dark:text-gray-400">{team._count.users} members</div>
+              <div className="mt-3 flex items-center justify-between text-xs">
+                <span className="text-gray-600 dark:text-gray-400">{team._count.users} members</span>
+                {team.lead ? (
+                  <span className="rounded-full bg-green-100 px-2 py-0.5 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                    Lead: {team.lead.firstName} {team.lead.lastName}
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">
+                    No Lead
+                  </span>
+                )}
+              </div>
               {team.department && <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Department: {team.department.name}</p>}
             </Card>
           ))}
