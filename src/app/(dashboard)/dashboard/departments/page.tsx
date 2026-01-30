@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card } from "@/components";
+import { Button, Card, Input } from "@/components";
 
 interface Department {
   id: string;
@@ -27,6 +27,7 @@ export default function DepartmentsPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const hasPermission = (permission: keyof typeof PERMISSIONS) => {
     if (!currentUser) return false;
@@ -49,6 +50,17 @@ export default function DepartmentsPage() {
       setLoading(false);
     });
   }, [router]);
+
+  const filteredDepartments = departments.filter((dept) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      dept.name.toLowerCase().includes(term) ||
+      dept.code.toLowerCase().includes(term) ||
+      dept.description?.toLowerCase().includes(term) ||
+      dept.branch?.name?.toLowerCase().includes(term)
+    );
+  });
 
   if (loading) {
     return (
@@ -74,13 +86,22 @@ export default function DepartmentsPage() {
         )}
       </div>
 
-      {departments.length === 0 ? (
+      <Card className="p-3">
+        <Input
+          id="search"
+          placeholder="Search by name, code, or branch..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </Card>
+
+      {filteredDepartments.length === 0 ? (
         <Card>
           <p className="text-center text-sm text-gray-500 dark:text-gray-400">No departments found</p>
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {departments.map((dept) => (
+          {filteredDepartments.map((dept) => (
             <Card key={dept.id}>
               <div className="flex items-start justify-between">
                 <div>

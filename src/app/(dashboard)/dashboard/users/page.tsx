@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card } from "@/components";
+import { Button, Card, Input } from "@/components";
 import type { Role } from "@/types";
 
 interface User {
@@ -34,6 +34,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const hasPermission = (permission: keyof typeof PERMISSIONS) => {
     if (!currentUser) return false;
@@ -43,11 +44,10 @@ export default function UsersPage() {
   useEffect(() => {
     Promise.all([
       fetch("/api/auth/me").then(r => r.json()),
-      fetch("/api/users").then(r => r.json()),
+      fetch("/api/users?limit=500").then(r => r.json()),
     ]).then(([meData, usersData]) => {
       if (meData.success) {
         setCurrentUser(meData.data.user);
-        // Redirect if no permission
         if (!PERMISSIONS.VIEW.includes(meData.data.user.role)) {
           router.replace("/dashboard");
           return;
@@ -59,6 +59,19 @@ export default function UsersPage() {
       setLoading(false);
     });
   }, [router]);
+
+  const filteredUsers = users.filter((user) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      user.firstName.toLowerCase().includes(term) ||
+      user.lastName.toLowerCase().includes(term) ||
+      user.email.toLowerCase().includes(term) ||
+      user.employeeId.toLowerCase().includes(term) ||
+      user.role.toLowerCase().includes(term) ||
+      user.department?.name?.toLowerCase().includes(term)
+    );
+  });
 
   if (loading) {
     return (
@@ -84,8 +97,17 @@ export default function UsersPage() {
         )}
       </div>
 
+      <Card className="p-3">
+        <Input
+          id="search"
+          placeholder="Search by name, email, ID, role, or department..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </Card>
+
       <Card className="overflow-hidden p-0">
-        {users.length === 0 ? (
+        {filteredUsers.length === 0 ? (
           <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">No users found</div>
         ) : (
           <div className="overflow-x-auto">
@@ -103,7 +125,7 @@ export default function UsersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
-                {users.map((user) => (
+                {filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="whitespace-nowrap px-4 py-3">
                       <div className="flex items-center gap-3">

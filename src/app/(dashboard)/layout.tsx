@@ -76,7 +76,9 @@ export default function DashboardLayout({
   ].filter(item => item.show);
 
   const settingsNavigation = [
+    { name: "Organization", href: "/dashboard/settings/organization", icon: BuildingIcon, show: user?.role === "ADMIN" },
     { name: "Leave Types", href: "/dashboard/settings/leave-types", icon: SettingsIcon, show: hasPermission("SETTINGS_VIEW") },
+    { name: "Leave Allocations", href: "/dashboard/settings/leave-allocations", icon: CalendarIcon, show: hasPermission("SETTINGS_VIEW") },
   ].filter(item => item.show);
 
   return (

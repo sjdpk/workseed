@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card } from "@/components";
+import { Button, Card, Input } from "@/components";
 
 interface Team {
   id: string;
@@ -27,6 +27,7 @@ export default function TeamsPage() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const hasPermission = (permission: keyof typeof PERMISSIONS) => {
     if (!currentUser) return false;
@@ -49,6 +50,17 @@ export default function TeamsPage() {
       setLoading(false);
     });
   }, [router]);
+
+  const filteredTeams = teams.filter((team) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      team.name.toLowerCase().includes(term) ||
+      team.code.toLowerCase().includes(term) ||
+      team.description?.toLowerCase().includes(term) ||
+      team.department?.name?.toLowerCase().includes(term)
+    );
+  });
 
   if (loading) {
     return (
@@ -74,13 +86,22 @@ export default function TeamsPage() {
         )}
       </div>
 
-      {teams.length === 0 ? (
+      <Card className="p-3">
+        <Input
+          id="search"
+          placeholder="Search by name, code, or department..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </Card>
+
+      {filteredTeams.length === 0 ? (
         <Card>
           <p className="text-center text-sm text-gray-500 dark:text-gray-400">No teams found</p>
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {teams.map((team) => (
+          {filteredTeams.map((team) => (
             <Card key={team.id}>
               <div className="flex items-start justify-between">
                 <div>

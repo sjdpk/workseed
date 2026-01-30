@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card } from "@/components";
+import { Button, Card, Input } from "@/components";
 import type { Branch } from "@/types";
 
 interface CurrentUser {
@@ -19,6 +19,7 @@ export default function BranchesPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const hasPermission = (permission: keyof typeof PERMISSIONS) => {
     if (!currentUser) return false;
@@ -41,6 +42,17 @@ export default function BranchesPage() {
       setLoading(false);
     });
   }, [router]);
+
+  const filteredBranches = branches.filter((branch) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      branch.name.toLowerCase().includes(term) ||
+      branch.code.toLowerCase().includes(term) ||
+      branch.city?.toLowerCase().includes(term) ||
+      branch.country?.toLowerCase().includes(term)
+    );
+  });
 
   if (loading) {
     return (
@@ -66,13 +78,22 @@ export default function BranchesPage() {
         )}
       </div>
 
-      {branches.length === 0 ? (
+      <Card className="p-3">
+        <Input
+          id="search"
+          placeholder="Search by name, code, city, or country..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </Card>
+
+      {filteredBranches.length === 0 ? (
         <Card>
           <p className="text-center text-sm text-gray-500 dark:text-gray-400">No branches found</p>
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {branches.map((branch) => (
+          {filteredBranches.map((branch) => (
             <Card key={branch.id}>
               <div className="flex items-start justify-between">
                 <div>

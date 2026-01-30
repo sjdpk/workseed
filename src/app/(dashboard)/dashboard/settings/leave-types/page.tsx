@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card } from "@/components";
+import { Button, Card, Input } from "@/components";
 import type { LeaveType } from "@/types";
 
 const ALLOWED_ROLES = ["ADMIN", "HR"];
@@ -16,6 +16,7 @@ export default function LeaveTypesPage() {
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchLeaveTypes = () => {
     fetch("/api/leave-types?all=true")
@@ -41,6 +42,16 @@ export default function LeaveTypesPage() {
       setLoading(false);
     });
   }, [router]);
+
+  const filteredLeaveTypes = leaveTypes.filter((lt) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      lt.name.toLowerCase().includes(term) ||
+      lt.code.toLowerCase().includes(term) ||
+      lt.description?.toLowerCase().includes(term)
+    );
+  });
 
   const toggleActive = async (id: string, currentStatus: boolean) => {
     const res = await fetch(`/api/leave-types/${id}`, {
@@ -72,13 +83,22 @@ export default function LeaveTypesPage() {
         <Button onClick={() => router.push("/dashboard/settings/leave-types/new")}>Add Leave Type</Button>
       </div>
 
-      {leaveTypes.length === 0 ? (
+      <Card className="p-3">
+        <Input
+          id="search"
+          placeholder="Search by name or code..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </Card>
+
+      {filteredLeaveTypes.length === 0 ? (
         <Card>
           <p className="text-center text-sm text-gray-500 dark:text-gray-400">No leave types found</p>
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {leaveTypes.map((lt) => (
+          {filteredLeaveTypes.map((lt) => (
             <Card key={lt.id} className={`relative overflow-hidden ${!lt.isActive ? "opacity-60" : ""}`}>
               <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: lt.color || "#3B82F6" }} />
               <div className="pl-2">
