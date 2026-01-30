@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  HR
+  MANAGER
+  TEAM_LEAD
+  EMPLOYEE
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model Branch {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  code      String   @unique
+  address   String?
+  city      String?
+  state     String?
+  country   String?
+  phone     String?
+  email     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users User[]
+
+  @@map("branches")
+}
+
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  employeeId   String     @unique
+  email        String     @unique
+  password     String
+  firstName    String
+  lastName     String
+  phone        String?
+  role         Role       @default(EMPLOYEE)
+  status       UserStatus @default(ACTIVE)
+  branchId     String?    @db.Uuid
+  branch       Branch?    @relation(fields: [branchId], references: [id])
+  managerId    String?    @db.Uuid
+  manager      User?      @relation("ManagerEmployee", fields: [managerId], references: [id])
+  subordinates User[]     @relation("ManagerEmployee")
+  lastLoginAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  createdBy    String?    @db.Uuid
+
+  @@map("users")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  action    String
+  entity    String
+  entityId  String?
+  details   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
