@@ -20,3 +20,5 @@ export {
   ROLE_HIERARCHY,
 } from "./permissions";
 export type { Permission, Role } from "./permissions";
+export { createAuditLog, getRequestMeta } from "./audit";
+export type { AuditAction, AuditEntity } from "./audit";

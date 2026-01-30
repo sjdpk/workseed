@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, getCurrentUser, isHROrAbove, hashPassword } from "@/lib";
+import { prisma, getCurrentUser, isHROrAbove, hashPassword, createAuditLog, getRequestMeta } from "@/lib";
 import { z } from "zod/v4";
 
 const updateUserSchema = z.object({
@@ -230,6 +230,18 @@ export async function PATCH(
         department: { select: { id: true, name: true } },
         team: { select: { id: true, name: true } },
       },
+    });
+
+    // Audit log
+    const { ipAddress, userAgent } = getRequestMeta(request.headers);
+    await createAuditLog({
+      userId: currentUser.id,
+      action: "UPDATE",
+      entity: "USER",
+      entityId: id,
+      details: { updatedFields: Object.keys(updateData) },
+      ipAddress,
+      userAgent,
     });
 
     return NextResponse.json({

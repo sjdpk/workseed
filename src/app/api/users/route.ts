@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, hashPassword, getCurrentUser, isHROrAbove } from "@/lib";
+import { prisma, hashPassword, getCurrentUser, isHROrAbove, createAuditLog, getRequestMeta } from "@/lib";
 import { z } from "zod/v4";
 
 const createUserSchema = z.object({
@@ -240,6 +240,18 @@ export async function POST(request: NextRequest) {
 
     // Allocate default leaves
     await allocateDefaultLeaves(user.id);
+
+    // Audit log
+    const { ipAddress, userAgent } = getRequestMeta(request.headers);
+    await createAuditLog({
+      userId: currentUser.id,
+      action: "CREATE",
+      entity: "USER",
+      entityId: user.id,
+      details: { email: user.email, employeeId: user.employeeId, role: user.role },
+      ipAddress,
+      userAgent,
+    });
 
     return NextResponse.json(
       { success: true, data: { user } },

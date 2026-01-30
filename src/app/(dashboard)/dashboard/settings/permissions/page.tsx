@@ -34,6 +34,7 @@ interface PermissionSettings {
     branches: string[];
     leaveTypes: string[];
     leaveRequests: string[];
+    auditLogs: string[];
     reports: string[];
   };
 }
@@ -61,6 +62,7 @@ const defaultPermissions: PermissionSettings = {
     branches: ["ADMIN", "HR"],
     leaveTypes: ["ADMIN", "HR"],
     leaveRequests: ["ADMIN", "HR", "MANAGER", "TEAM_LEAD"],
+    auditLogs: ["ADMIN"],
     reports: ["ADMIN", "HR", "MANAGER"],
   },
 };

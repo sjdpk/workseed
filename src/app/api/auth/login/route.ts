@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, verifyPassword, createToken } from "@/lib";
+import { prisma, verifyPassword, createToken, createAuditLog, getRequestMeta } from "@/lib";
 import { z } from "zod/v4";
 
 const loginSchema = z.object({
@@ -76,6 +76,18 @@ export async function POST(request: NextRequest) {
       sameSite: "lax",
       maxAge: 60 * 60 * 24, // 24 hours
       path: "/",
+    });
+
+    // Audit log
+    const { ipAddress, userAgent } = getRequestMeta(request.headers);
+    await createAuditLog({
+      userId: user.id,
+      action: "LOGIN",
+      entity: "USER",
+      entityId: user.id,
+      details: { email: user.email },
+      ipAddress,
+      userAgent,
     });
 
     return response;

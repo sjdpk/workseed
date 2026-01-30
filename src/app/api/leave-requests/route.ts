@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, getCurrentUser, isHROrAbove, isManagerOrAbove } from "@/lib";
+import { prisma, getCurrentUser, isHROrAbove, isManagerOrAbove, createAuditLog, getRequestMeta } from "@/lib";
 import { z } from "zod/v4";
 
 const createLeaveRequestSchema = z.object({
@@ -354,6 +354,23 @@ export async function PATCH(request: NextRequest) {
           select: { id: true, firstName: true, lastName: true },
         },
       },
+    });
+
+    // Audit log
+    const { ipAddress, userAgent } = getRequestMeta(request.headers);
+    const auditAction = data.status === "APPROVED" ? "APPROVE" : data.status === "REJECTED" ? "REJECT" : "CANCEL";
+    await createAuditLog({
+      userId: currentUser.id,
+      action: auditAction,
+      entity: "LEAVE_REQUEST",
+      entityId: id,
+      details: {
+        status: data.status,
+        employeeId: leaveRequest.user?.employeeId,
+        days: leaveRequest.days,
+      },
+      ipAddress,
+      userAgent,
     });
 
     return NextResponse.json({
