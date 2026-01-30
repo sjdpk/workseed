@@ -141,7 +141,17 @@ export interface SessionUser {
   role: Role;
   status: UserStatus;
   employeeId: string;
+  teamId?: string | null;
+  departmentId?: string | null;
   branch?: {
+    id: string;
+    name: string;
+  } | null;
+  team?: {
+    id: string;
+    name: string;
+  } | null;
+  department?: {
     id: string;
     name: string;
   } | null;

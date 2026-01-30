@@ -58,7 +58,21 @@ export async function getCurrentUser() {
       role: true,
       status: true,
       employeeId: true,
+      teamId: true,
+      departmentId: true,
       branch: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      team: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      department: {
         select: {
           id: true,
           name: true,
