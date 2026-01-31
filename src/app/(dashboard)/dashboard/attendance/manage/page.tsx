@@ -358,8 +358,8 @@ export default function AttendanceManagePage() {
                     {calculateDuration(record.checkIn, record.checkOut)}
                   </td>
                   <td className="px-3 py-2">
-                    <span className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${getSourceBadge(record.source)}`}>
-                      {record.source}
+                    <span className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${getSourceBadge(record.source)}`}>
+                      {record.source.charAt(0) + record.source.slice(1).toLowerCase()}
                     </span>
                   </td>
                 </tr>

@@ -126,7 +126,7 @@ export default function DirectoryPage() {
           : "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
       }`}>
         {(sameTeam || sameDept) && (
-          <div className={`absolute -top-2 right-3 rounded px-2 py-0.5 text-xs font-medium ${
+          <div className={`absolute -top-2 right-3 rounded px-1.5 py-0.5 text-[10px] font-medium ${
             sameTeam ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900" : "bg-gray-600 text-white"
           }`}>
             {sameTeam ? "Same Team" : "Same Dept"}
@@ -156,8 +156,8 @@ export default function DirectoryPage() {
                   <LinkedInIcon />
                 </a>
               )}
-              <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${getRoleBadgeColor(user.role)}`}>
-                {user.role.replace("_", " ")}
+              <span className={`rounded px-1 py-0.5 text-[10px] font-medium ${getRoleBadgeColor(user.role)}`}>
+                {user.role.replace("_", " ").split(" ").map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(" ")}
               </span>
             </div>
             {user.designation && (
@@ -308,7 +308,7 @@ export default function DirectoryPage() {
                   <p className="text-xs text-gray-500 dark:text-gray-400">{deptUsers.length} members</p>
                 </div>
                 {currentUser?.departmentId && deptUsers[0]?.department?.id === currentUser.departmentId && (
-                  <span className="rounded bg-gray-900 px-2 py-0.5 text-xs font-medium text-white dark:bg-white dark:text-gray-900">Your Dept</span>
+                  <span className="rounded bg-gray-900 px-1.5 py-0.5 text-[10px] font-medium text-white dark:bg-white dark:text-gray-900">Your Dept</span>
                 )}
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -334,7 +334,7 @@ export default function DirectoryPage() {
                   <p className="text-xs text-gray-500 dark:text-gray-400">{teamUsers.length} members</p>
                 </div>
                 {currentUser?.teamId && teamUsers[0]?.team?.id === currentUser.teamId && (
-                  <span className="rounded bg-gray-900 px-2 py-0.5 text-xs font-medium text-white dark:bg-white dark:text-gray-900">Your Team</span>
+                  <span className="rounded bg-gray-900 px-1.5 py-0.5 text-[10px] font-medium text-white dark:bg-white dark:text-gray-900">Your Team</span>
                 )}
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

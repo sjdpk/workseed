@@ -357,8 +357,8 @@ export default function LeaveRequestsPage() {
                     </td>
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{req.days}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium ${statusConfig[req.status].bg} ${statusConfig[req.status].text}`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${statusConfig[req.status].dot}`} />
+                      <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium ${statusConfig[req.status].bg} ${statusConfig[req.status].text}`}>
+                        <span className={`h-1 w-1 rounded-full ${statusConfig[req.status].dot}`} />
                         {req.status}
                       </span>
                     </td>
@@ -428,8 +428,8 @@ export default function LeaveRequestsPage() {
                       {selectedRequest.user?.department?.name && ` · ${selectedRequest.user.department.name}`}
                     </p>
                   </div>
-                  <span className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${statusConfig[selectedRequest.status].bg} ${statusConfig[selectedRequest.status].text}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${statusConfig[selectedRequest.status].dot}`} />
+                  <span className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${statusConfig[selectedRequest.status].bg} ${statusConfig[selectedRequest.status].text}`}>
+                    <span className={`h-1 w-1 rounded-full ${statusConfig[selectedRequest.status].dot}`} />
                     {selectedRequest.status}
                   </span>
                 </div>

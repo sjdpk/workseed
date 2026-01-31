@@ -154,7 +154,7 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
               {user.designation || user.role} • {user.employeeId}
             </p>
             <div className="mt-1 flex items-center gap-2">
-              <span className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${
+              <span className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${
                 user.status === "ACTIVE"
                   ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                   : user.status === "INACTIVE"
@@ -163,8 +163,8 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
               }`}>
                 {user.status}
               </span>
-              <span className="inline-flex rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                {user.role.replace("_", " ")}
+              <span className="inline-flex rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                {user.role.replace("_", " ").split(" ").map((w: string) => w.charAt(0) + w.slice(1).toLowerCase()).join(" ")}
               </span>
             </div>
           </div>
@@ -368,7 +368,7 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
                   <p className="text-xs text-gray-500 dark:text-gray-400">{asset.assetTag}</p>
                   <div className="mt-1 flex items-center gap-2">
                     <span className="text-xs text-gray-500 dark:text-gray-400">{asset.category.replace(/_/g, " ")}</span>
-                    <span className={`inline-flex rounded px-1.5 py-0.5 text-xs font-medium ${
+                    <span className={`inline-flex rounded px-1 py-0.5 text-[10px] font-medium ${
                       asset.condition === "NEW" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
                       asset.condition === "EXCELLENT" ? "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300" :
                       asset.condition === "GOOD" ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400" :

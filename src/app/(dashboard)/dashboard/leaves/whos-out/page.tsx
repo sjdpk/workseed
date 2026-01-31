@@ -242,7 +242,7 @@ function LeaveCard({ leave, isToday, isPast }: { leave: LeaveRequest; isToday?: 
             {leave.user?.firstName} {leave.user?.lastName}
           </p>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className="rounded bg-gray-50 px-1.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+            <span className="rounded bg-gray-50 px-1 py-0.5 text-[10px] font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
               {leave.leaveType?.name}
             </span>
           </div>

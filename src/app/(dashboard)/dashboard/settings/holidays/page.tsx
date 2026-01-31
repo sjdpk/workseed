@@ -314,8 +314,8 @@ export default function HolidaysPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-gray-900 dark:text-white">{holiday.name}</p>
-                    <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${getTypeColor(holiday.type)}`}>
-                      {holiday.type}
+                    <span className={`rounded px-1 py-0.5 text-[10px] font-medium ${getTypeColor(holiday.type)}`}>
+                      {holiday.type.charAt(0) + holiday.type.slice(1).toLowerCase()}
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400">

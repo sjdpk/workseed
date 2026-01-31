@@ -168,13 +168,13 @@ export default function UsersPage() {
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{user.email}</td>
                     <td className="whitespace-nowrap px-4 py-3">
-                      <span className="inline-flex rounded bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                        {user.role.replace("_", " ")}
+                      <span className="inline-flex rounded bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                        {user.role.replace("_", " ").split(" ").map((w: string) => w.charAt(0) + w.slice(1).toLowerCase()).join(" ")}
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{user.department?.name || "-"}</td>
                     <td className="whitespace-nowrap px-4 py-3">
-                      <span className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${
+                      <span className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${
                         user.status === "ACTIVE"
                           ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300"
                           : "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300"

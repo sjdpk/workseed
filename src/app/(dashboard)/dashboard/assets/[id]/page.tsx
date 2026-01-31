@@ -336,7 +336,7 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-semibold text-gray-900 dark:text-white">{asset.name}</h1>
             <span
-              className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${
+              className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${
                 STATUS_COLORS[asset.status] || ""
               }`}
             >

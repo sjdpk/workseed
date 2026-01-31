@@ -116,8 +116,8 @@ export default function NoticesPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold text-gray-900 dark:text-white">{notice.title}</h3>
-                    <span className={`rounded px-2 py-0.5 text-xs font-medium ${typeColors[notice.type]}`}>
-                      {notice.type}
+                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${typeColors[notice.type]}`}>
+                      {notice.type.charAt(0) + notice.type.slice(1).toLowerCase()}
                     </span>
                     {!notice.isActive && (
                       <span className="rounded bg-gray-200 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-400">

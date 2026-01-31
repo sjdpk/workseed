@@ -210,8 +210,8 @@ export default function RequestsPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{req.subject}</p>
-                  <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${getStatusColor(req.status)}`}>
-                    {req.status}
+                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${getStatusColor(req.status)}`}>
+                    {req.status.charAt(0) + req.status.slice(1).toLowerCase()}
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -407,8 +407,8 @@ export default function RequestsPage() {
             <div className="flex h-full flex-col">
               {/* Header */}
               <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
-                <span className={`rounded px-2 py-0.5 text-xs font-medium ${getStatusColor(selectedRequest.status)}`}>
-                  {selectedRequest.status}
+                <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${getStatusColor(selectedRequest.status)}`}>
+                  {selectedRequest.status.charAt(0) + selectedRequest.status.slice(1).toLowerCase()}
                 </span>
                 <button
                   onClick={() => setSelectedRequest(null)}

@@ -697,7 +697,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                         {asset.category.replace(/_/g, " ")}
                       </td>
                       <td className="px-3 py-2">
-                        <span className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${
+                        <span className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${
                           asset.condition === "NEW" ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400" :
                           asset.condition === "EXCELLENT" || asset.condition === "GOOD" ? "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300" :
                           "bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400"

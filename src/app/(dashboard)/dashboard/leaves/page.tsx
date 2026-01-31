@@ -226,7 +226,7 @@ export default function MyLeavesPage() {
                         <td className="py-3 pr-4 text-sm text-gray-900 dark:text-white">{req.days}</td>
                         <td className="py-3 pr-4">
                           <span
-                            className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium ${config.bg} ${config.text}`}
+                            className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium ${config.bg} ${config.text}`}
                           >
                             <span className={`h-1.5 w-1.5 rounded-full ${config.dot}`} />
                             {req.status}

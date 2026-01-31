@@ -286,8 +286,8 @@ export default function AuditLogsPage() {
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
-                      <span className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${getActionColor(log.action)}`}>
-                        {log.action}
+                      <span className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${getActionColor(log.action)}`}>
+                        {log.action.charAt(0) + log.action.slice(1).toLowerCase()}
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">

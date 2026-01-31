@@ -245,7 +245,7 @@ export default function EditTeamPage({ params }: { params: Promise<{ id: string 
                   </div>
                 </div>
                 {member.id === formData.leadId && (
-                  <span className="rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/50 dark:text-green-300">
+                  <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
                     Team Lead
                   </span>
                 )}
