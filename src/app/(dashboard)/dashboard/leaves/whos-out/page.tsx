@@ -130,7 +130,7 @@ export default function WhosOutPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Who's Out</h1>
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Who's Out</h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">See when your colleagues are on leave</p>
       </div>
 

@@ -66,9 +66,9 @@ export default function AnnouncementsPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Announcements</h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+      <div className="mb-5">
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Announcements</h1>
+        <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
           Stay updated with company news and important information
         </p>
       </div>

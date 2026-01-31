@@ -116,46 +116,46 @@ export default function DashboardPage() {
   ] : [];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Dashboard</h1>
-        <p className="mt-1 text-base text-gray-500 dark:text-gray-400">
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Dashboard</h1>
+        <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
           Welcome back, {user?.firstName}!
         </p>
       </div>
 
       {/* Notices Section */}
       {notices.length > 0 && (
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <MegaphoneIcon className="h-5 w-5" />
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+            <MegaphoneIcon className="h-4 w-4" />
             Announcements
           </h2>
           {notices.map((notice) => {
             const config = typeConfig[notice.type];
             return (
-              <div key={notice.id} className={`rounded border p-4 ${config.bg} ${config.border}`}>
-                <div className="flex items-start gap-3">
+              <div key={notice.id} className={`rounded-lg border p-3 ${config.bg} ${config.border}`}>
+                <div className="flex items-start gap-2.5">
                   <div className={`mt-0.5 ${config.icon}`}>
                     {notice.type === "URGENT" ? (
-                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                      <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                       </svg>
                     ) : (
-                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
                       </svg>
                     )}
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-gray-900 dark:text-white">{notice.title}</h3>
-                      <span className={`rounded px-2 py-0.5 text-xs font-semibold ${config.badge}`}>
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white">{notice.title}</h3>
+                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${config.badge}`}>
                         {notice.type}
                       </span>
                     </div>
-                    <p className="mt-1.5 text-sm leading-relaxed text-gray-600 dark:text-gray-300 line-clamp-2">{notice.content}</p>
-                    <p className="mt-2 text-xs font-medium text-gray-400 dark:text-gray-500">
+                    <p className="mt-1 text-xs text-gray-600 dark:text-gray-300 line-clamp-2">{notice.content}</p>
+                    <p className="mt-1.5 text-[11px] text-gray-400 dark:text-gray-500">
                       {notice.createdBy.firstName} {notice.createdBy.lastName} · {new Date(notice.publishedAt).toLocaleDateString()}
                     </p>
                   </div>
@@ -168,16 +168,16 @@ export default function DashboardPage() {
 
       {/* Stats for HR/Admin */}
       {hasPermission("VIEW_STATS") && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {adminStatCards.map((stat) => (
             <Link key={stat.name} href={stat.href}>
-              <Card className="flex items-center gap-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
-                <div className={`rounded p-3 ${stat.color}`}>
-                  <stat.icon className="h-6 w-6 text-white" />
+              <Card className="flex items-center gap-3 p-3 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
+                <div className={`rounded-lg p-2.5 ${stat.color}`}>
+                  <stat.icon className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{stat.name}</p>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{stat.name}</p>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">{stat.value}</p>
                 </div>
               </Card>
             </Link>
@@ -187,26 +187,26 @@ export default function DashboardPage() {
 
       {/* Manager/Team Lead Stats */}
       {hasPermission("APPROVE_LEAVES") && !hasPermission("VIEW_STATS") && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Link href="/dashboard/leaves/requests">
-            <Card className="flex items-center gap-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
-              <div className="rounded p-3 bg-orange-600">
-                <ClockIcon className="h-6 w-6 text-white" />
+            <Card className="flex items-center gap-3 p-3 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
+              <div className="rounded-lg p-2.5 bg-orange-600">
+                <ClockIcon className="h-5 w-5 text-white" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Pending Leaves</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.pendingLeaves}</p>
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Pending Leaves</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-white">{stats.pendingLeaves}</p>
               </div>
             </Card>
           </Link>
           <Link href="/dashboard/leaves">
-            <Card className="flex items-center gap-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
-              <div className="rounded p-3 bg-gray-900 dark:bg-white">
-                <CalendarIcon className="h-6 w-6 text-white dark:text-gray-900" />
+            <Card className="flex items-center gap-3 p-3 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
+              <div className="rounded-lg p-2.5 bg-gray-900 dark:bg-white">
+                <CalendarIcon className="h-5 w-5 text-white dark:text-gray-900" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">My Leaves</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">View</p>
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400">My Leaves</p>
+                <p className="text-base font-semibold text-gray-900 dark:text-white">View</p>
               </div>
             </Card>
           </Link>
@@ -215,15 +215,15 @@ export default function DashboardPage() {
 
       {/* Employee Stats */}
       {!hasPermission("APPROVE_LEAVES") && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Link href="/dashboard/leaves">
-            <Card className="flex items-center gap-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
-              <div className="rounded p-3 bg-gray-900 dark:bg-white">
-                <CalendarIcon className="h-6 w-6 text-white dark:text-gray-900" />
+            <Card className="flex items-center gap-3 p-3 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
+              <div className="rounded-lg p-2.5 bg-gray-900 dark:bg-white">
+                <CalendarIcon className="h-5 w-5 text-white dark:text-gray-900" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">My Leaves</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">View Balance</p>
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400">My Leaves</p>
+                <p className="text-base font-semibold text-gray-900 dark:text-white">View Balance</p>
               </div>
             </Card>
           </Link>
@@ -231,9 +231,9 @@ export default function DashboardPage() {
       )}
 
       {/* Quick Actions */}
-      <Card>
-        <h2 className="mb-5 text-lg font-semibold text-gray-900 dark:text-white">Quick Actions</h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <Card className="p-4">
+        <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Quick Actions</h2>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {/* Admin/HR Actions */}
           {hasPermission("MANAGE_USERS") && adminQuickActions.map((action) => (
             <QuickAction key={action.href} {...action} />
@@ -256,42 +256,42 @@ export default function DashboardPage() {
 
 function QuickAction({ href, icon: Icon, title, description }: { href: string; icon: React.ComponentType<{ className?: string }>; title: string; description: string }) {
   return (
-    <Link href={href} className="flex items-start gap-3 rounded border border-gray-200 p-4 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
-      <div className="rounded bg-gray-100 p-2.5 dark:bg-gray-700">
-        <Icon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+    <Link href={href} className="flex items-center gap-2.5 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
+      <div className="rounded-lg bg-gray-100 p-2 dark:bg-gray-700">
+        <Icon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
       </div>
-      <div>
-        <h3 className="font-medium text-gray-900 dark:text-white">{title}</h3>
-        <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{description}</p>
+      <div className="min-w-0">
+        <h3 className="text-sm font-medium text-gray-900 dark:text-white">{title}</h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{description}</p>
       </div>
     </Link>
   );
 }
 
 function UsersIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>;
+  return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>;
 }
 
 function BuildingIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>;
+  return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>;
 }
 
 function LocationIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
+  return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
 }
 
 function ClockIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+  return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
 }
 
 function CalendarIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>;
+  return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>;
 }
 
 function MegaphoneIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>;
+  return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>;
 }
 
 function OrgChartIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" /></svg>;
+  return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" /></svg>;
 }

@@ -249,7 +249,7 @@ export default function ProfilePage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">My Profile</h1>
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">My Profile</h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
             View and manage your personal information
           </p>
@@ -274,7 +274,7 @@ export default function ProfilePage() {
             )}
           </div>
           <div className="flex-1 text-center sm:text-left">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
               {user.firstName} {user.lastName}
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">

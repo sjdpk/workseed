@@ -40,6 +40,7 @@ export default function DashboardLayout({
   const [user, setUser] = useState<SessionUser | null>(null);
   const [orgSettings, setOrgSettings] = useState<OrgSettings | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -161,60 +162,68 @@ export default function DashboardLayout({
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-60 transform bg-white shadow-lg transition-transform duration-200 dark:bg-gray-900 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 transform bg-white border-r border-gray-200 transition-all duration-200 dark:bg-gray-900 dark:border-gray-800 lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        } ${collapsed ? "lg:w-16 overflow-visible" : "lg:w-60"} w-60`}
       >
-        <div className="flex h-14 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-800">
-          <Link href="/dashboard" className="flex items-center gap-2 min-w-0">
+        <div className={`flex h-12 items-center border-b border-gray-200 dark:border-gray-800 ${collapsed ? "justify-center px-2" : "justify-between px-3"}`}>
+          <Link href="/dashboard" className={`flex items-center min-w-0 ${collapsed ? "justify-center" : "gap-2.5"}`}>
             {orgSettings?.logoUrl ? (
               <img
                 src={orgSettings.logoUrl}
                 alt={orgSettings.name || "Logo"}
-                className="h-8 w-8 rounded object-contain"
+                className="h-7 w-7 rounded object-contain flex-shrink-0"
                 onError={(e) => {
-                  // Fallback to default icon on error
                   e.currentTarget.style.display = "none";
                   e.currentTarget.nextElementSibling?.classList.remove("hidden");
                 }}
               />
             ) : null}
-            <div className={`flex h-8 w-8 items-center justify-center rounded bg-gray-900 text-white dark:bg-white dark:text-gray-900 ${orgSettings?.logoUrl ? "hidden" : ""}`}>
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            <div className={`flex h-7 w-7 items-center justify-center rounded-md bg-emerald-600 flex-shrink-0 ${orgSettings?.logoUrl ? "hidden" : ""}`}>
+              <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
               </svg>
             </div>
-            <span className="text-base font-semibold text-gray-900 dark:text-white truncate">
-              {orgSettings?.name || "HRM"}
-            </span>
+            {!collapsed && (
+              <div className="min-w-0">
+                <span className="text-sm font-semibold text-gray-900 dark:text-white truncate block">
+                  {orgSettings?.name || "HRM"}
+                </span>
+              </div>
+            )}
           </Link>
           <button className="lg:hidden" onClick={() => setSidebarOpen(false)}>
-            <svg className="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <div className="flex flex-col h-[calc(100vh-3.5rem)] overflow-y-auto">
-          <nav className="flex-1 px-3 py-4 space-y-5">
+        <div className={`flex flex-col h-[calc(100vh-3rem)] scrollbar-hide ${collapsed ? "overflow-visible" : "overflow-y-auto"}`}>
+          <nav className={`flex-1 py-3 space-y-4 ${collapsed ? "px-2" : "px-2"}`}>
             {/* MAIN - Core daily work */}
             <div>
-              <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Main</p>
-              <div className="mt-1.5 space-y-0.5">
+              {!collapsed && <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Main</p>}
+              <div className="space-y-0.5">
                 {mainNavigation.map((item) => {
                   const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
-                      className={`flex items-center gap-2.5 rounded px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                      className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
                         isActive
                           ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
-                          : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
                       }`}
                     >
-                      <item.icon className="h-4 w-4" />
-                      {item.name}
+                      <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+                      {!collapsed && <span className="text-[13px]">{item.name}</span>}
+                      {collapsed && (
+                        <span className="sidebar-tooltip">
+                          {item.name}
+                        </span>
+                      )}
                     </Link>
                   );
                 })}
@@ -224,22 +233,28 @@ export default function DashboardLayout({
             {/* ORGANIZATION - Structure (HR only) */}
             {orgNavigation.length > 0 && (
               <div>
-                <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Organization</p>
-                <div className="mt-1.5 space-y-0.5">
+                {!collapsed && <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Organization</p>}
+                {collapsed && <div className="border-t border-gray-200 dark:border-gray-700 my-2" />}
+                <div className="space-y-0.5">
                   {orgNavigation.map((item) => {
                     const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
                     return (
                       <Link
                         key={item.name}
                         href={item.href}
-                        className={`flex items-center gap-2.5 rounded px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                        className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
                           isActive
                             ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
-                            : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                            : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
                         }`}
                       >
-                        <item.icon className="h-4 w-4" />
-                        {item.name}
+                        <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+                        {!collapsed && <span className="text-[13px]">{item.name}</span>}
+                        {collapsed && (
+                          <span className="sidebar-tooltip">
+                            {item.name}
+                          </span>
+                        )}
                       </Link>
                     );
                   })}
@@ -249,22 +264,28 @@ export default function DashboardLayout({
 
             {/* LEAVE */}
             <div>
-              <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Leave</p>
-              <div className="mt-1.5 space-y-0.5">
+              {!collapsed && <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Leave</p>}
+              {collapsed && <div className="border-t border-gray-200 dark:border-gray-700 my-2" />}
+              <div className="space-y-0.5">
                 {leaveNavigation.map((item) => {
                   const isActive = pathname === item.href;
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
-                      className={`flex items-center gap-2.5 rounded px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                      className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
                         isActive
                           ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
-                          : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
                       }`}
                     >
-                      <item.icon className="h-4 w-4" />
-                      {item.name}
+                      <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+                      {!collapsed && <span className="text-[13px]">{item.name}</span>}
+                      {collapsed && (
+                        <span className="sidebar-tooltip">
+                          {item.name}
+                        </span>
+                      )}
                     </Link>
                   );
                 })}
@@ -274,22 +295,28 @@ export default function DashboardLayout({
             {/* MANAGE - Less frequent (HR only) */}
             {manageNavigation.length > 0 && (
               <div>
-                <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Manage</p>
-                <div className="mt-1.5 space-y-0.5">
+                {!collapsed && <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Manage</p>}
+                {collapsed && <div className="border-t border-gray-200 dark:border-gray-700 my-2" />}
+                <div className="space-y-0.5">
                   {manageNavigation.map((item) => {
                     const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
                     return (
                       <Link
                         key={item.name}
                         href={item.href}
-                        className={`flex items-center gap-2.5 rounded px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                        className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
                           isActive
                             ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
-                            : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                            : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
                         }`}
                       >
-                        <item.icon className="h-4 w-4" />
-                        {item.name}
+                        <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+                        {!collapsed && <span className="text-[13px]">{item.name}</span>}
+                        {collapsed && (
+                          <span className="sidebar-tooltip">
+                            {item.name}
+                          </span>
+                        )}
                       </Link>
                     );
                   })}
@@ -300,22 +327,28 @@ export default function DashboardLayout({
             {/* SETTINGS */}
             {settingsNavigation.length > 0 && (
               <div>
-                <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Settings</p>
-                <div className="mt-1.5 space-y-0.5">
+                {!collapsed && <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Settings</p>}
+                {collapsed && <div className="border-t border-gray-200 dark:border-gray-700 my-2" />}
+                <div className="space-y-0.5">
                   {settingsNavigation.map((item) => {
                     const isActive = pathname.startsWith(item.href);
                     return (
                       <Link
                         key={item.name}
                         href={item.href}
-                        className={`flex items-center gap-2.5 rounded px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                        className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
                           isActive
                             ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
-                            : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                            : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
                         }`}
                       >
-                        <item.icon className="h-4 w-4" />
-                        {item.name}
+                        <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+                        {!collapsed && <span className="text-[13px]">{item.name}</span>}
+                        {collapsed && (
+                          <span className="sidebar-tooltip">
+                            {item.name}
+                          </span>
+                        )}
                       </Link>
                     );
                   })}
@@ -324,29 +357,53 @@ export default function DashboardLayout({
             )}
           </nav>
 
-          <div className="border-t border-gray-200 p-3 dark:border-gray-800">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded bg-gray-100 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                {user.firstName[0]}{user.lastName[0]}
+          <div className={`border-t border-gray-200 dark:border-gray-800 ${collapsed ? "p-2" : "p-3"}`}>
+            {collapsed ? (
+              <div className="flex flex-col items-center gap-2">
+                <div className="nav-item flex h-8 w-8 items-center justify-center rounded-md bg-gray-100 text-[11px] font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300 cursor-default">
+                  {user.firstName[0]}{user.lastName[0]}
+                  <span className="sidebar-tooltip">{user.firstName} {user.lastName}</span>
+                </div>
+                <button
+                  onClick={() => setCollapsed(false)}
+                  className="nav-item flex h-8 w-8 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                >
+                  <SidebarExpandIcon className="h-[18px] w-[18px]" />
+                  <span className="sidebar-tooltip">Expand</span>
+                </button>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="truncate text-[13px] font-medium text-gray-900 dark:text-white">
-                  {user.firstName} {user.lastName}
-                </p>
-                <p className="truncate text-[11px] text-gray-500 dark:text-gray-400">
-                  {user.role}
-                </p>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-gray-100 text-[11px] font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300 flex-shrink-0">
+                    {user.firstName[0]}{user.lastName[0]}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-medium text-gray-900 dark:text-white">
+                      {user.firstName} {user.lastName}
+                    </p>
+                    <p className="truncate text-[11px] text-gray-500 dark:text-gray-400">
+                      {user.role}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setCollapsed(true)}
+                  className="hidden lg:flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                >
+                  <SidebarCollapseIcon className="h-[18px] w-[18px]" />
+                </button>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </aside>
 
-      <div className="lg:pl-60">
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-gray-200 bg-white px-4 dark:border-gray-800 dark:bg-gray-900 lg:px-6">
+      <div className={`transition-all duration-200 ${collapsed ? "lg:pl-16" : "lg:pl-60"}`}>
+        <header className="sticky top-0 z-30 flex h-12 items-center justify-between border-b border-gray-200 bg-white px-4 dark:border-gray-800 dark:bg-gray-900 lg:px-6">
           <button className="lg:hidden" onClick={() => setSidebarOpen(true)}>
             <svg className="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
 
@@ -368,7 +425,7 @@ export default function DashboardLayout({
 function HomeIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
     </svg>
   );
 }
@@ -376,7 +433,7 @@ function HomeIcon({ className }: { className?: string }) {
 function UsersIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
     </svg>
   );
 }
@@ -384,7 +441,7 @@ function UsersIcon({ className }: { className?: string }) {
 function BuildingIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
     </svg>
   );
 }
@@ -392,8 +449,8 @@ function BuildingIcon({ className }: { className?: string }) {
 function LocationIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
   );
 }
@@ -401,7 +458,7 @@ function LocationIcon({ className }: { className?: string }) {
 function TeamIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
     </svg>
   );
 }
@@ -409,7 +466,7 @@ function TeamIcon({ className }: { className?: string }) {
 function CalendarIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
     </svg>
   );
 }
@@ -417,7 +474,7 @@ function CalendarIcon({ className }: { className?: string }) {
 function ClockIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   );
 }
@@ -425,8 +482,8 @@ function ClockIcon({ className }: { className?: string }) {
 function SettingsIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
   );
 }
@@ -434,7 +491,7 @@ function SettingsIcon({ className }: { className?: string }) {
 function ShieldIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
     </svg>
   );
 }
@@ -442,7 +499,7 @@ function ShieldIcon({ className }: { className?: string }) {
 function ContactIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
   );
 }
@@ -450,7 +507,7 @@ function ContactIcon({ className }: { className?: string }) {
 function OrgChartIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
     </svg>
   );
 }
@@ -458,7 +515,7 @@ function OrgChartIcon({ className }: { className?: string }) {
 function MegaphoneIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
     </svg>
   );
 }
@@ -466,7 +523,7 @@ function MegaphoneIcon({ className }: { className?: string }) {
 function LogIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
     </svg>
   );
 }
@@ -474,7 +531,7 @@ function LogIcon({ className }: { className?: string }) {
 function UploadIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
     </svg>
   );
 }
@@ -482,7 +539,7 @@ function UploadIcon({ className }: { className?: string }) {
 function UserIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
     </svg>
   );
 }
@@ -490,7 +547,23 @@ function UserIcon({ className }: { className?: string }) {
 function PackageIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+    </svg>
+  );
+}
+
+function SidebarCollapseIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
+    </svg>
+  );
+}
+
+function SidebarExpandIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
     </svg>
   );
 }

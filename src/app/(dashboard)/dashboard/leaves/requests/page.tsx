@@ -208,7 +208,7 @@ export default function LeaveRequestsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Leave Requests</h1>
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Leave Requests</h1>
           {getScopeLabel() && (
             <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
               {getScopeLabel()}

@@ -114,7 +114,7 @@ export default function EditBranchPage({ params }: { params: Promise<{ id: strin
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Edit Branch</h1>
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Edit Branch</h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Update branch details</p>
         </div>
         <Button variant="outline" onClick={() => router.push("/dashboard/branches")}>

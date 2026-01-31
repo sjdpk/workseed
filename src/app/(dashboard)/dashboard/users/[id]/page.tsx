@@ -382,7 +382,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Edit User</h1>
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Edit User</h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{user.firstName} {user.lastName} ({user.employeeId})</p>
         </div>
         <Button variant="outline" onClick={() => router.back()}>Back</Button>

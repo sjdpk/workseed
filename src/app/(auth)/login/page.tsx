@@ -43,21 +43,21 @@ export default function LoginPage() {
       {/* Left side - Branding */}
       <div className="hidden w-1/2 bg-gray-900 lg:flex lg:flex-col lg:justify-between p-12">
         <div>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded bg-white/10">
-              <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-600">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
               </svg>
             </div>
-            <span className="text-xl font-semibold text-white">HRM System</span>
+            <span className="text-base font-semibold text-white">HRM System</span>
           </div>
         </div>
 
-        <div className="space-y-6">
-          <h1 className="text-4xl font-bold leading-tight text-white">
+        <div className="space-y-4">
+          <h1 className="text-3xl font-semibold leading-tight text-white">
             Manage your team<br />with confidence
           </h1>
-          <p className="text-lg text-gray-400 max-w-md">
+          <p className="text-sm text-gray-400 max-w-md">
             Streamline HR operations, track employee data, and build a better workplace.
           </p>
         </div>
@@ -71,7 +71,7 @@ export default function LoginPage() {
       <div className="flex w-full flex-col lg:w-1/2">
         <div className="flex items-center justify-between p-6 lg:p-8">
           <div className="flex items-center gap-2 lg:hidden">
-            <div className="flex h-8 w-8 items-center justify-center rounded bg-gray-900 dark:bg-white">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-600">
               <svg className="h-5 w-5 text-white dark:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>

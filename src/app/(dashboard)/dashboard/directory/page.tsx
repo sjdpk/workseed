@@ -213,7 +213,7 @@ export default function DirectoryPage() {
   if (error) {
     return (
       <div className="space-y-6">
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Directory</h1>
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Directory</h1>
         <Card>
           <div className="py-8 text-center">
             <p className="text-sm text-red-500">{error}</p>
@@ -227,7 +227,7 @@ export default function DirectoryPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Directory</h1>
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Directory</h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
             View your colleagues ({users.length} total)
           </p>

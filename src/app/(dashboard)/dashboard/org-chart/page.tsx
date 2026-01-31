@@ -161,7 +161,7 @@ export default function OrgChartPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Organization Chart</h1>
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Organization Chart</h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">View company structure and reporting lines</p>
         </div>
 

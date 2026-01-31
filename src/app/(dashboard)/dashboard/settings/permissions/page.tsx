@@ -149,7 +149,7 @@ export default function PermissionsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Permissions</h1>
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Permissions</h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Configure role-based access and visibility settings</p>
         </div>
         <Button onClick={handleSave} disabled={saving}>

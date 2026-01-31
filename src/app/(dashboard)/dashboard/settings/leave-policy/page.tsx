@@ -109,7 +109,7 @@ export default function LeavePolicyPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Leave Policy</h1>
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Leave Policy</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Configure when and how leave balances are reset and allocated
           </p>

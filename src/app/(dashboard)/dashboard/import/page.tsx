@@ -206,7 +206,7 @@ export default function ImportPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Import Data</h1>
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Import Data</h1>
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
           Bulk import data from CSV files
         </p>
@@ -305,15 +305,15 @@ export default function ImportPage() {
           <div className="grid gap-4 sm:grid-cols-3 mb-4">
             <div className="rounded bg-gray-50 dark:bg-gray-800 p-4">
               <p className="text-sm text-gray-600 dark:text-gray-400">Total Rows</p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-white">{validationResult.total}</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">{validationResult.total}</p>
             </div>
             <div className="rounded bg-green-50 dark:bg-green-900/20 p-4">
               <p className="text-sm text-green-600 dark:text-green-400">Valid</p>
-              <p className="text-2xl font-semibold text-green-700 dark:text-green-300">{validationResult.valid}</p>
+              <p className="text-lg font-semibold text-green-700 dark:text-green-300">{validationResult.valid}</p>
             </div>
             <div className="rounded bg-red-50 dark:bg-red-900/20 p-4">
               <p className="text-sm text-red-600 dark:text-red-400">Invalid</p>
-              <p className="text-2xl font-semibold text-red-700 dark:text-red-300">{validationResult.invalid}</p>
+              <p className="text-lg font-semibold text-red-700 dark:text-red-300">{validationResult.invalid}</p>
             </div>
           </div>
 
@@ -387,15 +387,15 @@ export default function ImportPage() {
           <div className="grid gap-4 sm:grid-cols-3 mb-4">
             <div className="rounded bg-gray-50 dark:bg-gray-800 p-4">
               <p className="text-sm text-gray-600 dark:text-gray-400">Total</p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-white">{importResult.total}</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">{importResult.total}</p>
             </div>
             <div className="rounded bg-green-50 dark:bg-green-900/20 p-4">
               <p className="text-sm text-green-600 dark:text-green-400">Successful</p>
-              <p className="text-2xl font-semibold text-green-700 dark:text-green-300">{importResult.successful}</p>
+              <p className="text-lg font-semibold text-green-700 dark:text-green-300">{importResult.successful}</p>
             </div>
             <div className="rounded bg-red-50 dark:bg-red-900/20 p-4">
               <p className="text-sm text-red-600 dark:text-red-400">Failed</p>
-              <p className="text-2xl font-semibold text-red-700 dark:text-red-300">{importResult.failed}</p>
+              <p className="text-lg font-semibold text-red-700 dark:text-red-300">{importResult.failed}</p>
             </div>
           </div>
 

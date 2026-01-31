@@ -140,7 +140,7 @@ export default function AssetsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Assets</h1>
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Assets</h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
             Manage company assets and equipment
           </p>
@@ -191,28 +191,28 @@ export default function AssetsPage() {
       </Card>
 
       {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="text-center">
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{pagination.total}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Total Assets</p>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="text-center p-3">
+          <p className="text-lg font-semibold text-gray-900 dark:text-white">{pagination.total}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Total Assets</p>
         </Card>
-        <Card className="text-center">
-          <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+        <Card className="text-center p-3">
+          <p className="text-lg font-semibold text-green-600 dark:text-green-400">
             {assets.filter((a) => a.status === "AVAILABLE").length}
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Available</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Available</p>
         </Card>
-        <Card className="text-center">
-          <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">
+        <Card className="text-center p-3">
+          <p className="text-lg font-semibold text-gray-600 dark:text-gray-400">
             {assets.filter((a) => a.status === "ASSIGNED").length}
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Assigned</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Assigned</p>
         </Card>
-        <Card className="text-center">
-          <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+        <Card className="text-center p-3">
+          <p className="text-lg font-semibold text-yellow-600 dark:text-yellow-400">
             {assets.filter((a) => a.status === "MAINTENANCE").length}
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Maintenance</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Maintenance</p>
         </Card>
       </div>
 

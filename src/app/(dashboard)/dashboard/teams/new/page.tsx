@@ -78,7 +78,7 @@ export default function NewTeamPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Add Team</h1>
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Add Team</h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Create a new team</p>
         </div>
         <Button variant="outline" onClick={() => router.back()}>Cancel</Button>
