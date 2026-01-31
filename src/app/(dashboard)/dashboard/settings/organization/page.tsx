@@ -129,11 +129,6 @@ export default function OrganizationSettingsPage() {
     { value: "red", label: "Red", color: "#dc2626" },
   ];
 
-  const darkModeOptions = [
-    { value: "system", label: "System Default" },
-    { value: "light", label: "Always Light" },
-    { value: "dark", label: "Always Dark" },
-  ];
 
   return (
     <div className="space-y-6">
@@ -269,24 +264,6 @@ export default function OrganizationSettingsPage() {
               </div>
             </div>
 
-            <Select
-              id="darkMode"
-              label="Dark Mode Preference"
-              options={darkModeOptions}
-              value={formData.theme.darkMode}
-              onChange={(e) => setFormData({ ...formData, theme: { ...formData.theme, darkMode: e.target.value as "system" | "light" | "dark" } })}
-            />
-
-            <div className="rounded border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800">
-              <div className="flex items-start gap-2">
-                <svg className="mt-0.5 h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  Theme changes will apply to all users in the organization. Users need to refresh their browser to see the changes.
-                </p>
-              </div>
-            </div>
           </div>
 
           <div className="flex justify-end pt-4">
