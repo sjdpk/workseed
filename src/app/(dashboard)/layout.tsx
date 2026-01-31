@@ -92,30 +92,46 @@ export default function DashboardLayout({
 
   // Build navigation based on permissions
   const isHROrAbove = ["ADMIN", "HR"].includes(user?.role || "");
-  const mainNavigation = [
-    { name: "Dashboard", href: "/dashboard", icon: HomeIcon, show: true },
-    { name: "My Profile", href: "/dashboard/profile", icon: UserIcon, show: !isHROrAbove },
-    { name: "Directory", href: "/dashboard/directory", icon: ContactIcon, show: !isHROrAbove },
-    { name: "Org Chart", href: "/dashboard/org-chart", icon: OrgChartIcon, show: true },
-    { name: "Users", href: "/dashboard/users", icon: UsersIcon, show: hasRoleAccess("users") },
-    { name: "Assets", href: "/dashboard/assets", icon: PackageIcon, show: isHROrAbove },
-    { name: "Departments", href: "/dashboard/departments", icon: BuildingIcon, show: hasRoleAccess("departments") },
-    { name: "Teams", href: "/dashboard/teams", icon: TeamIcon, show: hasRoleAccess("teams") },
-    { name: "Branches", href: "/dashboard/branches", icon: LocationIcon, show: hasRoleAccess("branches") },
-    { name: "Notices", href: "/dashboard/notices", icon: MegaphoneIcon, show: isHROrAbove },
-  ].filter(item => item.show);
 
   // Check if employee can view team/department leaves
   const canViewTeamLeaves = orgSettings?.permissions?.employeesCanViewTeamLeaves === true && user?.teamId;
   const canViewDeptLeaves = orgSettings?.permissions?.employeesCanViewDepartmentLeaves === true && user?.departmentId;
   const canViewWhosOut = canViewTeamLeaves || canViewDeptLeaves;
 
-  const leaveNavigation = [
-    { name: "My Leaves", href: "/dashboard/leaves", icon: CalendarIcon, show: true },
-    { name: "Who's Out", href: "/dashboard/leaves/whos-out", icon: UsersIcon, show: canViewWhosOut },
+  // MAIN - Core daily work (different for HR vs Employee)
+  const mainNavigation = isHROrAbove ? [
+    { name: "Dashboard", href: "/dashboard", icon: HomeIcon, show: true },
+    { name: "Users", href: "/dashboard/users", icon: UsersIcon, show: hasRoleAccess("users") },
     { name: "Leave Requests", href: "/dashboard/leaves/requests", icon: ClockIcon, show: hasRoleAccess("leaveRequests") },
+  ].filter(item => item.show) : [
+    { name: "Dashboard", href: "/dashboard", icon: HomeIcon, show: true },
+    { name: "My Profile", href: "/dashboard/profile", icon: UserIcon, show: true },
+    { name: "Directory", href: "/dashboard/directory", icon: ContactIcon, show: true },
   ].filter(item => item.show);
 
+  // ORGANIZATION - Structure management (HR only)
+  const orgNavigation = [
+    { name: "Departments", href: "/dashboard/departments", icon: BuildingIcon, show: hasRoleAccess("departments") },
+    { name: "Teams", href: "/dashboard/teams", icon: TeamIcon, show: hasRoleAccess("teams") },
+    { name: "Branches", href: "/dashboard/branches", icon: LocationIcon, show: hasRoleAccess("branches") },
+  ].filter(item => item.show);
+
+  // LEAVE - Leave management
+  const leaveNavigation = isHROrAbove ? [
+    { name: "My Leaves", href: "/dashboard/leaves", icon: CalendarIcon, show: true },
+  ].filter(item => item.show) : [
+    { name: "My Leaves", href: "/dashboard/leaves", icon: CalendarIcon, show: true },
+    { name: "Who's Out", href: "/dashboard/leaves/whos-out", icon: UsersIcon, show: canViewWhosOut },
+  ].filter(item => item.show);
+
+  // MANAGE - Less frequent tasks (HR only)
+  const manageNavigation = [
+    { name: "Assets", href: "/dashboard/assets", icon: PackageIcon, show: isHROrAbove },
+    { name: "Notices", href: "/dashboard/notices", icon: MegaphoneIcon, show: isHROrAbove },
+    { name: "Org Chart", href: "/dashboard/org-chart", icon: OrgChartIcon, show: true },
+  ].filter(item => item.show);
+
+  // SETTINGS - Admin/HR settings
   const settingsNavigation = [
     { name: "Organization", href: "/dashboard/settings/organization", icon: BuildingIcon, show: user?.role === "ADMIN" },
     { name: "Permissions", href: "/dashboard/settings/permissions", icon: ShieldIcon, show: user?.role === "ADMIN" },
@@ -171,6 +187,7 @@ export default function DashboardLayout({
 
         <div className="flex flex-col h-[calc(100vh-3.5rem)] overflow-y-auto">
           <nav className="flex-1 px-3 py-4 space-y-5">
+            {/* MAIN - Core daily work */}
             <div>
               <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Main</p>
               <div className="mt-1.5 space-y-0.5">
@@ -194,6 +211,33 @@ export default function DashboardLayout({
               </div>
             </div>
 
+            {/* ORGANIZATION - Structure (HR only) */}
+            {orgNavigation.length > 0 && (
+              <div>
+                <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Organization</p>
+                <div className="mt-1.5 space-y-0.5">
+                  {orgNavigation.map((item) => {
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className={`flex items-center gap-2.5 rounded px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                          isActive
+                            ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                            : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                        }`}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {item.name}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* LEAVE */}
             <div>
               <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Leave</p>
               <div className="mt-1.5 space-y-0.5">
@@ -217,6 +261,33 @@ export default function DashboardLayout({
               </div>
             </div>
 
+            {/* MANAGE - Less frequent (HR only) */}
+            {manageNavigation.length > 0 && (
+              <div>
+                <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Manage</p>
+                <div className="mt-1.5 space-y-0.5">
+                  {manageNavigation.map((item) => {
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className={`flex items-center gap-2.5 rounded px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                          isActive
+                            ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                            : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                        }`}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {item.name}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* SETTINGS */}
             {settingsNavigation.length > 0 && (
               <div>
                 <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Settings</p>

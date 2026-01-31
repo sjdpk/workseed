@@ -79,6 +79,19 @@ export async function GET(request: NextRequest) {
 
     const canViewAll = hasPermission(user.role, "ASSET_VIEW_ALL");
 
+    // For regular employees, check org permission setting
+    if (!canViewAll) {
+      const orgSettings = await prisma.organizationSettings.findFirst();
+      const showOwnAssets = (orgSettings?.permissions as Record<string, unknown>)?.showOwnAssetsToEmployee ?? true;
+
+      if (!showOwnAssets) {
+        return NextResponse.json({
+          assets: [],
+          pagination: { page, limit, total: 0, totalPages: 0 },
+        });
+      }
+    }
+
     // Build where clause
     const where: Record<string, unknown> = {
       isActive: true,

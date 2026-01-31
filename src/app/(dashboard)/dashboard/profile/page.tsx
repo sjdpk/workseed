@@ -122,6 +122,7 @@ export default function ProfilePage() {
     emergencyContactPhone: "",
     password: "",
   });
+  const [showLeaveSidebar, setShowLeaveSidebar] = useState(false);
 
   const currentYear = new Date().getFullYear();
 
@@ -305,58 +306,124 @@ export default function ProfilePage() {
         </div>
       </Card>
 
-      {/* Leave Balance Summary */}
+      {/* Leave Balance Compact */}
       <Card>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white">
-            Leave Balance ({currentYear})
-          </h2>
-          <Link href="/dashboard/leaves/apply">
-            <Button size="sm">Apply Leave</Button>
-          </Link>
-        </div>
-        {allocations.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            No leave allocations found for this year.
-          </p>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {allocations.map((alloc) => (
-              <div
-                key={alloc.id}
-                className="rounded-lg border border-gray-200 p-3 dark:border-gray-700"
-              >
-                <div className="flex items-center gap-2">
-                  <div
-                    className="h-2 w-2 rounded-full"
-                    style={{ backgroundColor: alloc.leaveType.color || "#3B82F6" }}
-                  />
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">
-                    {alloc.leaveType.name}
-                  </span>
-                </div>
-                <div className="mt-2 flex items-baseline justify-between">
-                  <span
-                    className={`text-2xl font-bold ${
-                      alloc.balance > 0
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-gray-400"
-                    }`}
-                  >
-                    {alloc.balance}
-                  </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    / {alloc.allocated + alloc.adjusted} days
-                  </span>
-                </div>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Used: {alloc.used}
-                </p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+              Leave Balance
+            </h2>
+            {allocations.length > 0 && (
+              <div className="flex items-center gap-3">
+                {allocations.slice(0, 3).map((alloc) => (
+                  <div key={alloc.id} className="flex items-center gap-1.5">
+                    <div
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: alloc.leaveType.color || "#3B82F6" }}
+                    />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      {alloc.leaveType.name.split(" ")[0]}:
+                    </span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      {alloc.balance}
+                    </span>
+                  </div>
+                ))}
+                {allocations.length > 3 && (
+                  <span className="text-sm text-gray-400">+{allocations.length - 3} more</span>
+                )}
               </div>
-            ))}
+            )}
           </div>
-        )}
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowLeaveSidebar(true)}>
+              View All
+            </Button>
+            <Link href="/dashboard/leaves/apply">
+              <Button size="sm">Apply Leave</Button>
+            </Link>
+          </div>
+        </div>
       </Card>
+
+      {/* Leave Balance Sidebar */}
+      {showLeaveSidebar && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          <div className="absolute inset-0 bg-black/20" onClick={() => setShowLeaveSidebar(false)} />
+          <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl dark:bg-gray-900">
+            <div className="flex h-full flex-col">
+              <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Leave Balance ({currentYear})
+                </h2>
+                <button
+                  onClick={() => setShowLeaveSidebar(false)}
+                  className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-6">
+                {allocations.length === 0 ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    No leave allocations found for this year.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {allocations.map((alloc) => {
+                      const total = alloc.allocated + alloc.adjusted;
+                      const usedPercent = total > 0 ? (alloc.used / total) * 100 : 0;
+                      return (
+                        <div
+                          key={alloc.id}
+                          className="rounded-lg border border-gray-200 p-4 dark:border-gray-700"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="h-3 w-3 rounded-full"
+                                style={{ backgroundColor: alloc.leaveType.color || "#3B82F6" }}
+                              />
+                              <span className="font-medium text-gray-900 dark:text-white">
+                                {alloc.leaveType.name}
+                              </span>
+                            </div>
+                            <span className={`text-lg font-bold ${alloc.balance > 0 ? "text-green-600 dark:text-green-400" : "text-gray-400"}`}>
+                              {alloc.balance}
+                            </span>
+                          </div>
+                          <div className="mt-3">
+                            <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                              <div
+                                className="h-full rounded-full transition-all"
+                                style={{
+                                  width: `${usedPercent}%`,
+                                  backgroundColor: alloc.leaveType.color || "#3B82F6",
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div className="mt-2 flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                            <span>Used: {alloc.used} days</span>
+                            <span>Total: {total} days</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              <div className="border-t border-gray-200 p-4 dark:border-gray-700">
+                <Link href="/dashboard/leaves/apply" className="block">
+                  <Button className="w-full">Apply for Leave</Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Assigned Assets */}
       {showAssets && (
