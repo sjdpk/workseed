@@ -2,6 +2,50 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma, getCurrentUser, isHROrAbove } from "@/lib";
 import { z } from "zod/v4";
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser || !isHROrAbove(currentUser.role)) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 403 }
+      );
+    }
+
+    const { id } = await params;
+
+    const notice = await prisma.notice.findUnique({
+      where: { id },
+      include: {
+        createdBy: {
+          select: { firstName: true, lastName: true },
+        },
+      },
+    });
+
+    if (!notice) {
+      return NextResponse.json(
+        { success: false, error: "Notice not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: { notice },
+    });
+  } catch (error) {
+    console.error("Get notice error:", error);
+    return NextResponse.json(
+      { success: false, error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
 const updateNoticeSchema = z.object({
   title: z.string().min(1).optional(),
   content: z.string().min(1).optional(),

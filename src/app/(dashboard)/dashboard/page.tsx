@@ -124,9 +124,9 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Notices Section */}
+      {/* Notices Section - Horizontal Carousel */}
       {notices.length > 0 && (
-        <div className="space-y-3">
+        <div className="space-y-2">
           <Link href="/dashboard/notices" className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5 hover:text-gray-600 dark:hover:text-gray-300 w-fit">
             <MegaphoneIcon className="h-4 w-4" />
             Announcements
@@ -134,38 +134,44 @@ export default function DashboardPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.25 4.5l7.5 7.5-7.5 7.5" />
             </svg>
           </Link>
-          {notices.map((notice) => {
-            const config = typeConfig[notice.type];
-            return (
-              <Link key={notice.id} href="/dashboard/notices" className={`block rounded-lg border p-3 ${config.bg} ${config.border} hover:shadow-sm transition-shadow`}>
-                <div className="flex items-start gap-2.5">
-                  <div className={`mt-0.5 ${config.icon}`}>
-                    {notice.type === "URGENT" ? (
-                      <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
-                    ) : (
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-                      </svg>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-medium text-gray-900 dark:text-white">{notice.title}</h3>
-                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${config.badge}`}>
-                        {notice.type}
-                      </span>
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 lg:-mx-6 lg:px-6">
+            {notices.map((notice) => {
+              const config = typeConfig[notice.type];
+              return (
+                <Link
+                  key={notice.id}
+                  href="/dashboard/notices"
+                  className={`flex-shrink-0 w-72 rounded-lg border p-3 ${config.bg} ${config.border} hover:shadow-md transition-shadow`}
+                >
+                  <div className="flex items-start gap-2">
+                    <div className={`mt-0.5 flex-shrink-0 ${config.icon}`}>
+                      {notice.type === "URGENT" ? (
+                        <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                        </svg>
+                      )}
                     </div>
-                    <p className="mt-1 text-xs text-gray-600 dark:text-gray-300 line-clamp-2">{notice.content}</p>
-                    <p className="mt-1.5 text-[11px] text-gray-400 dark:text-gray-500">
-                      {notice.createdBy.firstName} {notice.createdBy.lastName} · {new Date(notice.publishedAt).toLocaleDateString()}
-                    </p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">{notice.title}</h3>
+                        <span className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${config.badge}`}>
+                          {notice.type}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-gray-600 dark:text-gray-300 line-clamp-2">{notice.content}</p>
+                      <p className="mt-1.5 text-[11px] text-gray-400 dark:text-gray-500">
+                        {notice.createdBy.firstName} {notice.createdBy.lastName} · {new Date(notice.publishedAt).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </Link>
-            );
-          })}
+                </Link>
+              );
+            })}
+          </div>
         </div>
       )}
 
