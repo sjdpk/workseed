@@ -41,7 +41,10 @@ interface Device {
   id: string;
   name: string;
   type: string;
+  deviceId: string;
   status: string;
+  apiKey: string;
+  lastSync: string | null;
 }
 
 const SOURCES = [
@@ -75,6 +78,7 @@ export default function AttendanceManagePage() {
   const [newDevice, setNewDevice] = useState({ name: "", type: "BIOMETRIC", deviceId: "" });
   const [savingDevice, setSavingDevice] = useState(false);
   const [createdDevice, setCreatedDevice] = useState<{ name: string; deviceId: string; apiKey: string } | null>(null);
+  const [showDocs, setShowDocs] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -266,18 +270,94 @@ export default function AttendanceManagePage() {
       {/* Devices Section - Show if devices exist */}
       {devices.length > 0 && (
         <Card>
-          <h2 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Connected Devices</h2>
-          <div className="flex flex-wrap gap-2">
-            {devices.map((device) => (
-              <div
-                key={device.id}
-                className="flex items-center gap-2 rounded bg-gray-50 px-3 py-2 dark:bg-gray-800"
-              >
-                <div className={`h-2 w-2 rounded-full ${device.status === "ACTIVE" ? "bg-green-500" : "bg-gray-400"}`} />
-                <span className="text-sm text-gray-700 dark:text-gray-300">{device.name}</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">({device.type})</span>
-              </div>
-            ))}
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-medium text-gray-900 dark:text-white">Connected Devices</h2>
+            <button
+              onClick={() => setShowDocs(true)}
+              className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 flex items-center gap-1"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              API Docs
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="border-b border-gray-200 dark:border-gray-700">
+                <tr>
+                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Device</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Type</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">API Key</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Last Sync</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium uppercase text-gray-500 dark:text-gray-400"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {devices.map((device) => (
+                  <tr key={device.id}>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`h-2 w-2 rounded-full ${device.status === "ACTIVE" ? "bg-green-500" : "bg-gray-400"}`} />
+                        <span className="text-sm text-gray-900 dark:text-white">{device.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className="text-xs text-gray-600 dark:text-gray-400">{device.type}</span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-1">
+                        <code className="text-xs font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-gray-500 dark:text-gray-400">
+                          ••••••••••••••••
+                        </code>
+                        <button
+                          onClick={() => {
+                            if (navigator?.clipboard) {
+                              navigator?.clipboard?.writeText(device.apiKey);
+                              toast.success("API Key copied");
+                            }
+                          }}
+                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+                          title="Copy API Key"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
+                      {device.lastSync ? new Date(device.lastSync).toLocaleString() : "Never"}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`Delete device "${device.name}"?`)) return;
+                          try {
+                            const res = await fetch(`/api/attendance/devices/${device.id}`, { method: "DELETE" });
+                            const data = await res.json();
+                            if (data.success) {
+                              setDevices(devices.filter(d => d.id !== device.id));
+                              toast.success("Device deleted");
+                            } else {
+                              toast.error(data.error || "Failed to delete");
+                            }
+                          } catch {
+                            toast.error("Something went wrong");
+                          }
+                        }}
+                        className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors p-1"
+                        title="Delete device"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </Card>
       )}
@@ -381,7 +461,7 @@ export default function AttendanceManagePage() {
                         />
                         <button
                           onClick={() => {
-                            navigator.clipboard.writeText(createdDevice.apiKey);
+                            navigator?.clipboard?.writeText(createdDevice.apiKey);
                             toast.success("API Key copied");
                           }}
                           className="rounded border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
@@ -405,7 +485,7 @@ export default function AttendanceManagePage() {
                         />
                         <button
                           onClick={() => {
-                            navigator.clipboard.writeText(`${window.location.origin}/api/attendance/webhook`);
+                            navigator?.clipboard?.writeText(`${window.location.origin}/api/attendance/webhook`);
                             toast.success("URL copied");
                           }}
                           className="rounded border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
@@ -526,6 +606,202 @@ export default function AttendanceManagePage() {
                     {savingDevice ? "Adding..." : "Add Device"}
                   </Button>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* API Documentation Sidebar */}
+      {showDocs && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          <div className="absolute inset-0 bg-black/20" onClick={() => setShowDocs(false)} />
+          <div className="absolute right-0 top-0 h-full w-full max-w-lg bg-white shadow-xl dark:bg-gray-900">
+            <div className="flex h-full flex-col">
+              <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">API Documentation</h2>
+                <button
+                  onClick={() => setShowDocs(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {/* Endpoint */}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Webhook Endpoint</h3>
+                  <div className="flex gap-2">
+                    <code className="flex-1 rounded bg-gray-100 px-3 py-2 text-xs font-mono dark:bg-gray-800 dark:text-white break-all">
+                      POST {typeof window !== "undefined" ? window.location.origin : ""}/api/attendance/webhook
+                    </code>
+                    <button
+                      onClick={() => {
+                        navigator?.clipboard?.writeText(`${window.location.origin}/api/attendance/webhook`);
+                        toast.success("Copied");
+                      }}
+                      className="rounded border border-gray-200 px-2 py-1 text-xs hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+
+                {/* Headers */}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Headers</h3>
+                  <div className="rounded bg-gray-50 dark:bg-gray-800 overflow-hidden">
+                    <table className="w-full text-xs">
+                      <tbody>
+                        <tr className="border-b border-gray-200 dark:border-gray-700">
+                          <td className="px-3 py-2 font-mono font-medium text-gray-700 dark:text-gray-300">X-API-Key</td>
+                          <td className="px-3 py-2 text-gray-600 dark:text-gray-400">Your device API key (required)</td>
+                        </tr>
+                        <tr>
+                          <td className="px-3 py-2 font-mono font-medium text-gray-700 dark:text-gray-300">Content-Type</td>
+                          <td className="px-3 py-2 text-gray-600 dark:text-gray-400">application/json</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Request Body */}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Request Body</h3>
+                  <pre className="rounded bg-gray-50 p-3 text-xs font-mono dark:bg-gray-800 dark:text-white overflow-x-auto">
+{`{
+  "employeeId": "EMP001",
+  "action": "IN",
+  "timestamp": "2024-01-15T09:00:00Z",  // optional
+  "location": "Main Entrance"            // optional
+}`}
+                  </pre>
+                  <div className="mt-2 space-y-1">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <span className="font-medium text-gray-700 dark:text-gray-300">employeeId</span> - Employee ID in your system (required)
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <span className="font-medium text-gray-700 dark:text-gray-300">action</span> - "IN" for check-in, "OUT" for check-out (required)
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <span className="font-medium text-gray-700 dark:text-gray-300">timestamp</span> - ISO 8601 datetime (optional, defaults to now)
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <span className="font-medium text-gray-700 dark:text-gray-300">location</span> - Location info (optional)
+                    </p>
+                  </div>
+                </div>
+
+                {/* Response */}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Response</h3>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Success (200):</p>
+                  <pre className="rounded bg-green-50 p-3 text-xs font-mono dark:bg-green-900/20 dark:text-green-400 overflow-x-auto">
+{`{
+  "success": true,
+  "message": "Check-in recorded",
+  "data": {
+    "employeeId": "EMP001",
+    "name": "John Doe",
+    "action": "IN",
+    "time": "2024-01-15T09:00:00.000Z"
+  }
+}`}
+                  </pre>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-3 mb-2">Error (4xx):</p>
+                  <pre className="rounded bg-red-50 p-3 text-xs font-mono dark:bg-red-900/20 dark:text-red-400 overflow-x-auto">
+{`{
+  "success": false,
+  "error": "Already checked in today"
+}`}
+                  </pre>
+                </div>
+
+                {/* Example */}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Example (cURL)</h3>
+                  <div className="relative">
+                    <pre className="rounded bg-gray-900 p-3 text-xs font-mono text-gray-100 overflow-x-auto">
+{`curl -X POST \\
+  ${typeof window !== "undefined" ? window.location.origin : "https://yoursite.com"}/api/attendance/webhook \\
+  -H "X-API-Key: YOUR_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"employeeId":"EMP001","action":"IN"}'`}
+                    </pre>
+                    <button
+                      onClick={() => {
+                        const cmd = `curl -X POST ${window.location.origin}/api/attendance/webhook -H "X-API-Key: YOUR_API_KEY" -H "Content-Type: application/json" -d '{"employeeId":"EMP001","action":"IN"}'`;
+                        navigator?.clipboard?.writeText(cmd);
+                        toast.success("Copied");
+                      }}
+                      className="absolute top-2 right-2 rounded bg-gray-700 px-2 py-1 text-xs text-gray-300 hover:bg-gray-600"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+
+                {/* Test Connection */}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Test Connection</h3>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                    Use GET request to test if your API key is valid:
+                  </p>
+                  <pre className="rounded bg-gray-900 p-3 text-xs font-mono text-gray-100 overflow-x-auto">
+{`curl ${typeof window !== "undefined" ? window.location.origin : "https://yoursite.com"}/api/attendance/webhook \\
+  -H "X-API-Key: YOUR_API_KEY"`}
+                  </pre>
+                </div>
+
+                {/* Error Codes */}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Error Codes</h3>
+                  <div className="rounded bg-gray-50 dark:bg-gray-800 overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead className="border-b border-gray-200 dark:border-gray-700">
+                        <tr>
+                          <th className="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-300">Code</th>
+                          <th className="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-300">Description</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                        <tr>
+                          <td className="px-3 py-2 font-mono text-gray-600 dark:text-gray-400">401</td>
+                          <td className="px-3 py-2 text-gray-600 dark:text-gray-400">Missing or invalid API key</td>
+                        </tr>
+                        <tr>
+                          <td className="px-3 py-2 font-mono text-gray-600 dark:text-gray-400">400</td>
+                          <td className="px-3 py-2 text-gray-600 dark:text-gray-400">Invalid request / Already checked in</td>
+                        </tr>
+                        <tr>
+                          <td className="px-3 py-2 font-mono text-gray-600 dark:text-gray-400">404</td>
+                          <td className="px-3 py-2 text-gray-600 dark:text-gray-400">Employee not found</td>
+                        </tr>
+                        <tr>
+                          <td className="px-3 py-2 font-mono text-gray-600 dark:text-gray-400">500</td>
+                          <td className="px-3 py-2 text-gray-600 dark:text-gray-400">Server error</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Note */}
+                <div className="rounded border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+                  <p className="text-xs text-blue-800 dark:text-blue-400">
+                    <strong>Note:</strong> API keys are generated when adding a device and shown only once. If you lose your API key, add a new device to get a new key.
+                  </p>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-200 p-4 dark:border-gray-700">
+                <Button onClick={() => setShowDocs(false)} className="w-full">
+                  Close
+                </Button>
               </div>
             </div>
           </div>

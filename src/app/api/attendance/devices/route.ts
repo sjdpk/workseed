@@ -35,6 +35,7 @@ export async function GET() {
           deviceId: d.deviceId,
           location: d.location,
           status: d.status,
+          apiKey: d.apiKey,
           lastSync: d.lastSync?.toISOString() || null,
         })),
       },
