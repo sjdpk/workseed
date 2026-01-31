@@ -104,6 +104,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const hasPermission = (permission: keyof typeof PERMISSIONS) => {
     if (!user) return false;
@@ -145,13 +146,34 @@ export default function DashboardPage() {
 
   const stats = data.stats;
 
+  // Calculate notification count
+  const notificationCount =
+    (data.upcomingBirthdays?.length || 0) +
+    (data.upcomingAnniversaries?.length || 0) +
+    (data.recentLeaves?.filter(l => l.status === "PENDING")?.length || 0);
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Dashboard</h1>
-        <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-          Welcome back, {user?.firstName}!
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Dashboard</h1>
+          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+            Welcome back, {user?.firstName}!
+          </p>
+        </div>
+
+        {/* Notification Bell */}
+        <button
+          onClick={() => setShowNotifications(true)}
+          className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        >
+          <BellIcon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+          {notificationCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
+              {notificationCount > 9 ? "9+" : notificationCount}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* Notices Section */}
@@ -711,6 +733,169 @@ export default function DashboardPage() {
           </Card>
         </>
       )}
+
+      {/* Notifications Sidebar */}
+      {showNotifications && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          <div className="absolute inset-0 bg-black/20" onClick={() => setShowNotifications(false)} />
+          <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl dark:bg-gray-900">
+            <div className="flex h-full flex-col">
+              <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
+                <div className="flex items-center gap-2">
+                  <BellIcon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                  <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Notifications</h2>
+                  {notificationCount > 0 && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-medium text-white">
+                      {notificationCount}
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowNotifications(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto">
+                {/* Pending Leave Requests */}
+                {data.recentLeaves && data.recentLeaves.filter(l => l.status === "PENDING").length > 0 && (
+                  <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/30">
+                        <ClockIcon className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" />
+                      </div>
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white">Pending Leaves</h3>
+                      <span className="text-xs text-gray-400">({data.recentLeaves.filter(l => l.status === "PENDING").length})</span>
+                    </div>
+                    <div className="ml-8 space-y-2">
+                      {data.recentLeaves.filter(l => l.status === "PENDING").map((leave) => (
+                        <Link
+                          key={leave.id}
+                          href="/dashboard/leaves/requests"
+                          className="flex items-center justify-between py-1.5 group"
+                        >
+                          <div>
+                            <p className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">{leave.user}</p>
+                            <p className="text-xs text-gray-400">{leave.type} · {leave.days}d</p>
+                          </div>
+                          <ChevronRightIcon className="h-4 w-4 text-gray-300 group-hover:text-gray-500 dark:text-gray-600" />
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Upcoming Birthdays */}
+                {data.upcomingBirthdays && data.upcomingBirthdays.length > 0 && (
+                  <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-pink-100 dark:bg-pink-900/30">
+                        <CakeIcon className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
+                      </div>
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white">Birthdays</h3>
+                      <span className="text-xs text-gray-400">({data.upcomingBirthdays.length})</span>
+                    </div>
+                    <div className="ml-8 space-y-2">
+                      {data.upcomingBirthdays.map((b) => (
+                        <div key={b.id} className="flex items-center justify-between py-1.5">
+                          <div>
+                            <p className="text-sm text-gray-700 dark:text-gray-300">{b.name}</p>
+                            <p className="text-xs text-gray-400">{b.department}</p>
+                          </div>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            b.daysUntil === 0
+                              ? "bg-pink-100 text-pink-700 dark:bg-pink-900/50 dark:text-pink-300"
+                              : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                          }`}>
+                            {b.daysUntil === 0 ? "Today!" : b.daysUntil === 1 ? "Tomorrow" : `${b.daysUntil} days`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Work Anniversaries */}
+                {data.upcomingAnniversaries && data.upcomingAnniversaries.length > 0 && (
+                  <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
+                        <TrophyIcon className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                      </div>
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white">Anniversaries</h3>
+                      <span className="text-xs text-gray-400">({data.upcomingAnniversaries.length})</span>
+                    </div>
+                    <div className="ml-8 space-y-2">
+                      {data.upcomingAnniversaries.map((a) => (
+                        <div key={a.id} className="flex items-center justify-between py-1.5">
+                          <div>
+                            <p className="text-sm text-gray-700 dark:text-gray-300">{a.name}</p>
+                            <p className="text-xs text-gray-400">{a.years} year{a.years > 1 ? "s" : ""} · {a.department}</p>
+                          </div>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            a.daysUntil === 0
+                              ? "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300"
+                              : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                          }`}>
+                            {a.daysUntil === 0 ? "Today!" : a.daysUntil === 1 ? "Tomorrow" : `${a.daysUntil} days`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recent Hires */}
+                {data.recentHires && data.recentHires.length > 0 && (
+                  <div className="px-4 py-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+                        <UserPlusIcon className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                      </div>
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white">New Hires</h3>
+                      <span className="text-xs text-gray-400">({data.recentHires.length})</span>
+                    </div>
+                    <div className="ml-8 space-y-2">
+                      {data.recentHires.slice(0, 5).map((h) => (
+                        <Link
+                          key={h.id}
+                          href={`/dashboard/users/${h.id}/view`}
+                          className="flex items-center justify-between py-1.5 group"
+                        >
+                          <div>
+                            <p className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">{h.name}</p>
+                            <p className="text-xs text-gray-400">{h.department || "No department"}</p>
+                          </div>
+                          {h.joiningDate && (
+                            <span className="text-xs text-gray-400">
+                              {new Date(h.joiningDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                            </span>
+                          )}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Empty State */}
+                {notificationCount === 0 && (!data.recentHires || data.recentHires.length === 0) && (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 mb-3">
+                      <BellIcon className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+                    </div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">All caught up!</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">No new notifications</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -802,6 +987,14 @@ function ChevronRightIcon({ className }: { className?: string }) {
 
 function AlertIcon({ className }: { className?: string }) {
   return <svg className={className || "h-4 w-4"} fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>;
+}
+
+function BellIcon({ className }: { className?: string }) {
+  return <svg className={className || "h-4 w-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>;
+}
+
+function UserPlusIcon({ className }: { className?: string }) {
+  return <svg className={className || "h-4 w-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" /></svg>;
 }
 
 function PlusIcon({ className }: { className?: string }) {

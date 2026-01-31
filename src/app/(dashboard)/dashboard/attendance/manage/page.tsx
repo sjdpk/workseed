@@ -75,6 +75,7 @@ export default function AttendanceManagePage() {
 
   // Device setup
   const [showDeviceSetup, setShowDeviceSetup] = useState(false);
+  const [showDeviceList, setShowDeviceList] = useState(false);
   const [newDevice, setNewDevice] = useState({ name: "", type: "BIOMETRIC", deviceId: "" });
   const [savingDevice, setSavingDevice] = useState(false);
   const [createdDevice, setCreatedDevice] = useState<{ name: string; deviceId: string; apiKey: string } | null>(null);
@@ -147,6 +148,39 @@ export default function AttendanceManagePage() {
     return colors[source] || colors.MANUAL;
   };
 
+  // Export attendance to CSV
+  const exportCSV = () => {
+    if (records.length === 0) {
+      toast.error("No records to export");
+      return;
+    }
+
+    const headers = ["Employee ID", "Name", "Department", "Team", "Date", "Check In", "Check Out", "Duration", "Source"];
+    const rows = records.map((r) => [
+      r.employeeId,
+      r.userName,
+      r.department || "-",
+      r.team || "-",
+      selectedDate,
+      formatTime(r.checkIn),
+      r.checkOut ? formatTime(r.checkOut) : "-",
+      calculateDuration(r.checkIn, r.checkOut),
+      r.source,
+    ]);
+
+    const csv = [headers.join(","), ...rows.map((r) => r.map(v => `"${v}"`).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `attendance-${selectedDate}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Exported successfully");
+  };
+
   const handleSaveDevice = async () => {
     if (!newDevice.name || !newDevice.deviceId) {
       toast.error("Please fill in all fields");
@@ -198,9 +232,17 @@ export default function AttendanceManagePage() {
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">View and manage employee attendance records</p>
         </div>
         {(userRole === "ADMIN" || userRole === "HR") && (
-          <Button onClick={() => setShowDeviceSetup(true)}>
-            Add Device
-          </Button>
+          <div className="flex items-center gap-2">
+            {devices.length > 0 && (
+              <Button variant="outline" onClick={() => setShowDeviceList(true)}>
+                <DeviceIcon className="h-4 w-4 mr-1.5" />
+                Devices ({devices.length})
+              </Button>
+            )}
+            <Button onClick={() => setShowDeviceSetup(true)}>
+              Add Device
+            </Button>
+          </div>
         )}
       </div>
 
@@ -221,146 +263,63 @@ export default function AttendanceManagePage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          max={new Date().toISOString().split("T")[0]}
-          className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-        />
-
-        {(userRole === "ADMIN" || userRole === "HR") && (
-          <select
-            value={selectedDepartment}
-            onChange={(e) => setSelectedDepartment(e.target.value)}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            max={new Date().toISOString().split("T")[0]}
             className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-          >
-            <option value="">All Departments</option>
-            {departments.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
-        )}
+          />
 
-        {(userRole === "ADMIN" || userRole === "HR" || userRole === "MANAGER") && (
-          <select
-            value={selectedTeam}
-            onChange={(e) => setSelectedTeam(e.target.value)}
-            className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-          >
-            <option value="">All Teams</option>
-            {teams.map((t) => (
-              <option key={t.id} value={t.id}>{t.name}</option>
-            ))}
-          </select>
-        )}
-
-        <select
-          value={selectedSource}
-          onChange={(e) => setSelectedSource(e.target.value)}
-          className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-        >
-          {SOURCES.map((s) => (
-            <option key={s.value} value={s.value}>{s.label}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* Devices Section - Show if devices exist */}
-      {devices.length > 0 && (
-        <Card>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-medium text-gray-900 dark:text-white">Connected Devices</h2>
-            <button
-              onClick={() => setShowDocs(true)}
-              className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 flex items-center gap-1"
+          {(userRole === "ADMIN" || userRole === "HR") && (
+            <select
+              value={selectedDepartment}
+              onChange={(e) => setSelectedDepartment(e.target.value)}
+              className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              API Docs
-            </button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="border-b border-gray-200 dark:border-gray-700">
-                <tr>
-                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Device</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Type</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">API Key</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Last Sync</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium uppercase text-gray-500 dark:text-gray-400"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {devices.map((device) => (
-                  <tr key={device.id}>
-                    <td className="px-3 py-2">
-                      <div className="flex items-center gap-2">
-                        <div className={`h-2 w-2 rounded-full ${device.status === "ACTIVE" ? "bg-green-500" : "bg-gray-400"}`} />
-                        <span className="text-sm text-gray-900 dark:text-white">{device.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-3 py-2">
-                      <span className="text-xs text-gray-600 dark:text-gray-400">{device.type}</span>
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="flex items-center gap-1">
-                        <code className="text-xs font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-gray-500 dark:text-gray-400">
-                          ••••••••••••••••
-                        </code>
-                        <button
-                          onClick={() => {
-                            if (navigator?.clipboard) {
-                              navigator?.clipboard?.writeText(device.apiKey);
-                              toast.success("API Key copied");
-                            }
-                          }}
-                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
-                          title="Copy API Key"
-                        >
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
-                      {device.lastSync ? new Date(device.lastSync).toLocaleString() : "Never"}
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      <button
-                        onClick={async () => {
-                          if (!confirm(`Delete device "${device.name}"?`)) return;
-                          try {
-                            const res = await fetch(`/api/attendance/devices/${device.id}`, { method: "DELETE" });
-                            const data = await res.json();
-                            if (data.success) {
-                              setDevices(devices.filter(d => d.id !== device.id));
-                              toast.success("Device deleted");
-                            } else {
-                              toast.error(data.error || "Failed to delete");
-                            }
-                          } catch {
-                            toast.error("Something went wrong");
-                          }
-                        }}
-                        className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors p-1"
-                        title="Delete device"
-                      >
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
+              <option value="">All Departments</option>
+              {departments.map((d) => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+          )}
+
+          {(userRole === "ADMIN" || userRole === "HR" || userRole === "MANAGER") && (
+            <select
+              value={selectedTeam}
+              onChange={(e) => setSelectedTeam(e.target.value)}
+              className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            >
+              <option value="">All Teams</option>
+              {teams.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          )}
+
+          <select
+            value={selectedSource}
+            onChange={(e) => setSelectedSource(e.target.value)}
+            className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+          >
+            {SOURCES.map((s) => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {records.length > 0 && (
+          <button
+            onClick={exportCSV}
+            className="flex items-center gap-1.5 rounded border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+          >
+            <DownloadIcon />
+            Export CSV
+          </button>
+        )}
+      </div>
 
       {/* Records Table */}
       <Card>
@@ -416,6 +375,118 @@ export default function AttendanceManagePage() {
           </table>
         </div>
       </Card>
+
+      {/* Device List Sidebar */}
+      {showDeviceList && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          <div className="absolute inset-0 bg-black/20" onClick={() => setShowDeviceList(false)} />
+          <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl dark:bg-gray-900">
+            <div className="flex h-full flex-col">
+              <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Connected Devices</h2>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowDocs(true)}
+                    className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 flex items-center gap-1"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    API Docs
+                  </button>
+                  <button
+                    onClick={() => setShowDeviceList(false)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {devices.map((device) => (
+                  <div key={device.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`h-2 w-2 rounded-full ${device.status === "ACTIVE" ? "bg-green-500" : "bg-gray-400"}`} />
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{device.name}</span>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`Delete device "${device.name}"?`)) return;
+                          try {
+                            const res = await fetch(`/api/attendance/devices/${device.id}`, { method: "DELETE" });
+                            const data = await res.json();
+                            if (data.success) {
+                              setDevices(devices.filter(d => d.id !== device.id));
+                              toast.success("Device deleted");
+                              if (devices.length === 1) setShowDeviceList(false);
+                            } else {
+                              toast.error(data.error || "Failed to delete");
+                            }
+                          } catch {
+                            toast.error("Something went wrong");
+                          }
+                        }}
+                        className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors p-1"
+                        title="Delete device"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    <div className="space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Type</span>
+                        <span className="text-gray-700 dark:text-gray-300">{device.type}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Device ID</span>
+                        <span className="text-gray-700 dark:text-gray-300 font-mono">{device.deviceId}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Last Sync</span>
+                        <span className="text-gray-700 dark:text-gray-300">
+                          {device.lastSync ? new Date(device.lastSync).toLocaleString() : "Never"}
+                        </span>
+                      </div>
+                      <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500 dark:text-gray-400">API Key</span>
+                          <button
+                            onClick={() => {
+                              if (navigator?.clipboard) {
+                                navigator?.clipboard?.writeText(device.apiKey);
+                                toast.success("API Key copied");
+                              }
+                            }}
+                            className="flex items-center gap-1 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                          >
+                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            Copy
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="border-t border-gray-200 p-4 dark:border-gray-700">
+                <Button onClick={() => { setShowDeviceList(false); setShowDeviceSetup(true); }} className="w-full">
+                  Add New Device
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Device Setup Sidebar */}
       {showDeviceSetup && (
@@ -808,5 +879,22 @@ export default function AttendanceManagePage() {
         </div>
       )}
     </div>
+  );
+}
+
+// Icons
+function DownloadIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+    </svg>
+  );
+}
+
+function DeviceIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className || "h-4 w-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
+    </svg>
   );
 }
