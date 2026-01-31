@@ -111,6 +111,45 @@ export default function ReportsPage() {
     { id: "leave" as TabType, label: "Leave" },
   ];
 
+  // Export functions
+  const exportAttendanceCSV = () => {
+    if (!attendanceData) return;
+
+    const headers = ["Employee ID", "Name", "Department", "Present Days", "Total Hours"];
+    const rows = attendanceData.userAttendance.map((u) => [
+      u.employeeId,
+      u.name,
+      u.department,
+      u.presentDays.toString(),
+      u.totalHours.toFixed(1),
+    ]);
+
+    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    downloadCSV(csv, `attendance-${months[selectedMonth]}-${selectedYear}.csv`);
+  };
+
+  const exportLeaveCSV = () => {
+    if (!leaveData) return;
+
+    const headers = ["Status", "Count", "Days"];
+    const rows = leaveData.byStatus.map((s) => [s.status, s.count.toString(), s.days.toString()]);
+
+    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    downloadCSV(csv, `leave-summary-${selectedYear}.csv`);
+  };
+
+  const downloadCSV = (csv: string, filename: string) => {
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const months = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
@@ -254,25 +293,36 @@ export default function ReportsPage() {
       {activeTab === "attendance" && (
         <div className="space-y-6">
           {/* Filters */}
-          <div className="flex gap-3">
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-              className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-            >
-              {months.map((m, i) => (
-                <option key={m} value={i}>{m}</option>
-              ))}
-            </select>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-            >
-              {[2023, 2024, 2025, 2026].map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
+          <div className="flex items-center justify-between">
+            <div className="flex gap-3">
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              >
+                {months.map((m, i) => (
+                  <option key={m} value={i}>{m}</option>
+                ))}
+              </select>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              >
+                {[2023, 2024, 2025, 2026].map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+            {attendanceData && attendanceData.userAttendance.length > 0 && (
+              <button
+                onClick={exportAttendanceCSV}
+                className="flex items-center gap-1.5 rounded border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                <DownloadIcon />
+                Export CSV
+              </button>
+            )}
           </div>
 
           {attendanceData && (
@@ -336,7 +386,7 @@ export default function ReportsPage() {
       {activeTab === "leave" && (
         <div className="space-y-6">
           {/* Year Filter */}
-          <div>
+          <div className="flex items-center justify-between">
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(parseInt(e.target.value))}
@@ -346,6 +396,15 @@ export default function ReportsPage() {
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
+            {leaveData && leaveData.byStatus.length > 0 && (
+              <button
+                onClick={exportLeaveCSV}
+                className="flex items-center gap-1.5 rounded border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                <DownloadIcon />
+                Export CSV
+              </button>
+            )}
           </div>
 
           {leaveData && (
@@ -403,5 +462,13 @@ export default function ReportsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+    </svg>
   );
 }
