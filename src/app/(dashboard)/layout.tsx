@@ -141,12 +141,23 @@ export default function DashboardLayout({
     { name: "Users", href: "/dashboard/users", icon: UsersIcon, show: hasRoleAccess("users") },
     { name: "Attendance", href: "/dashboard/attendance/manage", icon: ClockIcon, show: true },
     { name: "Leave Requests", href: "/dashboard/leaves/requests", icon: CalendarIcon, show: hasRoleAccess("leaveRequests") },
+    { name: "Requests", href: "/dashboard/requests", icon: InboxIcon, show: true },
   ].filter(item => item.show) : [
     { name: "Dashboard", href: "/dashboard", icon: HomeIcon, show: true },
-    { name: "Attendance", href: "/dashboard/attendance", icon: ClockIcon, show: hasOnlineAttendance() },
     { name: "My Profile", href: "/dashboard/profile", icon: UserIcon, show: true },
+    { name: "Attendance", href: "/dashboard/attendance", icon: ClockIcon, show: hasOnlineAttendance() },
+  ].filter(item => item.show);
+
+  // SELF SERVICE - Employee self-service (Employee only)
+  const selfServiceNavigation = isHROrAbove ? [] : [
+    { name: "Requests", href: "/dashboard/requests", icon: InboxIcon, show: true },
     { name: "Directory", href: "/dashboard/directory", icon: ContactIcon, show: true },
+  ].filter(item => item.show);
+
+  // COMPANY - Company info (Employee only)
+  const companyNavigation = isHROrAbove ? [] : [
     { name: "Announcements", href: "/dashboard/announcements", icon: MegaphoneIcon, show: true },
+    { name: "Holidays", href: "/dashboard/settings/holidays", icon: CalendarCheckIcon, show: true },
     { name: "Mobile App", href: "/dashboard/mobile-app", icon: MobileIcon, show: true },
   ].filter(item => item.show);
 
@@ -177,6 +188,7 @@ export default function DashboardLayout({
   const settingsNavigation = [
     { name: "Organization", href: "/dashboard/settings/organization", icon: BuildingIcon, show: user?.role === "ADMIN" },
     { name: "Permissions", href: "/dashboard/settings/permissions", icon: ShieldIcon, show: user?.role === "ADMIN" },
+    { name: "Holidays", href: "/dashboard/settings/holidays", icon: CalendarCheckIcon, show: isHROrAbove },
     { name: "Mobile Setup", href: "/dashboard/settings/mobile-setup", icon: QRCodeIcon, show: isHROrAbove },
     { name: "Leave Types", href: "/dashboard/settings/leave-types", icon: SettingsIcon, show: hasRoleAccess("leaveTypes") },
     { name: "Leave Policy", href: "/dashboard/settings/leave-policy", icon: CalendarIcon, show: hasRoleAccess("leaveTypes") },
@@ -295,6 +307,38 @@ export default function DashboardLayout({
               </div>
             )}
 
+            {/* SELF SERVICE - Employee only */}
+            {selfServiceNavigation.length > 0 && (
+              <div>
+                {!collapsed && <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Self Service</p>}
+                {collapsed && <div className="border-t border-gray-200 dark:border-gray-700 my-2" />}
+                <div className="space-y-0.5">
+                  {selfServiceNavigation.map((item) => {
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
+                          isActive
+                            ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
+                            : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+                        }`}
+                      >
+                        <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+                        {!collapsed && <span className="text-[13px]">{item.name}</span>}
+                        {collapsed && (
+                          <span className="sidebar-tooltip">
+                            {item.name}
+                          </span>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* LEAVE */}
             <div>
               {!collapsed && <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Leave</p>}
@@ -324,6 +368,38 @@ export default function DashboardLayout({
                 })}
               </div>
             </div>
+
+            {/* COMPANY - Employee only */}
+            {companyNavigation.length > 0 && (
+              <div>
+                {!collapsed && <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Company</p>}
+                {collapsed && <div className="border-t border-gray-200 dark:border-gray-700 my-2" />}
+                <div className="space-y-0.5">
+                  {companyNavigation.map((item) => {
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
+                          isActive
+                            ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
+                            : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+                        }`}
+                      >
+                        <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+                        {!collapsed && <span className="text-[13px]">{item.name}</span>}
+                        {collapsed && (
+                          <span className="sidebar-tooltip">
+                            {item.name}
+                          </span>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* MANAGE - Less frequent (HR only) */}
             {manageNavigation.length > 0 && (
@@ -622,6 +698,22 @@ function ChartIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+    </svg>
+  );
+}
+
+function InboxIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859m-17.5 0V6.75A2.25 2.25 0 014.5 4.5h15a2.25 2.25 0 012.25 2.25v6.75m-17.5 0v4.5a2.25 2.25 0 002.25 2.25h13a2.25 2.25 0 002.25-2.25v-4.5" />
+    </svg>
+  );
+}
+
+function CalendarCheckIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z" />
     </svg>
   );
 }

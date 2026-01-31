@@ -86,6 +86,34 @@ export async function GET() {
     basicData.upcomingBirthdays = upcomingBirthdays;
     basicData.upcomingAnniversaries = upcomingAnniversaries;
 
+    // Get upcoming holidays (next 30 days)
+    const thirtyDaysFromNow = new Date(now);
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
+    const upcomingHolidays = await prisma.holiday.findMany({
+      where: {
+        isActive: true,
+        date: {
+          gte: now,
+          lte: thirtyDaysFromNow,
+        },
+      },
+      orderBy: { date: "asc" },
+      take: 5,
+    });
+
+    basicData.upcomingHolidays = upcomingHolidays.map((h) => {
+      const holidayDate = new Date(h.date);
+      const daysUntil = Math.ceil((holidayDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      return {
+        id: h.id,
+        name: h.name,
+        date: h.date.toISOString(),
+        type: h.type,
+        daysUntil,
+      };
+    });
+
     if (isHROrAdmin) {
       // Get counts
       const [

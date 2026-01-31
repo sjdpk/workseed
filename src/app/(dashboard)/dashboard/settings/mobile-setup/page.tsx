@@ -200,7 +200,7 @@ export default function MobileSetupPage() {
               </p>
             </div>
           ) : (
-            <div className="rounded-lg border-2 border-dashed border-gray-200 p-12 text-center dark:border-gray-700">
+            <div className="rounded-md border-2 border-dashed border-gray-200 p-12 text-center dark:border-gray-700">
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Save to generate QR code
               </p>

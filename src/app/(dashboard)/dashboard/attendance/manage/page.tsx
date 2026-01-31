@@ -407,7 +407,7 @@ export default function AttendanceManagePage() {
 
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {devices.map((device) => (
-                  <div key={device.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                  <div key={device.id} className="rounded-md border border-gray-200 p-3 dark:border-gray-700">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <div className={`h-2 w-2 rounded-full ${device.status === "ACTIVE" ? "bg-green-500" : "bg-gray-400"}`} />

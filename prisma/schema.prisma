@@ -234,6 +234,8 @@ model User {
   assignedAssets  Asset[]         @relation("AssetAssignee")
   assetHistory    AssetAssignment[]
   attendance      Attendance[]
+  employeeRequests EmployeeRequest[]
+  requestApprovals EmployeeRequest[] @relation("RequestApprover")
 
   @@map("users")
 }
@@ -463,4 +465,61 @@ model Attendance {
 
   @@unique([userId, date])
   @@map("attendance")
+}
+
+// Holiday Calendar
+model Holiday {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  date        DateTime @db.Date
+  type        String   @default("PUBLIC") // PUBLIC, OPTIONAL, RESTRICTED
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([date, name])
+  @@map("holidays")
+}
+
+enum RequestType {
+  ASSET
+  DOCUMENT
+  GENERAL
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+// Employee Self-Service Requests
+model EmployeeRequest {
+  id            String        @id @default(uuid()) @db.Uuid
+  userId        String        @db.Uuid
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type          RequestType
+  subject       String
+  description   String
+  priority      String        @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  status        RequestStatus @default(PENDING)
+
+  // For asset requests
+  assetCategory String?
+
+  // For document requests
+  documentType  String?
+
+  // Approval
+  approverId    String?       @db.Uuid
+  approver      User?         @relation("RequestApprover", fields: [approverId], references: [id])
+  approvedAt    DateTime?
+  response      String?       // Admin response/notes
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("employee_requests")
 }

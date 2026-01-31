@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, getCurrentUser, isHROrAbove } from "@/lib";
+import { prisma, getCurrentUser, isHROrAbove, sendAnnouncementAlert } from "@/lib";
 import { z } from "zod/v4";
 
 const createNoticeSchema = z.object({
@@ -85,6 +85,29 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Send email notifications for IMPORTANT and URGENT announcements
+    const noticeType = data.type || "GENERAL";
+    if (noticeType === "IMPORTANT" || noticeType === "URGENT") {
+      // Get all active users' emails
+      const users = await prisma.user.findMany({
+        where: { status: "ACTIVE" },
+        select: { email: true, firstName: true },
+      });
+
+      const publishedBy = `${notice.createdBy.firstName} ${notice.createdBy.lastName}`;
+
+      // Send emails in background (don't await all)
+      for (const user of users) {
+        sendAnnouncementAlert(user.email, {
+          recipientName: user.firstName,
+          title: data.title,
+          content: data.content,
+          type: noticeType,
+          publishedBy,
+        }).catch(console.error);
+      }
+    }
 
     return NextResponse.json({
       success: true,

@@ -98,7 +98,7 @@ export default function DirectoryPage() {
       case "ADMIN": return "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300";
       case "HR": return "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300";
       case "MANAGER": return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
-      case "TEAM_LEAD": return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300";
+      case "TEAM_LEAD": return "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300";
       default: return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300";
     }
   };
@@ -108,7 +108,7 @@ export default function DirectoryPage() {
       case "ADMIN": return "bg-purple-500";
       case "HR": return "bg-pink-500";
       case "MANAGER": return "bg-gray-500";
-      case "TEAM_LEAD": return "bg-green-500";
+      case "TEAM_LEAD": return "bg-gray-600";
       default: return "bg-gray-500";
     }
   };
@@ -120,14 +120,14 @@ export default function DirectoryPage() {
     return (
       <div className={`relative rounded border p-4 ${
         sameTeam
-          ? "border-green-300 bg-green-50/50 dark:border-green-700 dark:bg-green-900/10"
+          ? "border-gray-400 bg-gray-100/50 dark:border-gray-500 dark:bg-gray-700/30"
           : sameDept
           ? "border-gray-300 bg-gray-50/50 dark:border-gray-600 dark:bg-gray-800/50"
           : "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
       }`}>
         {(sameTeam || sameDept) && (
           <div className={`absolute -top-2 right-3 rounded px-2 py-0.5 text-xs font-medium ${
-            sameTeam ? "bg-green-500 text-white" : "bg-gray-600 text-white"
+            sameTeam ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900" : "bg-gray-600 text-white"
           }`}>
             {sameTeam ? "Same Team" : "Same Dept"}
           </div>
@@ -256,11 +256,11 @@ export default function DirectoryPage() {
 
       <div className="flex flex-wrap gap-4 text-xs">
         <div className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded-full bg-green-500"></span>
+          <span className="h-3 w-3 rounded-full bg-gray-900 dark:bg-white"></span>
           <span className="text-gray-600 dark:text-gray-400">Same Team</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded-full bg-gray-500"></span>
+          <span className="h-3 w-3 rounded-full bg-gray-400"></span>
           <span className="text-gray-600 dark:text-gray-400">Same Department</span>
         </div>
       </div>
@@ -324,8 +324,8 @@ export default function DirectoryPage() {
           {Object.entries(groupedByTeam).sort(([a], [b]) => a.localeCompare(b)).map(([teamName, teamUsers]) => (
             <div key={teamName}>
               <div className="mb-3 flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded bg-green-100 dark:bg-green-900/30">
-                  <svg className="h-4 w-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex h-8 w-8 items-center justify-center rounded bg-gray-100 dark:bg-gray-800">
+                  <svg className="h-4 w-4 text-gray-900 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                 </div>
@@ -334,7 +334,7 @@ export default function DirectoryPage() {
                   <p className="text-xs text-gray-500 dark:text-gray-400">{teamUsers.length} members</p>
                 </div>
                 {currentUser?.teamId && teamUsers[0]?.team?.id === currentUser.teamId && (
-                  <span className="rounded bg-green-500 px-2 py-0.5 text-xs font-medium text-white">Your Team</span>
+                  <span className="rounded bg-gray-900 px-2 py-0.5 text-xs font-medium text-white dark:bg-white dark:text-gray-900">Your Team</span>
                 )}
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

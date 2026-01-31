@@ -22,3 +22,13 @@ export {
 export type { Permission, Role } from "./permissions";
 export { createAuditLog, getRequestMeta } from "./audit";
 export type { AuditAction, AuditEntity } from "./audit";
+export {
+  sendEmail,
+  sendLeaveRequestSubmitted,
+  sendLeaveRequestStatusUpdate,
+  sendNewLeaveRequestForApproval,
+  sendBirthdayReminder,
+  sendAnnouncementAlert,
+  sendRequestSubmitted,
+  sendRequestStatusUpdate,
+} from "./email";

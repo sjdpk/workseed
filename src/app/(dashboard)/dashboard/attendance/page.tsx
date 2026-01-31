@@ -200,7 +200,7 @@ export default function AttendancePage() {
         </div>
 
         {status.todayRecord && (
-          <div className="mt-6 rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
+          <div className="mt-6 rounded-md bg-gray-50 p-4 dark:bg-gray-800">
             <div className="flex items-center justify-center gap-4 text-sm">
               <div>
                 <span className="text-gray-500 dark:text-gray-400">In </span>

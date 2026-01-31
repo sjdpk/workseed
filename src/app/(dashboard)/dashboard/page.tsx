@@ -68,6 +68,13 @@ interface DashboardData {
     date: string;
     daysUntil: number;
   }[];
+  upcomingHolidays?: {
+    id: string;
+    name: string;
+    date: string;
+    type: string;
+    daysUntil: number;
+  }[];
 }
 
 interface UserInfo {
@@ -165,7 +172,7 @@ export default function DashboardPage() {
         {/* Notification Bell */}
         <button
           onClick={() => setShowNotifications(true)}
-          className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          className="relative p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         >
           <BellIcon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
           {notificationCount > 0 && (
@@ -191,7 +198,7 @@ export default function DashboardPage() {
                 <Link
                   key={notice.id}
                   href="/dashboard/announcements"
-                  className={`flex-shrink-0 w-72 rounded-lg border p-3 ${config.bg} ${config.border} hover:shadow-md transition-shadow`}
+                  className={`flex-shrink-0 w-72 rounded-md border p-3 ${config.bg} ${config.border} hover:shadow-md transition-shadow`}
                 >
                   <div className="flex items-start gap-2">
                     <div className={`mt-0.5 flex-shrink-0 ${config.icon}`}>
@@ -494,6 +501,42 @@ export default function DashboardPage() {
             </Card>
           </div>
 
+          {/* Upcoming Holidays */}
+          {data.upcomingHolidays && data.upcomingHolidays.length > 0 && (
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <HolidayIcon className="h-4 w-4 text-emerald-500" />
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Upcoming Holidays</h3>
+                </div>
+                <Link href="/dashboard/settings/holidays" className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                  View all
+                </Link>
+              </div>
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
+                {data.upcomingHolidays.map((holiday) => (
+                  <div
+                    key={holiday.id}
+                    className="flex-shrink-0 w-40 rounded-md border border-gray-200 p-3 dark:border-gray-700"
+                  >
+                    <div className="flex h-10 w-10 flex-col items-center justify-center rounded-md bg-gray-100 dark:bg-gray-800 mb-2">
+                      <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400">
+                        {new Date(holiday.date).toLocaleDateString("en-US", { month: "short" })}
+                      </span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {new Date(holiday.date).getDate()}
+                      </span>
+                    </div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{holiday.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {holiday.daysUntil === 0 ? "Today" : holiday.daysUntil === 1 ? "Tomorrow" : `In ${holiday.daysUntil} days`}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
           {/* Birthdays & Anniversaries */}
           {((data.upcomingBirthdays && data.upcomingBirthdays.length > 0) ||
             (data.upcomingAnniversaries && data.upcomingAnniversaries.length > 0)) && (
@@ -645,7 +688,7 @@ export default function DashboardPage() {
             />
             <Link href="/dashboard/leaves">
               <Card className="flex items-center gap-3 p-3 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
-                <div className="rounded-lg p-2.5 bg-gray-900 dark:bg-white">
+                <div className="rounded-md p-2.5 bg-gray-900 dark:bg-white">
                   <CalendarIcon className="h-5 w-5 text-white dark:text-gray-900" />
                 </div>
                 <div>
@@ -673,7 +716,7 @@ export default function DashboardPage() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Link href="/dashboard/leaves">
               <Card className="flex items-center gap-3 p-3 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
-                <div className="rounded-lg p-2.5 bg-gray-900 dark:bg-white">
+                <div className="rounded-md p-2.5 bg-gray-900 dark:bg-white">
                   <CalendarIcon className="h-5 w-5 text-white dark:text-gray-900" />
                 </div>
                 <div>
@@ -904,7 +947,7 @@ function StatCard({ label, value, icon, color, href }: { label: string; value: n
   return (
     <Link href={href}>
       <Card className="flex items-center gap-3 p-3 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
-        <div className={`rounded-lg p-2.5 ${color}`}>
+        <div className={`rounded-md p-2.5 ${color}`}>
           <div className="text-white">{icon}</div>
         </div>
         <div>
@@ -920,7 +963,7 @@ function QuickAction({ href, icon, title }: { href: string; icon: React.ReactNod
   return (
     <Link
       href={href}
-      className="flex items-center gap-2.5 rounded-lg border border-gray-200 p-2.5 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+      className="flex items-center gap-2.5 rounded-md border border-gray-200 p-2.5 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
     >
       <div className="rounded bg-gray-100 p-1.5 text-gray-500 dark:bg-gray-700 dark:text-gray-400">
         {icon}
@@ -932,8 +975,8 @@ function QuickAction({ href, icon, title }: { href: string; icon: React.ReactNod
 
 function QuickActionCard({ href, icon, title, description }: { href: string; icon: React.ReactNode; title: string; description: string }) {
   return (
-    <Link href={href} className="flex items-center gap-2.5 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
-      <div className="rounded-lg bg-gray-100 p-2 dark:bg-gray-700">
+    <Link href={href} className="flex items-center gap-2.5 rounded-md border border-gray-200 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
+      <div className="rounded-md bg-gray-100 p-2 dark:bg-gray-700">
         <div className="text-gray-500 dark:text-gray-400">{icon}</div>
       </div>
       <div className="min-w-0">
@@ -1011,4 +1054,8 @@ function CakeIcon({ className }: { className?: string }) {
 
 function TrophyIcon({ className }: { className?: string }) {
   return <svg className={className || "h-4 w-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m3.044-1.35a6.726 6.726 0 01-2.749 1.35m0 0v1.122c0 .621-.504 1.125-1.125 1.125H12m-.773-2.247L12 10.5m0 0l.773-.252M12 10.5v2.25m7.27-2.772a6.003 6.003 0 00-1.904-5.712m1.904 5.712a6.726 6.726 0 01-2.749 1.35m2.749-1.35v.249m0 0c.982.143 1.954.317 2.916.52M18.75 4.236V4.5c0 2.108-.966 3.99-2.48 5.228" /></svg>;
+}
+
+function HolidayIcon({ className }: { className?: string }) {
+  return <svg className={className || "h-4 w-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z" /></svg>;
 }
