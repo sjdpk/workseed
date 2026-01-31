@@ -1,8 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components";
+
+interface OrgSettings {
+  name?: string;
+  logoUrl?: string | null;
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,6 +16,28 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [orgSettings, setOrgSettings] = useState<OrgSettings | null>(null);
+
+  useEffect(() => {
+    fetch("/api/organization")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) {
+          setOrgSettings(data.data.settings);
+          // Set page title
+          if (data.data.settings.name) {
+            document.title = `Login - ${data.data.settings.name}`;
+          }
+          // Set favicon to org logo
+          if (data.data.settings.logoUrl) {
+            const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement || document.createElement('link');
+            link.rel = 'icon';
+            link.href = data.data.settings.logoUrl;
+            document.head.appendChild(link);
+          }
+        }
+      });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,12 +72,16 @@ export default function LoginPage() {
       <div className="hidden w-1/2 bg-gray-900 lg:flex lg:flex-col lg:justify-between p-12">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-600">
-              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
-              </svg>
-            </div>
-            <span className="text-base font-semibold text-white">HRM System</span>
+            {orgSettings?.logoUrl ? (
+              <img src={orgSettings.logoUrl} alt="" className="h-8 w-8 rounded-md object-contain" />
+            ) : (
+              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-600">
+                <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+                </svg>
+              </div>
+            )}
+            <span className="text-base font-semibold text-white">{orgSettings?.name || "HRM System"}</span>
           </div>
         </div>
 
@@ -64,7 +95,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-sm text-gray-500">
-          © 2024 HRM System. All rights reserved.
+          © {new Date().getFullYear()} {orgSettings?.name || "HRM System"}. All rights reserved.
         </p>
       </div>
 
@@ -72,12 +103,16 @@ export default function LoginPage() {
       <div className="flex w-full flex-col lg:w-1/2">
         <div className="flex items-center justify-between p-6 lg:p-8">
           <div className="flex items-center gap-2 lg:hidden">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-600">
-              <svg className="h-5 w-5 text-white dark:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            </div>
-            <span className="font-semibold text-gray-900 dark:text-white">HRM</span>
+            {orgSettings?.logoUrl ? (
+              <img src={orgSettings.logoUrl} alt="" className="h-7 w-7 rounded-md object-contain" />
+            ) : (
+              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-600">
+                <svg className="h-5 w-5 text-white dark:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+            )}
+            <span className="font-semibold text-gray-900 dark:text-white">{orgSettings?.name || "HRM"}</span>
           </div>
           <div className="ml-auto">
             <ThemeToggle />

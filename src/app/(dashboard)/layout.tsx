@@ -66,6 +66,14 @@ export default function DashboardLayout({
           if (orgData.data.settings.name) {
             document.title = orgData.data.settings.name;
           }
+          // Set favicon to org logo
+          if (orgData.data.settings.logoUrl) {
+            const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement || document.createElement('link');
+            link.rel = 'icon';
+            link.href = orgData.data.settings.logoUrl;
+            document.head.appendChild(link);
+          }
+
           // Apply organization theme
           if (orgData.data.settings.theme?.accentColor) {
             document.documentElement.setAttribute("data-accent", orgData.data.settings.theme.accentColor);

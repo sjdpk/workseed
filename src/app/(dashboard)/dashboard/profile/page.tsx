@@ -95,6 +95,8 @@ const CONDITION_COLORS: Record<string, string> = {
   POOR: "text-red-600 dark:text-red-400",
 };
 
+type TabType = "overview" | "leaves" | "assets" | "settings";
+
 export default function ProfilePage() {
   const router = useRouter();
   const toast = useToast();
@@ -104,7 +106,7 @@ export default function ProfilePage() {
   const [orgSettings, setOrgSettings] = useState<OrgSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [editMode, setEditMode] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>("overview");
 
   const [formData, setFormData] = useState({
     phone: "",
@@ -122,7 +124,6 @@ export default function ProfilePage() {
     emergencyContactPhone: "",
     password: "",
   });
-  const [showLeaveSidebar, setShowLeaveSidebar] = useState(false);
 
   const currentYear = new Date().getFullYear();
 
@@ -215,7 +216,6 @@ export default function ProfilePage() {
       }
 
       setUser((prev) => (prev ? { ...prev, ...payload, password: undefined } : null));
-      setEditMode(false);
       setFormData((prev) => ({ ...prev, password: "" }));
       toast.success("Profile updated successfully");
     } catch {
@@ -233,6 +233,13 @@ export default function ProfilePage() {
   // Show assets by default (true) unless explicitly disabled (false)
   const showAssets = orgSettings?.permissions?.showOwnAssetsToEmployee ?? true;
 
+  const tabs = [
+    { id: "overview" as TabType, label: "Overview" },
+    { id: "leaves" as TabType, label: "Leaves" },
+    ...(showAssets ? [{ id: "assets" as TabType, label: "Assets" }] : []),
+    { id: "settings" as TabType, label: "Settings" },
+  ];
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -247,245 +254,291 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">My Profile</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            View and manage your personal information
-          </p>
-        </div>
-        {!editMode && (
-          <Button onClick={() => setEditMode(true)}>Edit Profile</Button>
-        )}
-      </div>
-
-      {/* Profile Header */}
-      <Card>
-        <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gray-100 text-2xl font-semibold text-gray-900 dark:bg-gray-800 dark:text-white">
+        <div className="flex items-center gap-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-md bg-gray-100 text-lg font-semibold text-gray-900 dark:bg-gray-800 dark:text-white">
             {user.profilePicture ? (
               <img
                 src={user.profilePicture}
                 alt={user.firstName}
-                className="h-20 w-20 rounded-full object-cover"
+                className="h-16 w-16 rounded-md object-cover"
               />
             ) : (
               `${user.firstName[0]}${user.lastName[0]}`
             )}
           </div>
-          <div className="flex-1 text-center sm:text-left">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <div>
+            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
               {user.firstName} {user.lastName}
-            </h2>
+            </h1>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               {user.designation || user.role} • {user.employeeId}
             </p>
-            <div className="mt-2 flex flex-wrap justify-center gap-2 sm:justify-start">
-              {user.department && (
-                <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                  {user.department.name}
-                </span>
-              )}
+            <div className="mt-1 flex items-center gap-2">
               {user.team && (
-                <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                   {user.team.name}
                 </span>
               )}
               {user.branch && (
-                <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                   {user.branch.name}
                 </span>
               )}
             </div>
-            {user.manager && (
-              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                Reports to: {user.manager.firstName} {user.manager.lastName}
-              </p>
-            )}
           </div>
         </div>
-      </Card>
+        <Link href="/dashboard/leaves/apply">
+          <Button>Apply Leave</Button>
+        </Link>
+      </div>
 
-      {/* Leave Balance Compact */}
-      <Card>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white">
-              Leave Balance
-            </h2>
-            {allocations.length > 0 && (
-              <div className="flex items-center gap-3">
-                {allocations.slice(0, 3).map((alloc) => (
-                  <div key={alloc.id} className="flex items-center gap-1.5">
-                    <div
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: alloc.leaveType.color || "#3B82F6" }}
-                    />
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      {alloc.leaveType.name.split(" ")[0]}:
-                    </span>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      {alloc.balance}
-                    </span>
-                  </div>
-                ))}
-                {allocations.length > 3 && (
-                  <span className="text-sm text-gray-400">+{allocations.length - 3} more</span>
+      {/* Tabs */}
+      <div className="border-b border-gray-200 dark:border-gray-700">
+        <nav className="flex gap-6">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`relative pb-3 text-sm font-medium transition-colors ${
+                activeTab === tab.id
+                  ? "text-gray-900 dark:text-white"
+                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+              }`}
+            >
+              {tab.label}
+              {activeTab === tab.id && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 dark:bg-white" />
+              )}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === "overview" && (
+        <div className="space-y-6">
+          {/* Contact & Personal Info */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card>
+              <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Contact Information</h2>
+              <dl className="space-y-3">
+                <div className="flex justify-between">
+                  <dt className="text-sm text-gray-500 dark:text-gray-400">Email</dt>
+                  <dd className="text-sm font-medium text-gray-900 dark:text-white">{user.email}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-sm text-gray-500 dark:text-gray-400">Phone</dt>
+                  <dd className="text-sm font-medium text-gray-900 dark:text-white">{user.phone || "-"}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-sm text-gray-500 dark:text-gray-400">Address</dt>
+                  <dd className="text-sm font-medium text-gray-900 dark:text-white text-right max-w-[200px]">
+                    {[user.address, user.city, user.state, user.country, user.postalCode].filter(Boolean).join(", ") || "-"}
+                  </dd>
+                </div>
+              </dl>
+            </Card>
+
+            <Card>
+              <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Personal Information</h2>
+              <dl className="space-y-3">
+                <div className="flex justify-between">
+                  <dt className="text-sm text-gray-500 dark:text-gray-400">Date of Birth</dt>
+                  <dd className="text-sm font-medium text-gray-900 dark:text-white">{formatDate(user.dateOfBirth)}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-sm text-gray-500 dark:text-gray-400">Gender</dt>
+                  <dd className="text-sm font-medium text-gray-900 dark:text-white">{user.gender || "-"}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-sm text-gray-500 dark:text-gray-400">Marital Status</dt>
+                  <dd className="text-sm font-medium text-gray-900 dark:text-white">{user.maritalStatus || "-"}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-sm text-gray-500 dark:text-gray-400">Nationality</dt>
+                  <dd className="text-sm font-medium text-gray-900 dark:text-white">{user.nationality || "-"}</dd>
+                </div>
+              </dl>
+            </Card>
+          </div>
+
+          {/* Employment Details */}
+          <Card>
+            <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Employment Details</h2>
+            <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <dt className="text-sm text-gray-500 dark:text-gray-400">Employment Type</dt>
+                <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{user.employmentType?.replace("_", " ") || "-"}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-gray-500 dark:text-gray-400">Joining Date</dt>
+                <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{formatDate(user.joiningDate)}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-gray-500 dark:text-gray-400">Department</dt>
+                <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{user.department?.name || "-"}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-gray-500 dark:text-gray-400">Reporting Manager</dt>
+                <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
+                  {user.manager ? `${user.manager.firstName} ${user.manager.lastName}` : "-"}
+                </dd>
+              </div>
+            </dl>
+          </Card>
+
+          {/* Emergency Contact */}
+          <Card>
+            <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Emergency Contact</h2>
+            <dl className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <dt className="text-sm text-gray-500 dark:text-gray-400">Contact Name</dt>
+                <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{user.emergencyContact || "-"}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-gray-500 dark:text-gray-400">Contact Phone</dt>
+                <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{user.emergencyContactPhone || "-"}</dd>
+              </div>
+            </dl>
+          </Card>
+
+          {/* Social Links */}
+          {(user.linkedIn || user.twitter || user.github || user.website) && (
+            <Card>
+              <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Social Links</h2>
+              <div className="flex flex-wrap gap-2">
+                {user.linkedIn && (
+                  <a href={user.linkedIn} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded bg-gray-100 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300">
+                    LinkedIn
+                  </a>
+                )}
+                {user.twitter && (
+                  <a href={user.twitter} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded bg-gray-100 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300">
+                    Twitter
+                  </a>
+                )}
+                {user.github && (
+                  <a href={user.github} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded bg-gray-100 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300">
+                    GitHub
+                  </a>
+                )}
+                {user.website && (
+                  <a href={user.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded bg-gray-100 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300">
+                    Website
+                  </a>
                 )}
               </div>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShowLeaveSidebar(true)}>
-              View All
-            </Button>
-            <Link href="/dashboard/leaves/apply">
-              <Button size="sm">Apply Leave</Button>
-            </Link>
-          </div>
-        </div>
-      </Card>
-
-      {/* Leave Balance Sidebar */}
-      {showLeaveSidebar && (
-        <div className="fixed inset-0 z-50 overflow-hidden">
-          <div className="absolute inset-0 bg-black/20" onClick={() => setShowLeaveSidebar(false)} />
-          <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl dark:bg-gray-900">
-            <div className="flex h-full flex-col">
-              <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Leave Balance ({currentYear})
-                </h2>
-                <button
-                  onClick={() => setShowLeaveSidebar(false)}
-                  className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-                >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto p-6">
-                {allocations.length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    No leave allocations found for this year.
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {allocations.map((alloc) => {
-                      const total = alloc.allocated + alloc.adjusted;
-                      const usedPercent = total > 0 ? (alloc.used / total) * 100 : 0;
-                      return (
-                        <div
-                          key={alloc.id}
-                          className="rounded border border-gray-200 p-4 dark:border-gray-700"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="h-3 w-3 rounded-full"
-                                style={{ backgroundColor: alloc.leaveType.color || "#3B82F6" }}
-                              />
-                              <span className="font-medium text-gray-900 dark:text-white">
-                                {alloc.leaveType.name}
-                              </span>
-                            </div>
-                            <span className={`text-lg font-bold ${alloc.balance > 0 ? "text-green-600 dark:text-green-400" : "text-gray-400"}`}>
-                              {alloc.balance}
-                            </span>
-                          </div>
-                          <div className="mt-3">
-                            <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
-                              <div
-                                className="h-full rounded-full transition-all"
-                                style={{
-                                  width: `${usedPercent}%`,
-                                  backgroundColor: alloc.leaveType.color || "#3B82F6",
-                                }}
-                              />
-                            </div>
-                          </div>
-                          <div className="mt-2 flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                            <span>Used: {alloc.used} days</span>
-                            <span>Total: {total} days</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-              <div className="border-t border-gray-200 p-4 dark:border-gray-700">
-                <Link href="/dashboard/leaves/apply" className="block">
-                  <Button className="w-full">Apply for Leave</Button>
-                </Link>
-              </div>
-            </div>
-          </div>
+            </Card>
+          )}
         </div>
       )}
 
-      {/* Assigned Assets */}
-      {showAssets && (
-        <Card>
-          <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">
-            My Assigned Assets
-          </h2>
-          {assets.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              No assets currently assigned to you.
-            </p>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {assets.map((asset) => (
-                <div
-                  key={asset.id}
-                  className="rounded border border-gray-200 p-4 dark:border-gray-700"
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl">{CATEGORY_ICONS[asset.category] || "📦"}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 dark:text-white truncate">
-                        {asset.name}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {asset.assetTag}
-                      </p>
-                      {(asset.brand || asset.model) && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {asset.brand} {asset.model}
-                        </p>
-                      )}
-                      {asset.serialNumber && (
-                        <p className="text-xs text-gray-400 dark:text-gray-500">
-                          S/N: {asset.serialNumber}
-                        </p>
-                      )}
-                      <div className="mt-2 flex items-center gap-2">
-                        <span
-                          className={`text-xs font-medium ${
-                            CONDITION_COLORS[asset.condition] || ""
-                          }`}
-                        >
-                          {asset.condition}
+      {activeTab === "leaves" && (
+        <div className="space-y-6">
+          <Card>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Leave Balance ({currentYear})</h2>
+              <Link href="/dashboard/leaves">
+                <Button variant="outline" size="sm">View History</Button>
+              </Link>
+            </div>
+
+            {allocations.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">No leave allocations for this year.</p>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {allocations.map((alloc) => {
+                  const total = alloc.allocated + alloc.adjusted;
+                  const usedPercent = total > 0 ? (alloc.used / total) * 100 : 0;
+                  return (
+                    <div key={alloc.id} className="rounded border border-gray-200 p-4 dark:border-gray-700">
+                      <div className="flex items-center gap-2">
+                        <div className="h-3 w-3 rounded-full" style={{ backgroundColor: alloc.leaveType.color || "#3B82F6" }} />
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{alloc.leaveType.name}</span>
+                      </div>
+                      <div className="mt-3 flex items-baseline justify-between">
+                        <span className={`text-2xl font-bold ${alloc.balance > 0 ? "text-green-600 dark:text-green-400" : "text-gray-400"}`}>
+                          {alloc.balance}
                         </span>
-                        {asset.assignedAt && (
-                          <span className="text-xs text-gray-400">
-                            Since {formatDate(asset.assignedAt)}
-                          </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">/ {total} days</span>
+                      </div>
+                      <div className="mt-2">
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{ width: `${usedPercent}%`, backgroundColor: alloc.leaveType.color || "#3B82F6" }}
+                          />
+                        </div>
+                      </div>
+                      <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Used: {alloc.used} days</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
+
+      {activeTab === "assets" && showAssets && (
+        <div className="space-y-6">
+          <Card>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Assigned Assets</h2>
+              <span className="text-sm text-gray-500 dark:text-gray-400">{assets.length} asset{assets.length !== 1 ? "s" : ""}</span>
+            </div>
+
+            {assets.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">No assets currently assigned to you.</p>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {assets.map((asset) => (
+                  <div
+                    key={asset.id}
+                    className="rounded border border-gray-200 p-4 dark:border-gray-700"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl">{CATEGORY_ICONS[asset.category] || "📦"}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 dark:text-white truncate">
+                          {asset.name}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {asset.assetTag}
+                        </p>
+                        {(asset.brand || asset.model) && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {asset.brand} {asset.model}
+                          </p>
                         )}
+                        {asset.serialNumber && (
+                          <p className="text-xs text-gray-400 dark:text-gray-500">
+                            S/N: {asset.serialNumber}
+                          </p>
+                        )}
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className={`text-xs font-medium ${CONDITION_COLORS[asset.condition] || ""}`}>
+                            {asset.condition}
+                          </span>
+                          {asset.assignedAt && (
+                            <span className="text-xs text-gray-400">
+                              Since {formatDate(asset.assignedAt)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
       )}
 
-      {/* Edit Form or Details View */}
-      {editMode ? (
+      {activeTab === "settings" && (
         <form onSubmit={handleUpdate} className="space-y-6">
           <Card>
             <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">
@@ -526,7 +579,7 @@ export default function ProfilePage() {
                   <img
                     src={formData.profilePicture}
                     alt="Profile preview"
-                    className="h-16 w-16 rounded-full object-cover border border-gray-200 dark:border-gray-700"
+                    className="h-16 w-16 rounded-md object-cover border border-gray-200 dark:border-gray-700"
                     onError={(e) => {
                       e.currentTarget.style.display = "none";
                     }}
@@ -626,148 +679,12 @@ export default function ProfilePage() {
             </div>
           </Card>
 
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" type="button" onClick={() => setEditMode(false)}>
-              Cancel
-            </Button>
+          <div className="flex justify-end">
             <Button type="submit" disabled={saving}>
               {saving ? "Saving..." : "Save Changes"}
             </Button>
           </div>
         </form>
-      ) : (
-        <>
-          {/* Personal Information */}
-          <Card>
-            <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">
-              Personal Information
-            </h2>
-            <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <div>
-                <dt className="text-sm text-gray-500 dark:text-gray-400">Email</dt>
-                <dd className="mt-1 text-sm text-gray-900 dark:text-white">{user.email}</dd>
-              </div>
-              <div>
-                <dt className="text-sm text-gray-500 dark:text-gray-400">Phone</dt>
-                <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                  {user.phone || "-"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-gray-500 dark:text-gray-400">Date of Birth</dt>
-                <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                  {formatDate(user.dateOfBirth)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-gray-500 dark:text-gray-400">Gender</dt>
-                <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                  {user.gender || "-"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-gray-500 dark:text-gray-400">Nationality</dt>
-                <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                  {user.nationality || "-"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-gray-500 dark:text-gray-400">Employment Type</dt>
-                <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                  {user.employmentType?.replace(/_/g, " ") || "-"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-gray-500 dark:text-gray-400">Joining Date</dt>
-                <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                  {formatDate(user.joiningDate)}
-                </dd>
-              </div>
-            </dl>
-          </Card>
-
-          {/* Address */}
-          <Card>
-            <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Address</h2>
-            <p className="text-sm text-gray-900 dark:text-white">
-              {[user.address, user.city, user.state, user.country, user.postalCode]
-                .filter(Boolean)
-                .join(", ") || "Not provided"}
-            </p>
-          </Card>
-
-          {/* Emergency Contact */}
-          <Card>
-            <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">
-              Emergency Contact
-            </h2>
-            <dl className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <dt className="text-sm text-gray-500 dark:text-gray-400">Name</dt>
-                <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                  {user.emergencyContact || "-"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-gray-500 dark:text-gray-400">Phone</dt>
-                <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                  {user.emergencyContactPhone || "-"}
-                </dd>
-              </div>
-            </dl>
-          </Card>
-
-          {/* Social Links */}
-          {(user.linkedIn || user.twitter || user.github || user.website) && (
-            <Card>
-              <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">
-                Social Links
-              </h2>
-              <div className="flex flex-wrap gap-3">
-                {user.linkedIn && (
-                  <a
-                    href={user.linkedIn}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 rounded bg-gray-100 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300"
-                  >
-                    LinkedIn
-                  </a>
-                )}
-                {user.twitter && (
-                  <a
-                    href={user.twitter}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 rounded bg-sky-100 px-3 py-1.5 text-sm text-sky-700 hover:bg-sky-200 dark:bg-sky-900/50 dark:text-sky-400"
-                  >
-                    Twitter
-                  </a>
-                )}
-                {user.github && (
-                  <a
-                    href={user.github}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 rounded bg-gray-100 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300"
-                  >
-                    GitHub
-                  </a>
-                )}
-                {user.website && (
-                  <a
-                    href={user.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 rounded bg-green-100 px-3 py-1.5 text-sm text-green-700 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-400"
-                  >
-                    Website
-                  </a>
-                )}
-              </div>
-            </Card>
-          )}
-        </>
       )}
     </div>
   );
