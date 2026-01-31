@@ -135,6 +135,17 @@ export default function DashboardLayout({
   const canViewDeptLeaves = orgSettings?.permissions?.employeesCanViewDepartmentLeaves === true && user?.departmentId;
   const canViewWhosOut = canViewTeamLeaves || canViewDeptLeaves;
 
+  // Tooltip positioning helper
+  const handleTooltipPosition = (e: React.MouseEvent<HTMLElement>) => {
+    const target = e.currentTarget;
+    const tooltip = target.querySelector('.sidebar-tooltip') as HTMLElement;
+    if (tooltip) {
+      const rect = target.getBoundingClientRect();
+      tooltip.style.top = `${rect.top + rect.height / 2}px`;
+      tooltip.style.transform = 'translateY(-50%)';
+    }
+  };
+
   // MAIN - Core daily work (different for HR vs Employee)
   const mainNavigation = isHROrAbove ? [
     { name: "Dashboard", href: "/dashboard", icon: HomeIcon, show: true },
@@ -209,7 +220,7 @@ export default function DashboardLayout({
       <aside
         className={`fixed inset-y-0 left-0 z-50 transform bg-white border-r border-gray-200 transition-all duration-200 dark:bg-gray-900 dark:border-gray-800 lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } ${collapsed ? "lg:w-16 overflow-visible" : "lg:w-60"} w-60`}
+        } ${collapsed ? "lg:w-16" : "lg:w-60"} w-60`}
       >
         <div className={`flex h-12 items-center border-b border-gray-200 dark:border-gray-800 ${collapsed ? "justify-center px-2" : "justify-between px-3"}`}>
           <Link href="/dashboard" className={`flex items-center min-w-0 ${collapsed ? "justify-center" : "gap-2.5"}`}>
@@ -244,8 +255,8 @@ export default function DashboardLayout({
           </button>
         </div>
 
-        <div className={`flex flex-col h-[calc(100vh-3rem)] scrollbar-hide ${collapsed ? "overflow-visible" : "overflow-y-auto"}`}>
-          <nav className={`flex-1 py-3 space-y-4 ${collapsed ? "px-2" : "px-2"}`}>
+        <div className="flex flex-col h-[calc(100vh-3rem)]">
+          <nav className={`flex-1 py-3 space-y-4 overflow-y-auto scrollbar-hide ${collapsed ? "px-2" : "px-2"}`}>
             {/* MAIN - Core daily work */}
             <div>
               {!collapsed && <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Main</p>}
@@ -256,6 +267,7 @@ export default function DashboardLayout({
                     <Link
                       key={item.name}
                       href={item.href}
+                      onMouseEnter={collapsed ? handleTooltipPosition : undefined}
                       className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
                         isActive
                           ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
@@ -279,14 +291,14 @@ export default function DashboardLayout({
             {orgNavigation.length > 0 && (
               <div>
                 {!collapsed && <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Organization</p>}
-                {collapsed && <div className="border-t border-gray-200 dark:border-gray-700 my-2" />}
-                <div className="space-y-0.5">
+                                <div className="space-y-0.5">
                   {orgNavigation.map((item) => {
                     const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
                     return (
                       <Link
                         key={item.name}
                         href={item.href}
+                        onMouseEnter={collapsed ? handleTooltipPosition : undefined}
                         className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
                           isActive
                             ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
@@ -311,14 +323,14 @@ export default function DashboardLayout({
             {selfServiceNavigation.length > 0 && (
               <div>
                 {!collapsed && <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Self Service</p>}
-                {collapsed && <div className="border-t border-gray-200 dark:border-gray-700 my-2" />}
-                <div className="space-y-0.5">
+                                <div className="space-y-0.5">
                   {selfServiceNavigation.map((item) => {
                     const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
                     return (
                       <Link
                         key={item.name}
                         href={item.href}
+                        onMouseEnter={collapsed ? handleTooltipPosition : undefined}
                         className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
                           isActive
                             ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
@@ -342,14 +354,14 @@ export default function DashboardLayout({
             {/* LEAVE */}
             <div>
               {!collapsed && <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Leave</p>}
-              {collapsed && <div className="border-t border-gray-200 dark:border-gray-700 my-2" />}
-              <div className="space-y-0.5">
+                            <div className="space-y-0.5">
                 {leaveNavigation.map((item) => {
                   const isActive = pathname === item.href;
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
+                      onMouseEnter={collapsed ? handleTooltipPosition : undefined}
                       className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
                         isActive
                           ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
@@ -373,14 +385,14 @@ export default function DashboardLayout({
             {companyNavigation.length > 0 && (
               <div>
                 {!collapsed && <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Company</p>}
-                {collapsed && <div className="border-t border-gray-200 dark:border-gray-700 my-2" />}
-                <div className="space-y-0.5">
+                                <div className="space-y-0.5">
                   {companyNavigation.map((item) => {
                     const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
                     return (
                       <Link
                         key={item.name}
                         href={item.href}
+                        onMouseEnter={collapsed ? handleTooltipPosition : undefined}
                         className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
                           isActive
                             ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
@@ -405,14 +417,14 @@ export default function DashboardLayout({
             {manageNavigation.length > 0 && (
               <div>
                 {!collapsed && <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Manage</p>}
-                {collapsed && <div className="border-t border-gray-200 dark:border-gray-700 my-2" />}
-                <div className="space-y-0.5">
+                                <div className="space-y-0.5">
                   {manageNavigation.map((item) => {
                     const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
                     return (
                       <Link
                         key={item.name}
                         href={item.href}
+                        onMouseEnter={collapsed ? handleTooltipPosition : undefined}
                         className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
                           isActive
                             ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
@@ -437,14 +449,14 @@ export default function DashboardLayout({
             {settingsNavigation.length > 0 && (
               <div>
                 {!collapsed && <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Settings</p>}
-                {collapsed && <div className="border-t border-gray-200 dark:border-gray-700 my-2" />}
-                <div className="space-y-0.5">
+                                <div className="space-y-0.5">
                   {settingsNavigation.map((item) => {
                     const isActive = pathname.startsWith(item.href);
                     return (
                       <Link
                         key={item.name}
                         href={item.href}
+                        onMouseEnter={collapsed ? handleTooltipPosition : undefined}
                         className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
                           isActive
                             ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
@@ -466,15 +478,19 @@ export default function DashboardLayout({
             )}
           </nav>
 
-          <div className={`border-t border-gray-200 dark:border-gray-800 ${collapsed ? "p-2" : "p-3"}`}>
+          <div className={`${collapsed ? "p-2" : "p-3"}`}>
             {collapsed ? (
               <div className="flex flex-col items-center gap-2">
-                <div className="nav-item flex h-8 w-8 items-center justify-center rounded-md bg-gray-100 text-[11px] font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300 cursor-default">
+                <div
+                  className="nav-item flex h-8 w-8 items-center justify-center rounded-md bg-gray-100 text-[11px] font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300 cursor-default"
+                  onMouseEnter={handleTooltipPosition}
+                >
                   {user.firstName[0]}{user.lastName[0]}
                   <span className="sidebar-tooltip">{user.firstName} {user.lastName}</span>
                 </div>
                 <button
                   onClick={() => setCollapsed(false)}
+                  onMouseEnter={handleTooltipPosition}
                   className="nav-item flex h-8 w-8 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
                 >
                   <SidebarExpandIcon className="h-[18px] w-[18px]" />
