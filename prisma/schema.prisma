@@ -233,6 +233,7 @@ model User {
   departmentsLed  Department[]    @relation("DepartmentHead")
   assignedAssets  Asset[]         @relation("AssetAssignee")
   assetHistory    AssetAssignment[]
+  attendance      Attendance[]
 
   @@map("users")
 }
@@ -412,4 +413,54 @@ model AssetAssignment {
   returnNotes   String?
 
   @@map("asset_assignments")
+}
+
+enum AttendanceSource {
+  WEB
+  MOBILE
+  BIOMETRIC
+  RFID
+  MANUAL
+  OTHER
+}
+
+enum DeviceStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+// Attendance Device (Biometric, RFID, etc.)
+model AttendanceDevice {
+  id          String       @id @default(uuid()) @db.Uuid
+  name        String
+  type        String       // BIOMETRIC, RFID, FACE
+  deviceId    String       @unique // Serial or unique ID
+  location    String?
+  status      DeviceStatus @default(ACTIVE)
+  apiKey      String?      // For device authentication
+  lastSync    DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("attendance_devices")
+}
+
+// Attendance Record
+model Attendance {
+  id          String           @id @default(uuid()) @db.Uuid
+  userId      String           @db.Uuid
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date        DateTime         @db.Date
+  checkIn     DateTime
+  checkOut    DateTime?
+  notes       String?
+  source      AttendanceSource @default(WEB)
+  deviceId    String?          // For biometric/RFID device identification
+  location    String?          // Location info if available
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([userId, date])
+  @@map("attendance")
 }

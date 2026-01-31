@@ -27,6 +27,13 @@ interface OrgSettings {
     };
     employeesCanViewTeamLeaves?: boolean;
     employeesCanViewDepartmentLeaves?: boolean;
+    onlineAttendance?: {
+      enabled?: boolean;
+      scope?: "all" | "department" | "team" | "specific";
+      departmentIds?: string[];
+      teamIds?: string[];
+      userIds?: string[];
+    };
   };
 }
 
@@ -106,6 +113,23 @@ export default function DashboardLayout({
   // Build navigation based on permissions
   const isHROrAbove = ["ADMIN", "HR"].includes(user?.role || "");
 
+  // Check if online attendance is enabled for current user
+  const hasOnlineAttendance = () => {
+    const attendance = orgSettings?.permissions?.onlineAttendance;
+    if (!attendance?.enabled) return false;
+    if (attendance.scope === "all") return true;
+    if (attendance.scope === "department" && user?.departmentId) {
+      return attendance.departmentIds?.includes(user.departmentId) || false;
+    }
+    if (attendance.scope === "team" && user?.teamId) {
+      return attendance.teamIds?.includes(user.teamId) || false;
+    }
+    if (attendance.scope === "specific" && user?.id) {
+      return attendance.userIds?.includes(user.id) || false;
+    }
+    return false;
+  };
+
   // Check if employee can view team/department leaves
   const canViewTeamLeaves = orgSettings?.permissions?.employeesCanViewTeamLeaves === true && user?.teamId;
   const canViewDeptLeaves = orgSettings?.permissions?.employeesCanViewDepartmentLeaves === true && user?.departmentId;
@@ -115,12 +139,15 @@ export default function DashboardLayout({
   const mainNavigation = isHROrAbove ? [
     { name: "Dashboard", href: "/dashboard", icon: HomeIcon, show: true },
     { name: "Users", href: "/dashboard/users", icon: UsersIcon, show: hasRoleAccess("users") },
-    { name: "Leave Requests", href: "/dashboard/leaves/requests", icon: ClockIcon, show: hasRoleAccess("leaveRequests") },
+    { name: "Attendance", href: "/dashboard/attendance/manage", icon: ClockIcon, show: true },
+    { name: "Leave Requests", href: "/dashboard/leaves/requests", icon: CalendarIcon, show: hasRoleAccess("leaveRequests") },
   ].filter(item => item.show) : [
     { name: "Dashboard", href: "/dashboard", icon: HomeIcon, show: true },
+    { name: "Attendance", href: "/dashboard/attendance", icon: ClockIcon, show: hasOnlineAttendance() },
     { name: "My Profile", href: "/dashboard/profile", icon: UserIcon, show: true },
     { name: "Directory", href: "/dashboard/directory", icon: ContactIcon, show: true },
     { name: "Announcements", href: "/dashboard/announcements", icon: MegaphoneIcon, show: true },
+    { name: "Mobile App", href: "/dashboard/mobile-app", icon: MobileIcon, show: true },
   ].filter(item => item.show);
 
   // ORGANIZATION - Structure management (HR only)
@@ -149,6 +176,7 @@ export default function DashboardLayout({
   const settingsNavigation = [
     { name: "Organization", href: "/dashboard/settings/organization", icon: BuildingIcon, show: user?.role === "ADMIN" },
     { name: "Permissions", href: "/dashboard/settings/permissions", icon: ShieldIcon, show: user?.role === "ADMIN" },
+    { name: "Mobile Setup", href: "/dashboard/settings/mobile-setup", icon: QRCodeIcon, show: isHROrAbove },
     { name: "Leave Types", href: "/dashboard/settings/leave-types", icon: SettingsIcon, show: hasRoleAccess("leaveTypes") },
     { name: "Leave Policy", href: "/dashboard/settings/leave-policy", icon: CalendarIcon, show: hasRoleAccess("leaveTypes") },
     { name: "Import Data", href: "/dashboard/import", icon: UploadIcon, show: isHROrAbove },
@@ -568,6 +596,23 @@ function SidebarExpandIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
+    </svg>
+  );
+}
+
+function QRCodeIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
+    </svg>
+  );
+}
+
+function MobileIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
     </svg>
   );
 }

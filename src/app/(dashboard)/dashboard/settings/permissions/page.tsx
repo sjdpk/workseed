@@ -6,6 +6,24 @@ import { Button, Card, useToast } from "@/components";
 
 const ALLOWED_ROLES = ["ADMIN"];
 
+interface Department {
+  id: string;
+  name: string;
+}
+
+interface Team {
+  id: string;
+  name: string;
+  department?: { name: string };
+}
+
+interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  employeeId: string;
+}
+
 interface PermissionSettings {
   // Visibility settings
   employeesCanViewTeamMembers: boolean;
@@ -25,6 +43,15 @@ interface PermissionSettings {
   teamLeadCanApproveLeaves: boolean;
   managerCanApproveLeaves: boolean;
   hrCanApproveLeaves: boolean;
+
+  // Attendance settings
+  onlineAttendance: {
+    enabled: boolean;
+    scope: "all" | "department" | "team" | "specific";
+    departmentIds: string[];
+    teamIds: string[];
+    userIds: string[];
+  };
 
   // Feature access by role
   roleAccess: {
@@ -55,6 +82,14 @@ const defaultPermissions: PermissionSettings = {
   managerCanApproveLeaves: true,
   hrCanApproveLeaves: true,
 
+  onlineAttendance: {
+    enabled: false,
+    scope: "all",
+    departmentIds: [],
+    teamIds: [],
+    userIds: [],
+  },
+
   roleAccess: {
     users: ["ADMIN", "HR"],
     departments: ["ADMIN", "HR"],
@@ -76,15 +111,27 @@ export default function PermissionsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [showSelector, setShowSelector] = useState(false);
+
   useEffect(() => {
     Promise.all([
       fetch("/api/auth/me").then((r) => r.json()),
       fetch("/api/organization").then((r) => r.json()),
-    ]).then(([meData, orgData]) => {
+      fetch("/api/departments").then((r) => r.json()),
+      fetch("/api/teams").then((r) => r.json()),
+      fetch("/api/users").then((r) => r.json()),
+    ]).then(([meData, orgData, deptData, teamData, userData]) => {
       if (meData.success && !ALLOWED_ROLES.includes(meData.data.user.role)) {
         router.replace("/dashboard");
         return;
       }
+
+      if (deptData.success) setDepartments(deptData.data.departments || []);
+      if (teamData.success) setTeams(teamData.data.teams || []);
+      if (userData.success) setUsers(userData.data.users || []);
       if (orgData.success && orgData.data.settings.permissions) {
         setPermissions({ ...defaultPermissions, ...orgData.data.settings.permissions });
       }
@@ -342,6 +389,98 @@ export default function PermissionsPage() {
         </div>
       </Card>
 
+      {/* Online Attendance */}
+      <Card>
+        <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Online Attendance</h2>
+        <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+          Allow employees to check-in/check-out from web and mobile app
+        </p>
+
+        <div className="space-y-4">
+          <label className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              checked={permissions.onlineAttendance.enabled}
+              onChange={(e) =>
+                setPermissions({
+                  ...permissions,
+                  onlineAttendance: { ...permissions.onlineAttendance, enabled: e.target.checked },
+                })
+              }
+              className="rounded border-gray-300 dark:border-gray-600"
+            />
+            <div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">Enable Online Check-in/Check-out</span>
+            </div>
+          </label>
+
+          {permissions.onlineAttendance.enabled && (
+            <div className="ml-7 space-y-3">
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Available for:</p>
+              <div className="space-y-2">
+                {[
+                  { value: "all", label: "All Employees" },
+                  { value: "department", label: "Specific Departments" },
+                  { value: "team", label: "Specific Teams" },
+                  { value: "specific", label: "Specific Employees" },
+                ].map((option) => (
+                  <label key={option.value} className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="attendanceScope"
+                      value={option.value}
+                      checked={permissions.onlineAttendance.scope === option.value}
+                      onChange={(e) =>
+                        setPermissions({
+                          ...permissions,
+                          onlineAttendance: {
+                            ...permissions.onlineAttendance,
+                            scope: e.target.value as "all" | "department" | "team" | "specific",
+                          },
+                        })
+                      }
+                      className="border-gray-300 dark:border-gray-600"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{option.label}</span>
+                  </label>
+                ))}
+              </div>
+
+              {/* Selection Button */}
+              {permissions.onlineAttendance.scope !== "all" && (
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowSelector(true)}
+                    className="inline-flex items-center gap-2 rounded border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Select {permissions.onlineAttendance.scope === "department" ? "Departments" : permissions.onlineAttendance.scope === "team" ? "Teams" : "Employees"}
+                    {permissions.onlineAttendance.scope === "department" && permissions.onlineAttendance.departmentIds.length > 0 && (
+                      <span className="rounded-full bg-gray-900 px-2 py-0.5 text-xs text-white dark:bg-white dark:text-gray-900">
+                        {permissions.onlineAttendance.departmentIds.length}
+                      </span>
+                    )}
+                    {permissions.onlineAttendance.scope === "team" && permissions.onlineAttendance.teamIds.length > 0 && (
+                      <span className="rounded-full bg-gray-900 px-2 py-0.5 text-xs text-white dark:bg-white dark:text-gray-900">
+                        {permissions.onlineAttendance.teamIds.length}
+                      </span>
+                    )}
+                    {permissions.onlineAttendance.scope === "specific" && permissions.onlineAttendance.userIds.length > 0 && (
+                      <span className="rounded-full bg-gray-900 px-2 py-0.5 text-xs text-white dark:bg-white dark:text-gray-900">
+                        {permissions.onlineAttendance.userIds.length}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </Card>
+
       {/* Feature Access by Role */}
       <Card>
         <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Feature Access by Role</h2>
@@ -391,6 +530,139 @@ export default function PermissionsPage() {
           {saving ? "Saving..." : "Save Changes"}
         </Button>
       </div>
+
+      {/* Selection Sidebar */}
+      {showSelector && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          <div className="absolute inset-0 bg-black/20" onClick={() => setShowSelector(false)} />
+          <div className="absolute right-0 top-0 h-full w-full max-w-sm bg-white shadow-xl dark:bg-gray-900">
+            <div className="flex h-full flex-col">
+              <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+                  Select {permissions.onlineAttendance.scope === "department" ? "Departments" : permissions.onlineAttendance.scope === "team" ? "Teams" : "Employees"}
+                </h2>
+                <button
+                  onClick={() => setShowSelector(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4">
+                {/* Department List */}
+                {permissions.onlineAttendance.scope === "department" && (
+                  <div className="space-y-1">
+                    {departments.map((dept) => (
+                      <label
+                        key={dept.id}
+                        className="flex items-center gap-3 rounded px-2 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={permissions.onlineAttendance.departmentIds.includes(dept.id)}
+                          onChange={(e) => {
+                            const ids = e.target.checked
+                              ? [...permissions.onlineAttendance.departmentIds, dept.id]
+                              : permissions.onlineAttendance.departmentIds.filter((id) => id !== dept.id);
+                            setPermissions({
+                              ...permissions,
+                              onlineAttendance: { ...permissions.onlineAttendance, departmentIds: ids },
+                            });
+                          }}
+                          className="rounded border-gray-300 dark:border-gray-600"
+                        />
+                        <span className="text-sm text-gray-900 dark:text-white">{dept.name}</span>
+                      </label>
+                    ))}
+                    {departments.length === 0 && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">No departments found</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Team List */}
+                {permissions.onlineAttendance.scope === "team" && (
+                  <div className="space-y-1">
+                    {teams.map((team) => (
+                      <label
+                        key={team.id}
+                        className="flex items-center gap-3 rounded px-2 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={permissions.onlineAttendance.teamIds.includes(team.id)}
+                          onChange={(e) => {
+                            const ids = e.target.checked
+                              ? [...permissions.onlineAttendance.teamIds, team.id]
+                              : permissions.onlineAttendance.teamIds.filter((id) => id !== team.id);
+                            setPermissions({
+                              ...permissions,
+                              onlineAttendance: { ...permissions.onlineAttendance, teamIds: ids },
+                            });
+                          }}
+                          className="rounded border-gray-300 dark:border-gray-600"
+                        />
+                        <div>
+                          <span className="text-sm text-gray-900 dark:text-white">{team.name}</span>
+                          {team.department && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">({team.department.name})</span>
+                          )}
+                        </div>
+                      </label>
+                    ))}
+                    {teams.length === 0 && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">No teams found</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Employee List */}
+                {permissions.onlineAttendance.scope === "specific" && (
+                  <div className="space-y-1">
+                    {users.map((user) => (
+                      <label
+                        key={user.id}
+                        className="flex items-center gap-3 rounded px-2 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={permissions.onlineAttendance.userIds.includes(user.id)}
+                          onChange={(e) => {
+                            const ids = e.target.checked
+                              ? [...permissions.onlineAttendance.userIds, user.id]
+                              : permissions.onlineAttendance.userIds.filter((id) => id !== user.id);
+                            setPermissions({
+                              ...permissions,
+                              onlineAttendance: { ...permissions.onlineAttendance, userIds: ids },
+                            });
+                          }}
+                          className="rounded border-gray-300 dark:border-gray-600"
+                        />
+                        <span className="text-sm text-gray-900 dark:text-white">
+                          {user.firstName} {user.lastName}
+                          <span className="text-gray-400 dark:text-gray-500 ml-1">({user.employeeId})</span>
+                        </span>
+                      </label>
+                    ))}
+                    {users.length === 0 && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">No employees found</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-gray-200 p-4 dark:border-gray-700">
+                <Button onClick={() => setShowSelector(false)} className="w-full">
+                  Done
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
