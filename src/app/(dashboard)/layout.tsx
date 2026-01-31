@@ -66,12 +66,35 @@ export default function DashboardLayout({
           if (orgData.data.settings.name) {
             document.title = orgData.data.settings.name;
           }
-          // Set favicon to org logo
+          // Set favicon to org logo (circular)
           if (orgData.data.settings.logoUrl) {
-            const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement || document.createElement('link');
-            link.rel = 'icon';
-            link.href = orgData.data.settings.logoUrl;
-            document.head.appendChild(link);
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = () => {
+              const canvas = document.createElement("canvas");
+              const size = 64;
+              canvas.width = size;
+              canvas.height = size;
+              const ctx = canvas.getContext("2d");
+              if (ctx) {
+                ctx.beginPath();
+                ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+                ctx.closePath();
+                ctx.clip();
+                ctx.drawImage(img, 0, 0, size, size);
+                const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement || document.createElement("link");
+                link.rel = "icon";
+                link.href = canvas.toDataURL("image/png");
+                document.head.appendChild(link);
+              }
+            };
+            img.onerror = () => {
+              const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement || document.createElement("link");
+              link.rel = "icon";
+              link.href = orgData.data.settings.logoUrl;
+              document.head.appendChild(link);
+            };
+            img.src = orgData.data.settings.logoUrl;
           }
 
           // Apply organization theme
