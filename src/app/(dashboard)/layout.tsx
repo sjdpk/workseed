@@ -137,6 +137,7 @@ export default function DashboardLayout({
     { name: "Organization", href: "/dashboard/settings/organization", icon: BuildingIcon, show: user?.role === "ADMIN" },
     { name: "Permissions", href: "/dashboard/settings/permissions", icon: ShieldIcon, show: user?.role === "ADMIN" },
     { name: "Leave Types", href: "/dashboard/settings/leave-types", icon: SettingsIcon, show: hasRoleAccess("leaveTypes") },
+    { name: "Leave Policy", href: "/dashboard/settings/leave-policy", icon: CalendarIcon, show: hasRoleAccess("leaveTypes") },
     { name: "Import Data", href: "/dashboard/import", icon: UploadIcon, show: isHROrAbove },
     { name: "Audit Logs", href: "/dashboard/settings/audit-logs", icon: LogIcon, show: hasRoleAccess("auditLogs") },
   ].filter(item => item.show);
