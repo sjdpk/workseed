@@ -74,6 +74,7 @@ export default function AttendanceManagePage() {
   const [showDeviceSetup, setShowDeviceSetup] = useState(false);
   const [newDevice, setNewDevice] = useState({ name: "", type: "BIOMETRIC", deviceId: "" });
   const [savingDevice, setSavingDevice] = useState(false);
+  const [createdDevice, setCreatedDevice] = useState<{ name: string; deviceId: string; apiKey: string } | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -163,8 +164,12 @@ export default function AttendanceManagePage() {
       }
 
       setDevices([...devices, data.data.device]);
+      setCreatedDevice({
+        name: data.data.device.name,
+        deviceId: data.data.device.deviceId,
+        apiKey: data.data.device.apiKey,
+      });
       setNewDevice({ name: "", type: "BIOMETRIC", deviceId: "" });
-      setShowDeviceSetup(false);
       toast.success("Device added");
     } catch {
       toast.error("Something went wrong");
@@ -335,13 +340,15 @@ export default function AttendanceManagePage() {
       {/* Device Setup Sidebar */}
       {showDeviceSetup && (
         <div className="fixed inset-0 z-50 overflow-hidden">
-          <div className="absolute inset-0 bg-black/20" onClick={() => setShowDeviceSetup(false)} />
-          <div className="absolute right-0 top-0 h-full w-full max-w-sm bg-white shadow-xl dark:bg-gray-900">
+          <div className="absolute inset-0 bg-black/20" onClick={() => { setShowDeviceSetup(false); setCreatedDevice(null); }} />
+          <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl dark:bg-gray-900">
             <div className="flex h-full flex-col">
               <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
-                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Add Attendance Device</h2>
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+                  {createdDevice ? "Device Configuration" : "Add Attendance Device"}
+                </h2>
                 <button
-                  onClick={() => setShowDeviceSetup(false)}
+                  onClick={() => { setShowDeviceSetup(false); setCreatedDevice(null); }}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -351,58 +358,174 @@ export default function AttendanceManagePage() {
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Device Name
-                  </label>
-                  <input
-                    type="text"
-                    value={newDevice.name}
-                    onChange={(e) => setNewDevice({ ...newDevice, name: e.target.value })}
-                    placeholder="e.g., Main Entrance"
-                    className="w-full rounded border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                  />
-                </div>
+                {createdDevice ? (
+                  <>
+                    {/* Success Message */}
+                    <div className="rounded bg-green-50 p-3 dark:bg-green-900/20">
+                      <p className="text-sm font-medium text-green-800 dark:text-green-400">
+                        Device "{createdDevice.name}" added successfully!
+                      </p>
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Device Type
-                  </label>
-                  <select
-                    value={newDevice.type}
-                    onChange={(e) => setNewDevice({ ...newDevice, type: e.target.value })}
-                    className="w-full rounded border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                  >
-                    <option value="BIOMETRIC">Biometric (Fingerprint)</option>
-                    <option value="RFID">RFID Card Reader</option>
-                    <option value="FACE">Face Recognition</option>
-                  </select>
-                </div>
+                    {/* API Key - Show only once */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        API Key (save this - shown only once)
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={createdDevice.apiKey}
+                          readOnly
+                          className="flex-1 rounded border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-mono dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                        />
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(createdDevice.apiKey);
+                            toast.success("API Key copied");
+                          }}
+                          className="rounded border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Device ID / Serial
-                  </label>
-                  <input
-                    type="text"
-                    value={newDevice.deviceId}
-                    onChange={(e) => setNewDevice({ ...newDevice, deviceId: e.target.value })}
-                    placeholder="e.g., BIO-001"
-                    className="w-full rounded border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                  />
-                </div>
+                    {/* Webhook URL */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Webhook URL
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={`${typeof window !== "undefined" ? window.location.origin : ""}/api/attendance/webhook`}
+                          readOnly
+                          className="flex-1 rounded border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-mono dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                        />
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(`${window.location.origin}/api/attendance/webhook`);
+                            toast.success("URL copied");
+                          }}
+                          className="rounded border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
 
-                <div className="rounded bg-gray-50 p-3 dark:bg-gray-800">
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    After adding a device, configure it to send attendance data to your API endpoint. The device will automatically sync check-in/check-out records.
-                  </p>
-                </div>
+                    {/* Configuration Guide */}
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white">Configuration Guide</h3>
+
+                      <div className="rounded bg-gray-50 p-3 dark:bg-gray-800 space-y-2">
+                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">1. Configure your device to POST to:</p>
+                        <code className="block text-xs bg-gray-100 dark:bg-gray-700 p-2 rounded break-all">
+                          POST /api/attendance/webhook
+                        </code>
+                      </div>
+
+                      <div className="rounded bg-gray-50 p-3 dark:bg-gray-800 space-y-2">
+                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">2. Add header for authentication:</p>
+                        <code className="block text-xs bg-gray-100 dark:bg-gray-700 p-2 rounded">
+                          X-API-Key: {createdDevice.apiKey.slice(0, 8)}...
+                        </code>
+                      </div>
+
+                      <div className="rounded bg-gray-50 p-3 dark:bg-gray-800 space-y-2">
+                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">3. Send JSON body:</p>
+                        <pre className="text-xs bg-gray-100 dark:bg-gray-700 p-2 rounded overflow-x-auto">
+{`{
+  "employeeId": "EMP001",
+  "action": "IN"
+}`}
+                        </pre>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          action: "IN" for check-in, "OUT" for check-out
+                        </p>
+                      </div>
+
+                      <div className="rounded bg-gray-50 p-3 dark:bg-gray-800 space-y-2">
+                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">4. Example cURL:</p>
+                        <pre className="text-xs bg-gray-100 dark:bg-gray-700 p-2 rounded overflow-x-auto whitespace-pre-wrap">
+{`curl -X POST \\
+  ${typeof window !== "undefined" ? window.location.origin : "https://yoursite.com"}/api/attendance/webhook \\
+  -H "X-API-Key: YOUR_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"employeeId":"EMP001","action":"IN"}'`}
+                        </pre>
+                      </div>
+                    </div>
+
+                    <div className="rounded border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20">
+                      <p className="text-xs text-amber-800 dark:text-amber-400">
+                        <strong>Important:</strong> Save the API key now. It cannot be retrieved later for security reasons.
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Device Name
+                      </label>
+                      <input
+                        type="text"
+                        value={newDevice.name}
+                        onChange={(e) => setNewDevice({ ...newDevice, name: e.target.value })}
+                        placeholder="e.g., Main Entrance"
+                        className="w-full rounded border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Device Type
+                      </label>
+                      <select
+                        value={newDevice.type}
+                        onChange={(e) => setNewDevice({ ...newDevice, type: e.target.value })}
+                        className="w-full rounded border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                      >
+                        <option value="BIOMETRIC">Biometric (Fingerprint)</option>
+                        <option value="RFID">RFID Card Reader</option>
+                        <option value="FACE">Face Recognition</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Device ID / Serial
+                      </label>
+                      <input
+                        type="text"
+                        value={newDevice.deviceId}
+                        onChange={(e) => setNewDevice({ ...newDevice, deviceId: e.target.value })}
+                        placeholder="e.g., BIO-001"
+                        className="w-full rounded border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                      />
+                    </div>
+
+                    <div className="rounded bg-gray-50 p-3 dark:bg-gray-800">
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        After adding a device, you'll receive an API key and configuration guide to integrate with your biometric/RFID hardware.
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="border-t border-gray-200 p-4 dark:border-gray-700">
-                <Button onClick={handleSaveDevice} disabled={savingDevice} className="w-full">
-                  {savingDevice ? "Adding..." : "Add Device"}
-                </Button>
+                {createdDevice ? (
+                  <Button onClick={() => { setShowDeviceSetup(false); setCreatedDevice(null); }} className="w-full">
+                    Done
+                  </Button>
+                ) : (
+                  <Button onClick={handleSaveDevice} disabled={savingDevice} className="w-full">
+                    {savingDevice ? "Adding..." : "Add Device"}
+                  </Button>
+                )}
               </div>
             </div>
           </div>
