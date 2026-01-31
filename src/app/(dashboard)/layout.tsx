@@ -10,6 +10,10 @@ import type { SessionUser } from "@/types";
 interface OrgSettings {
   name: string;
   logoUrl: string | null;
+  theme?: {
+    accentColor: string;
+    darkMode: "system" | "light" | "dark";
+  };
   permissions?: {
     roleAccess?: {
       users?: string[];
@@ -50,6 +54,10 @@ export default function DashboardLayout({
         }
         if (orgData.success) {
           setOrgSettings(orgData.data.settings);
+          // Apply organization theme
+          if (orgData.data.settings.theme?.accentColor) {
+            document.documentElement.setAttribute("data-accent", orgData.data.settings.theme.accentColor);
+          }
         }
       })
       .catch(() => router.push("/login"));
@@ -85,7 +93,7 @@ export default function DashboardLayout({
   if (!user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white dark:bg-gray-950">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
       </div>
     );
   }
@@ -163,7 +171,7 @@ export default function DashboardLayout({
               <img
                 src={orgSettings.logoUrl}
                 alt={orgSettings.name || "Logo"}
-                className="h-8 w-8 rounded-md object-contain"
+                className="h-8 w-8 rounded object-contain"
                 onError={(e) => {
                   // Fallback to default icon on error
                   e.currentTarget.style.display = "none";
@@ -171,7 +179,7 @@ export default function DashboardLayout({
                 }}
               />
             ) : null}
-            <div className={`flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 text-white ${orgSettings?.logoUrl ? "hidden" : ""}`}>
+            <div className={`flex h-8 w-8 items-center justify-center rounded bg-gray-900 text-white dark:bg-white dark:text-gray-900 ${orgSettings?.logoUrl ? "hidden" : ""}`}>
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
@@ -201,7 +209,7 @@ export default function DashboardLayout({
                       href={item.href}
                       className={`flex items-center gap-2.5 rounded px-3 py-1.5 text-[13px] font-medium transition-colors ${
                         isActive
-                          ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                          ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
                           : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
                       }`}
                     >
@@ -226,7 +234,7 @@ export default function DashboardLayout({
                         href={item.href}
                         className={`flex items-center gap-2.5 rounded px-3 py-1.5 text-[13px] font-medium transition-colors ${
                           isActive
-                            ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                            ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
                             : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
                         }`}
                       >
@@ -251,7 +259,7 @@ export default function DashboardLayout({
                       href={item.href}
                       className={`flex items-center gap-2.5 rounded px-3 py-1.5 text-[13px] font-medium transition-colors ${
                         isActive
-                          ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                          ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
                           : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
                       }`}
                     >
@@ -276,7 +284,7 @@ export default function DashboardLayout({
                         href={item.href}
                         className={`flex items-center gap-2.5 rounded px-3 py-1.5 text-[13px] font-medium transition-colors ${
                           isActive
-                            ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                            ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
                             : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
                         }`}
                       >
@@ -302,7 +310,7 @@ export default function DashboardLayout({
                         href={item.href}
                         className={`flex items-center gap-2.5 rounded px-3 py-1.5 text-[13px] font-medium transition-colors ${
                           isActive
-                            ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                            ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
                             : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
                         }`}
                       >

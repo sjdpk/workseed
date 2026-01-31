@@ -85,7 +85,7 @@ export default function MyLeavesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
       </div>
     );
   }
@@ -148,7 +148,7 @@ export default function MyLeavesPage() {
                 onClick={() => setActiveTab(tab.key)}
                 className={`relative flex items-center gap-1.5 px-4 py-3 text-sm font-medium transition-colors ${
                   isActive
-                    ? "text-blue-600 dark:text-blue-400"
+                    ? "text-gray-900 dark:text-white"
                     : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
                 }`}
               >
@@ -157,7 +157,7 @@ export default function MyLeavesPage() {
                   <span
                     className={`rounded px-1.5 py-0.5 text-xs ${
                       isActive
-                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                        ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
                         : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
                     }`}
                   >
@@ -165,7 +165,7 @@ export default function MyLeavesPage() {
                   </span>
                 )}
                 {isActive && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900 dark:bg-white" />
                 )}
               </button>
             );

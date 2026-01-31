@@ -68,7 +68,7 @@ export default function OrgChartPage() {
     switch (role) {
       case "ADMIN": return "bg-purple-500";
       case "HR": return "bg-pink-500";
-      case "MANAGER": return "bg-blue-500";
+      case "MANAGER": return "bg-gray-600";
       case "TEAM_LEAD": return "bg-green-500";
       default: return "bg-gray-500";
     }
@@ -104,7 +104,7 @@ export default function OrgChartPage() {
                     href={node.linkedIn}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-500 hover:text-blue-600"
+                    className="text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300"
                     title="LinkedIn Profile"
                   >
                     <LinkedInIcon />
@@ -152,7 +152,7 @@ export default function OrgChartPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
       </div>
     );
   }
@@ -170,7 +170,7 @@ export default function OrgChartPage() {
             onClick={() => setViewMode("hierarchy")}
             className={`rounded px-4 py-1.5 text-sm font-medium transition-colors ${
               viewMode === "hierarchy"
-                ? "bg-white text-blue-600 shadow-sm dark:bg-gray-700 dark:text-blue-400"
+                ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white"
                 : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
             }`}
           >
@@ -180,7 +180,7 @@ export default function OrgChartPage() {
             onClick={() => setViewMode("department")}
             className={`rounded px-4 py-1.5 text-sm font-medium transition-colors ${
               viewMode === "department"
-                ? "bg-white text-blue-600 shadow-sm dark:bg-gray-700 dark:text-blue-400"
+                ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white"
                 : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
             }`}
           >
@@ -215,8 +215,8 @@ export default function OrgChartPage() {
           {Object.entries(departments).sort(([a], [b]) => a.localeCompare(b)).map(([deptName, deptUsers]) => (
             <Card key={deptName}>
               <div className="mb-4 flex items-center gap-3 border-b border-gray-100 pb-3 dark:border-gray-700">
-                <div className="flex h-10 w-10 items-center justify-center rounded bg-blue-100 dark:bg-blue-900/30">
-                  <svg className="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex h-10 w-10 items-center justify-center rounded bg-gray-100 dark:bg-gray-800">
+                  <svg className="h-5 w-5 text-gray-900 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
                 </div>
@@ -247,7 +247,7 @@ export default function OrgChartPage() {
                               href={user.linkedIn}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-blue-500 hover:text-blue-600"
+                              className="text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300"
                               title="LinkedIn Profile"
                             >
                               <LinkedInIcon />
@@ -274,7 +274,7 @@ export default function OrgChartPage() {
           {[
             { color: "bg-purple-500", label: "Admin" },
             { color: "bg-pink-500", label: "HR" },
-            { color: "bg-blue-500", label: "Manager" },
+            { color: "bg-gray-600", label: "Manager" },
             { color: "bg-green-500", label: "Team Lead" },
             { color: "bg-gray-500", label: "Employee" },
           ].map((item) => (

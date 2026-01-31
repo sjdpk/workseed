@@ -118,7 +118,7 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
       </div>
     );
   }
@@ -135,12 +135,12 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-blue-100 text-xl font-semibold text-blue-600 dark:bg-blue-900/50 dark:text-blue-400">
+          <div className="flex h-16 w-16 items-center justify-center rounded bg-gray-100 text-xl font-semibold text-gray-900 dark:bg-gray-800 dark:text-white">
             {user.profilePicture ? (
               <img
                 src={user.profilePicture}
                 alt={user.firstName}
-                className="h-16 w-16 rounded-lg object-cover"
+                className="h-16 w-16 rounded object-cover"
               />
             ) : (
               `${user.firstName[0]}${user.lastName[0]}`
@@ -163,7 +163,7 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
               }`}>
                 {user.status}
               </span>
-              <span className="inline-flex rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+              <span className="inline-flex rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
                 {user.role.replace("_", " ")}
               </span>
             </div>
@@ -276,7 +276,7 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
           <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Social Links</h2>
           <div className="flex flex-wrap gap-2">
             {user.linkedIn && (
-              <a href={user.linkedIn} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded bg-blue-100 px-3 py-1.5 text-sm text-blue-700 hover:bg-blue-200 dark:bg-blue-900/50 dark:text-blue-400">
+              <a href={user.linkedIn} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded bg-gray-100 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300">
                 <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
                 LinkedIn
               </a>
@@ -310,7 +310,7 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+            className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
           >
             {yearOptions.map((year) => (
               <option key={year} value={year}>{year}</option>
@@ -323,7 +323,7 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {allocations.map((alloc) => (
-              <div key={alloc.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+              <div key={alloc.id} className="rounded border border-gray-200 p-3 dark:border-gray-700">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full" style={{ backgroundColor: alloc.leaveType?.color || "#3B82F6" }} />
                   <span className="text-sm font-medium text-gray-900 dark:text-white">{alloc.leaveType?.name}</span>
@@ -356,7 +356,7 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
               <Link
                 key={asset.id}
                 href={`/dashboard/assets/${asset.id}`}
-                className="flex items-start gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/50"
+                className="flex items-start gap-3 rounded border border-gray-200 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/50"
               >
                 <div className="rounded bg-gray-100 p-2 dark:bg-gray-700">
                   <svg className="h-5 w-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -370,7 +370,7 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
                     <span className="text-xs text-gray-500 dark:text-gray-400">{asset.category.replace(/_/g, " ")}</span>
                     <span className={`inline-flex rounded px-1.5 py-0.5 text-xs font-medium ${
                       asset.condition === "NEW" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
-                      asset.condition === "EXCELLENT" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" :
+                      asset.condition === "EXCELLENT" ? "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300" :
                       asset.condition === "GOOD" ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400" :
                       asset.condition === "FAIR" ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" :
                       "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"

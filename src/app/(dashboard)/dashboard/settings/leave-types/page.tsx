@@ -68,7 +68,7 @@ export default function LeaveTypesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
       </div>
     );
   }
@@ -117,7 +117,7 @@ export default function LeaveTypesPage() {
                     <span className="rounded bg-red-50 px-2 py-0.5 text-red-700 dark:bg-red-900/30 dark:text-red-300">Unpaid</span>
                   )}
                   {lt.carryForward && (
-                    <span className="rounded bg-blue-50 px-2 py-0.5 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">Carry Forward</span>
+                    <span className="rounded bg-gray-50 px-2 py-0.5 text-gray-700 dark:bg-gray-800 dark:text-gray-300">Carry Forward</span>
                   )}
                 </div>
                 <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-3 dark:border-gray-700">

@@ -246,12 +246,12 @@ export default function ImportPage() {
                 onChange={handleFileChange}
                 className="block w-full text-sm text-gray-500 dark:text-gray-400
                   file:mr-4 file:py-2 file:px-4
-                  file:rounded-lg file:border-0
+                  file:rounded file:border-0
                   file:text-sm file:font-medium
-                  file:bg-blue-50 file:text-blue-700
-                  hover:file:bg-blue-100
-                  dark:file:bg-blue-900/20 dark:file:text-blue-400
-                  dark:hover:file:bg-blue-900/30"
+                  file:bg-gray-100 file:text-gray-700
+                  hover:file:bg-gray-200
+                  dark:file:bg-gray-800 dark:file:text-gray-300
+                  dark:hover:file:bg-gray-700"
               />
             </div>
             {fileName && (
@@ -266,7 +266,7 @@ export default function ImportPage() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 CSV Preview (first 5 rows)
               </label>
-              <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="overflow-x-auto rounded border border-gray-200 dark:border-gray-700">
                 <pre className="p-4 text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
                   {csvData.split("\n").slice(0, 6).join("\n")}
                 </pre>
@@ -303,15 +303,15 @@ export default function ImportPage() {
             Validation Results
           </h2>
           <div className="grid gap-4 sm:grid-cols-3 mb-4">
-            <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-4">
+            <div className="rounded bg-gray-50 dark:bg-gray-800 p-4">
               <p className="text-sm text-gray-600 dark:text-gray-400">Total Rows</p>
               <p className="text-2xl font-semibold text-gray-900 dark:text-white">{validationResult.total}</p>
             </div>
-            <div className="rounded-lg bg-green-50 dark:bg-green-900/20 p-4">
+            <div className="rounded bg-green-50 dark:bg-green-900/20 p-4">
               <p className="text-sm text-green-600 dark:text-green-400">Valid</p>
               <p className="text-2xl font-semibold text-green-700 dark:text-green-300">{validationResult.valid}</p>
             </div>
-            <div className="rounded-lg bg-red-50 dark:bg-red-900/20 p-4">
+            <div className="rounded bg-red-50 dark:bg-red-900/20 p-4">
               <p className="text-sm text-red-600 dark:text-red-400">Invalid</p>
               <p className="text-2xl font-semibold text-red-700 dark:text-red-300">{validationResult.invalid}</p>
             </div>
@@ -320,7 +320,7 @@ export default function ImportPage() {
           {validationResult.errors && validationResult.errors.length > 0 && (
             <div className="mt-4">
               <h3 className="text-sm font-medium text-red-600 dark:text-red-400 mb-2">Errors</h3>
-              <div className="max-h-60 overflow-y-auto rounded-lg border border-red-200 dark:border-red-800">
+              <div className="max-h-60 overflow-y-auto rounded border border-red-200 dark:border-red-800">
                 <table className="min-w-full divide-y divide-red-200 dark:divide-red-800">
                   <thead className="bg-red-50 dark:bg-red-900/20">
                     <tr>
@@ -350,7 +350,7 @@ export default function ImportPage() {
               <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Preview (first 10 valid rows)
               </h3>
-              <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="overflow-x-auto rounded border border-gray-200 dark:border-gray-700">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-800">
                     <tr>
@@ -385,15 +385,15 @@ export default function ImportPage() {
             Import Results
           </h2>
           <div className="grid gap-4 sm:grid-cols-3 mb-4">
-            <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-4">
+            <div className="rounded bg-gray-50 dark:bg-gray-800 p-4">
               <p className="text-sm text-gray-600 dark:text-gray-400">Total</p>
               <p className="text-2xl font-semibold text-gray-900 dark:text-white">{importResult.total}</p>
             </div>
-            <div className="rounded-lg bg-green-50 dark:bg-green-900/20 p-4">
+            <div className="rounded bg-green-50 dark:bg-green-900/20 p-4">
               <p className="text-sm text-green-600 dark:text-green-400">Successful</p>
               <p className="text-2xl font-semibold text-green-700 dark:text-green-300">{importResult.successful}</p>
             </div>
-            <div className="rounded-lg bg-red-50 dark:bg-red-900/20 p-4">
+            <div className="rounded bg-red-50 dark:bg-red-900/20 p-4">
               <p className="text-sm text-red-600 dark:text-red-400">Failed</p>
               <p className="text-2xl font-semibold text-red-700 dark:text-red-300">{importResult.failed}</p>
             </div>
@@ -402,7 +402,7 @@ export default function ImportPage() {
           {importResult.results && importResult.results.filter((r) => !r.success).length > 0 && (
             <div className="mt-4">
               <h3 className="text-sm font-medium text-red-600 dark:text-red-400 mb-2">Failed Imports</h3>
-              <div className="max-h-60 overflow-y-auto rounded-lg border border-red-200 dark:border-red-800">
+              <div className="max-h-60 overflow-y-auto rounded border border-red-200 dark:border-red-800">
                 <table className="min-w-full divide-y divide-red-200 dark:divide-red-800">
                   <thead className="bg-red-50 dark:bg-red-900/20">
                     <tr>

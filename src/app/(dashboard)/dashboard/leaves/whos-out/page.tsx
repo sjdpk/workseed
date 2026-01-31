@@ -97,7 +97,7 @@ export default function WhosOutPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
       </div>
     );
   }
@@ -242,7 +242,7 @@ function LeaveCard({ leave, isToday, isPast }: { leave: LeaveRequest; isToday?: 
             {leave.user?.firstName} {leave.user?.lastName}
           </p>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className="rounded bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+            <span className="rounded bg-gray-50 px-1.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
               {leave.leaveType?.name}
             </span>
           </div>

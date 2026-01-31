@@ -97,7 +97,7 @@ export default function DirectoryPage() {
     switch (role) {
       case "ADMIN": return "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300";
       case "HR": return "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300";
-      case "MANAGER": return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
+      case "MANAGER": return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
       case "TEAM_LEAD": return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300";
       default: return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300";
     }
@@ -107,7 +107,7 @@ export default function DirectoryPage() {
     switch (role) {
       case "ADMIN": return "bg-purple-500";
       case "HR": return "bg-pink-500";
-      case "MANAGER": return "bg-blue-500";
+      case "MANAGER": return "bg-gray-500";
       case "TEAM_LEAD": return "bg-green-500";
       default: return "bg-gray-500";
     }
@@ -122,12 +122,12 @@ export default function DirectoryPage() {
         sameTeam
           ? "border-green-300 bg-green-50/50 dark:border-green-700 dark:bg-green-900/10"
           : sameDept
-          ? "border-blue-300 bg-blue-50/50 dark:border-blue-700 dark:bg-blue-900/10"
+          ? "border-gray-300 bg-gray-50/50 dark:border-gray-600 dark:bg-gray-800/50"
           : "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
       }`}>
         {(sameTeam || sameDept) && (
           <div className={`absolute -top-2 right-3 rounded px-2 py-0.5 text-xs font-medium ${
-            sameTeam ? "bg-green-500 text-white" : "bg-blue-500 text-white"
+            sameTeam ? "bg-green-500 text-white" : "bg-gray-600 text-white"
           }`}>
             {sameTeam ? "Same Team" : "Same Dept"}
           </div>
@@ -150,7 +150,7 @@ export default function DirectoryPage() {
                   href={user.linkedIn}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-500 hover:text-blue-600"
+                  className="text-gray-900 hover:text-gray-700 dark:text-white dark:hover:text-gray-300"
                   title="LinkedIn Profile"
                 >
                   <LinkedInIcon />
@@ -205,7 +205,7 @@ export default function DirectoryPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
       </div>
     );
   }
@@ -244,7 +244,7 @@ export default function DirectoryPage() {
               onClick={() => setViewMode(mode.key as typeof viewMode)}
               className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${
                 viewMode === mode.key
-                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                  ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
                   : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
               }`}
             >
@@ -260,7 +260,7 @@ export default function DirectoryPage() {
           <span className="text-gray-600 dark:text-gray-400">Same Team</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded-full bg-blue-500"></span>
+          <span className="h-3 w-3 rounded-full bg-gray-500"></span>
           <span className="text-gray-600 dark:text-gray-400">Same Department</span>
         </div>
       </div>
@@ -298,8 +298,8 @@ export default function DirectoryPage() {
           {Object.entries(groupedByDepartment).sort(([a], [b]) => a.localeCompare(b)).map(([deptName, deptUsers]) => (
             <div key={deptName}>
               <div className="mb-3 flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded bg-blue-100 dark:bg-blue-900/30">
-                  <svg className="h-4 w-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex h-8 w-8 items-center justify-center rounded bg-gray-100 dark:bg-gray-800">
+                  <svg className="h-4 w-4 text-gray-900 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
                 </div>
@@ -308,7 +308,7 @@ export default function DirectoryPage() {
                   <p className="text-xs text-gray-500 dark:text-gray-400">{deptUsers.length} members</p>
                 </div>
                 {currentUser?.departmentId && deptUsers[0]?.department?.id === currentUser.departmentId && (
-                  <span className="rounded bg-blue-500 px-2 py-0.5 text-xs font-medium text-white">Your Dept</span>
+                  <span className="rounded bg-gray-900 px-2 py-0.5 text-xs font-medium text-white dark:bg-white dark:text-gray-900">Your Dept</span>
                 )}
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

@@ -106,7 +106,7 @@ export default function EditTeamPage({ params }: { params: Promise<{ id: string 
   if (pageLoading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
       </div>
     );
   }
@@ -170,7 +170,7 @@ export default function EditTeamPage({ params }: { params: Promise<{ id: string 
             </p>
 
             {teamMembers.length === 0 ? (
-              <div className="rounded-md bg-yellow-50 p-3 text-sm text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300">
+              <div className="rounded bg-yellow-50 p-3 text-sm text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300">
                 No team members found. Add employees to this team first before assigning a team lead.
               </div>
             ) : (
@@ -226,14 +226,14 @@ export default function EditTeamPage({ params }: { params: Promise<{ id: string 
             {teamMembers.map((member) => (
               <div
                 key={member.id}
-                className={`flex items-center justify-between rounded-md border p-3 ${
+                className={`flex items-center justify-between rounded border p-3 ${
                   member.id === formData.leadId
                     ? "border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/20"
                     : "border-gray-200 dark:border-gray-700"
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-sm font-medium text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-sm font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-300">
                     {member.firstName[0]}
                     {member.lastName[0]}
                   </div>

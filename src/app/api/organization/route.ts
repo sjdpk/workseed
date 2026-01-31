@@ -10,6 +10,10 @@ const updateOrgSchema = z.object({
   permissions: z.record(z.string(), z.unknown()).optional(),
   leavePolicy: z.record(z.string(), z.unknown()).optional(),
   defaultLeaveAllocation: z.record(z.string(), z.unknown()).optional(),
+  theme: z.object({
+    accentColor: z.enum(["gray", "blue", "green", "purple", "orange", "red"]).optional(),
+    darkMode: z.enum(["system", "light", "dark"]).optional(),
+  }).optional(),
 });
 
 export async function GET() {
@@ -37,9 +41,11 @@ export async function GET() {
 
     // Extract leavePolicy from defaultLeaveAllocation for easier access
     const defaultLeaveAlloc = settings.defaultLeaveAllocation as Record<string, unknown> || {};
+    const permissionsData = settings.permissions as Record<string, unknown> || {};
     const responseSettings = {
       ...settings,
       leavePolicy: defaultLeaveAlloc.leavePolicy || null,
+      theme: permissionsData.theme || null,
     };
 
     return NextResponse.json({
@@ -90,6 +96,15 @@ export async function PATCH(request: NextRequest) {
     if (data.fiscalYearStart !== undefined) updateData.fiscalYearStart = data.fiscalYearStart;
     if (data.workingDaysPerWeek !== undefined) updateData.workingDaysPerWeek = data.workingDaysPerWeek;
     if (data.permissions !== undefined) updateData.permissions = data.permissions;
+
+    // Handle theme - store it in permissions JSON
+    if (data.theme !== undefined) {
+      const currentPermissions = settings?.permissions as Record<string, unknown> || {};
+      updateData.permissions = {
+        ...currentPermissions,
+        theme: data.theme,
+      };
+    }
 
     // Handle leavePolicy - store it in defaultLeaveAllocation JSON
     if (data.leavePolicy !== undefined) {

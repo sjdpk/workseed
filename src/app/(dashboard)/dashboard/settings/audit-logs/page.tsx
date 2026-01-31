@@ -106,7 +106,7 @@ export default function AuditLogsPage() {
   const getActionColor = (action: string) => {
     const colors: Record<string, string> = {
       CREATE: "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400",
-      UPDATE: "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
+      UPDATE: "bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
       DELETE: "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400",
       LOGIN: "bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400",
       LOGOUT: "bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
@@ -157,7 +157,7 @@ export default function AuditLogsPage() {
   if (!hasAccess) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
       </div>
     );
   }
@@ -238,7 +238,7 @@ export default function AuditLogsPage() {
       {/* Logs */}
       {loading ? (
         <div className="flex items-center justify-center p-8">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
         </div>
       ) : logs.length === 0 ? (
         <Card className="py-12 text-center">

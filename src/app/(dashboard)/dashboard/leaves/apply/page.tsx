@@ -134,7 +134,7 @@ export default function ApplyLeavePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
       </div>
     );
   }
@@ -161,9 +161,9 @@ export default function ApplyLeavePage() {
           <button
             type="button"
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className={`flex w-full items-center justify-between rounded-lg border bg-white px-4 py-3 text-left transition-all dark:bg-gray-800 ${
+            className={`flex w-full items-center justify-between rounded border bg-white px-4 py-3 text-left transition-all dark:bg-gray-800 ${
               dropdownOpen
-                ? "border-blue-500 ring-2 ring-blue-500/20"
+                ? "border-gray-900 ring-2 ring-gray-900/20 dark:border-white dark:ring-white/20"
                 : "border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600"
             }`}
           >
@@ -194,7 +194,7 @@ export default function ApplyLeavePage() {
           </button>
 
           {dropdownOpen && (
-            <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
+            <div className="absolute z-20 mt-2 w-full overflow-hidden rounded border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
               <div className="border-b border-gray-100 p-2 dark:border-gray-700">
                 <input
                   ref={searchInputRef}
@@ -202,7 +202,7 @@ export default function ApplyLeavePage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search..."
-                  className="w-full rounded-md border-0 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500"
+                  className="w-full rounded border-0 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500/20 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500"
                 />
               </div>
               <div className="max-h-64 overflow-auto p-1">
@@ -230,9 +230,9 @@ export default function ApplyLeavePage() {
                             setSearchTerm("");
                           }
                         }}
-                        className={`flex w-full items-center justify-between rounded-md px-3 py-2.5 text-left transition-colors ${
+                        className={`flex w-full items-center justify-between rounded px-3 py-2.5 text-left transition-colors ${
                           isSelected
-                            ? "bg-blue-50 dark:bg-blue-900/30"
+                            ? "bg-gray-50 dark:bg-gray-800"
                             : hasBalance
                             ? "hover:bg-gray-50 dark:hover:bg-gray-700/50"
                             : "opacity-40 cursor-not-allowed"
@@ -243,7 +243,7 @@ export default function ApplyLeavePage() {
                             className="h-3 w-3 rounded-full"
                             style={{ backgroundColor: lt.color || "#3B82F6" }}
                           />
-                          <span className={`text-sm ${isSelected ? "font-medium text-blue-700 dark:text-blue-300" : "text-gray-900 dark:text-white"}`}>
+                          <span className={`text-sm ${isSelected ? "font-medium text-gray-900 dark:text-white" : "text-gray-900 dark:text-white"}`}>
                             {lt.name}
                           </span>
                           {!lt.isPaid && (
@@ -282,7 +282,7 @@ export default function ApplyLeavePage() {
                 }
                 min={new Date().toISOString().split("T")[0]}
                 required
-                className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                className="w-full rounded border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:border-white"
               />
             </div>
             <span className="text-sm text-gray-400">to</span>
@@ -294,12 +294,12 @@ export default function ApplyLeavePage() {
                 min={formData.startDate || new Date().toISOString().split("T")[0]}
                 required
                 disabled={formData.isHalfDay}
-                className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                className="w-full rounded border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:border-white"
               />
             </div>
             {formData.startDate && formData.endDate && (
-              <div className="shrink-0 rounded-lg bg-blue-50 px-3 py-2 dark:bg-blue-900/30">
-                <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+              <div className="shrink-0 rounded bg-gray-50 px-3 py-2 dark:bg-gray-800">
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                   {formData.days} {formData.days === 1 || formData.days === 0.5 ? "day" : "days"}
                 </span>
               </div>
@@ -317,7 +317,7 @@ export default function ApplyLeavePage() {
                     endDate: e.target.checked ? formData.startDate : formData.endDate,
                   })
                 }
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600"
+                className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-500 dark:border-gray-600 dark:text-white"
               />
               <span className="text-sm text-gray-700 dark:text-gray-300">Half day</span>
             </label>
@@ -325,7 +325,7 @@ export default function ApplyLeavePage() {
               <select
                 value={formData.halfDayType}
                 onChange={(e) => setFormData({ ...formData, halfDayType: e.target.value })}
-                className="ml-3 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                className="ml-3 rounded border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-900 focus:border-gray-900 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:border-white"
               >
                 <option value="FIRST_HALF">Morning</option>
                 <option value="SECOND_HALF">Afternoon</option>
@@ -344,13 +344,13 @@ export default function ApplyLeavePage() {
             value={formData.reason}
             onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
             placeholder="Add a note for your manager..."
-            className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
+            className="w-full rounded border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 dark:focus:border-white"
           />
         </div>
 
         {/* Summary */}
         {formData.leaveTypeId && formData.startDate && formData.endDate && (
-          <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
+          <div className="rounded bg-gray-50 p-4 dark:bg-gray-800/50">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: selectedLeaveType?.color || "#3B82F6" }} />

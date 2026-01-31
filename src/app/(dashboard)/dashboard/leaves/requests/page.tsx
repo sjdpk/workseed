@@ -198,7 +198,7 @@ export default function LeaveRequestsPage() {
   if (loading || !hasAccess) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
       </div>
     );
   }
@@ -210,7 +210,7 @@ export default function LeaveRequestsPage() {
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Leave Requests</h1>
           {getScopeLabel() && (
-            <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+            <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
               {getScopeLabel()}
             </span>
           )}
@@ -229,12 +229,12 @@ export default function LeaveRequestsPage() {
       <Card className="p-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           {/* Status Tabs */}
-          <div className="flex items-center gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
+          <div className="flex items-center gap-1 rounded bg-gray-100 p-1 dark:bg-gray-800">
             {(["ALL", "PENDING", "APPROVED", "REJECTED", "CANCELLED"] as StatusFilter[]).map((status) => (
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
-                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                className={`rounded px-3 py-1.5 text-xs font-medium transition-all ${
                   statusFilter === status
                     ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white"
                     : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
@@ -252,19 +252,19 @@ export default function LeaveRequestsPage() {
               placeholder="Search..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-48 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              className="w-48 rounded border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-gray-900 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:border-white"
             />
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium ${
+              className={`flex items-center gap-1.5 rounded border px-3 py-1.5 text-xs font-medium ${
                 showFilters || hasActiveFilters
-                  ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
+                  ? "border-gray-900 bg-gray-50 text-gray-900 dark:border-white dark:bg-gray-800 dark:text-white"
                   : "border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400"
               }`}
             >
               <FilterIcon className="h-3.5 w-3.5" />
               Filters
-              {hasActiveFilters && <span className="rounded-full bg-blue-600 px-1.5 text-[10px] text-white">{[leaveTypeFilter, departmentFilter, dateFrom, dateTo].filter(Boolean).length}</span>}
+              {hasActiveFilters && <span className="rounded-full bg-gray-900 px-1.5 text-[10px] text-white dark:bg-white dark:text-gray-900">{[leaveTypeFilter, departmentFilter, dateFrom, dateTo].filter(Boolean).length}</span>}
             </button>
           </div>
         </div>
@@ -303,7 +303,7 @@ export default function LeaveRequestsPage() {
               <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-full rounded border border-gray-200 bg-white px-2 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white" />
             </div>
             {hasActiveFilters && (
-              <button onClick={clearFilters} className="text-xs font-medium text-blue-600 hover:text-blue-700">
+              <button onClick={clearFilters} className="text-xs font-medium text-gray-900 hover:text-gray-700 dark:text-white dark:hover:text-gray-300">
                 Clear
               </button>
             )}
@@ -382,7 +382,7 @@ export default function LeaveRequestsPage() {
                           </button>
                         </div>
                       ) : (
-                        <button className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400">View</button>
+                        <button className="text-xs text-gray-900 hover:text-gray-700 dark:text-white dark:hover:text-gray-300">View</button>
                       )}
                     </td>
                   </tr>
@@ -403,7 +403,7 @@ export default function LeaveRequestsPage() {
               <h2 className="text-base font-semibold text-gray-900 dark:text-white">Request Details</h2>
               <button
                 onClick={() => setSelectedRequest(null)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+                className="flex h-8 w-8 items-center justify-center rounded text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -416,7 +416,7 @@ export default function LeaveRequestsPage() {
               {/* Employee Card */}
               <div className="border-b border-gray-100 px-5 py-4 dark:border-gray-800">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-sm font-semibold text-white">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-gray-700 to-gray-900 text-sm font-semibold text-white dark:from-gray-200 dark:to-white dark:text-gray-900">
                     {selectedRequest.user?.firstName?.[0]}{selectedRequest.user?.lastName?.[0]}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -477,7 +477,7 @@ export default function LeaveRequestsPage() {
 
               {/* Rejection Reason */}
               {selectedRequest.rejectionReason && (
-                <div className="mx-5 my-4 rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-900/20">
+                <div className="mx-5 my-4 rounded border border-red-100 bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-900/20">
                   <p className="text-[11px] font-medium uppercase tracking-wider text-red-600 dark:text-red-400">Rejection Reason</p>
                   <p className="mt-1.5 text-sm text-red-700 dark:text-red-300">{selectedRequest.rejectionReason}</p>
                 </div>

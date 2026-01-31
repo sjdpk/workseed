@@ -40,7 +40,7 @@ export default function AnnouncementsPage() {
     GENERAL: {
       bg: "bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700",
       badge: "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300",
-      icon: "text-blue-500",
+      icon: "text-gray-500",
     },
   };
 
@@ -59,7 +59,7 @@ export default function AnnouncementsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
       </div>
     );
   }
@@ -99,7 +99,7 @@ export default function AnnouncementsPage() {
             return (
               <div
                 key={notice.id}
-                className={`rounded-lg border p-5 ${config.bg}`}
+                className={`rounded border p-5 ${config.bg}`}
               >
                 <div className="flex items-start gap-4">
                   <div className={`mt-0.5 ${config.icon}`}>

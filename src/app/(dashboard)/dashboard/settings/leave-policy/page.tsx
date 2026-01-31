@@ -100,7 +100,7 @@ export default function LeavePolicyPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
       </div>
     );
   }
@@ -127,14 +127,14 @@ export default function LeavePolicyPage() {
         </p>
 
         <div className="mt-4 space-y-3">
-          <label className="flex items-start gap-3 rounded-lg border border-gray-200 p-4 cursor-pointer hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/50">
+          <label className="flex items-start gap-3 rounded border border-gray-200 p-4 cursor-pointer hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/50">
             <input
               type="radio"
               name="resetPeriod"
               value="CALENDAR_YEAR"
               checked={policy.resetPeriod === "CALENDAR_YEAR"}
               onChange={(e) => setPolicy({ ...policy, resetPeriod: e.target.value as LeavePolicy["resetPeriod"] })}
-              className="mt-0.5 h-4 w-4 text-blue-600"
+              className="mt-0.5 h-4 w-4 text-gray-900 dark:text-white"
             />
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-900 dark:text-white">Calendar Year (January 1st)</p>
@@ -142,14 +142,14 @@ export default function LeavePolicyPage() {
             </div>
           </label>
 
-          <label className="flex items-start gap-3 rounded-lg border border-gray-200 p-4 cursor-pointer hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/50">
+          <label className="flex items-start gap-3 rounded border border-gray-200 p-4 cursor-pointer hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/50">
             <input
               type="radio"
               name="resetPeriod"
               value="FISCAL_YEAR"
               checked={policy.resetPeriod === "FISCAL_YEAR"}
               onChange={(e) => setPolicy({ ...policy, resetPeriod: e.target.value as LeavePolicy["resetPeriod"] })}
-              className="mt-0.5 h-4 w-4 text-blue-600"
+              className="mt-0.5 h-4 w-4 text-gray-900 dark:text-white"
             />
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-900 dark:text-white">Fiscal Year</p>
@@ -160,7 +160,7 @@ export default function LeavePolicyPage() {
                   <select
                     value={policy.fiscalYearStartMonth}
                     onChange={(e) => setPolicy({ ...policy, fiscalYearStartMonth: parseInt(e.target.value) })}
-                    className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    className="mt-1 w-full rounded border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                   >
                     {MONTHS.map((m) => (
                       <option key={m.value} value={m.value}>{m.label}</option>
@@ -171,14 +171,14 @@ export default function LeavePolicyPage() {
             </div>
           </label>
 
-          <label className="flex items-start gap-3 rounded-lg border border-gray-200 p-4 cursor-pointer hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/50">
+          <label className="flex items-start gap-3 rounded border border-gray-200 p-4 cursor-pointer hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/50">
             <input
               type="radio"
               name="resetPeriod"
               value="ANNIVERSARY"
               checked={policy.resetPeriod === "ANNIVERSARY"}
               onChange={(e) => setPolicy({ ...policy, resetPeriod: e.target.value as LeavePolicy["resetPeriod"] })}
-              className="mt-0.5 h-4 w-4 text-blue-600"
+              className="mt-0.5 h-4 w-4 text-gray-900 dark:text-white"
             />
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-900 dark:text-white">Employee Anniversary</p>
@@ -196,14 +196,14 @@ export default function LeavePolicyPage() {
         </p>
 
         <div className="mt-4 space-y-3">
-          <label className="flex items-start gap-3 rounded-lg border border-gray-200 p-4 cursor-pointer hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/50">
+          <label className="flex items-start gap-3 rounded border border-gray-200 p-4 cursor-pointer hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/50">
             <input
               type="radio"
               name="accrualType"
               value="ANNUAL"
               checked={policy.accrualType === "ANNUAL"}
               onChange={(e) => setPolicy({ ...policy, accrualType: e.target.value as LeavePolicy["accrualType"] })}
-              className="mt-0.5 h-4 w-4 text-blue-600"
+              className="mt-0.5 h-4 w-4 text-gray-900 dark:text-white"
             />
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-900 dark:text-white">Annual Allocation</p>
@@ -211,14 +211,14 @@ export default function LeavePolicyPage() {
             </div>
           </label>
 
-          <label className="flex items-start gap-3 rounded-lg border border-gray-200 p-4 cursor-pointer hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/50">
+          <label className="flex items-start gap-3 rounded border border-gray-200 p-4 cursor-pointer hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/50">
             <input
               type="radio"
               name="accrualType"
               value="MONTHLY"
               checked={policy.accrualType === "MONTHLY"}
               onChange={(e) => setPolicy({ ...policy, accrualType: e.target.value as LeavePolicy["accrualType"] })}
-              className="mt-0.5 h-4 w-4 text-blue-600"
+              className="mt-0.5 h-4 w-4 text-gray-900 dark:text-white"
             />
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-900 dark:text-white">Monthly Accrual</p>
@@ -226,14 +226,14 @@ export default function LeavePolicyPage() {
             </div>
           </label>
 
-          <label className="flex items-start gap-3 rounded-lg border border-gray-200 p-4 cursor-pointer hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/50">
+          <label className="flex items-start gap-3 rounded border border-gray-200 p-4 cursor-pointer hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/50">
             <input
               type="radio"
               name="accrualType"
               value="QUARTERLY"
               checked={policy.accrualType === "QUARTERLY"}
               onChange={(e) => setPolicy({ ...policy, accrualType: e.target.value as LeavePolicy["accrualType"] })}
-              className="mt-0.5 h-4 w-4 text-blue-600"
+              className="mt-0.5 h-4 w-4 text-gray-900 dark:text-white"
             />
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-900 dark:text-white">Quarterly Accrual</p>
@@ -259,12 +259,12 @@ export default function LeavePolicyPage() {
               onChange={(e) => setPolicy({ ...policy, proRataForNewJoiners: e.target.checked })}
               className="peer sr-only"
             />
-            <div className="h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full dark:bg-gray-700" />
+            <div className="h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-gray-900 dark:peer-checked:bg-white peer-checked:after:translate-x-full dark:bg-gray-700" />
           </label>
         </div>
 
         {policy.proRataForNewJoiners && (
-          <div className="mt-4 rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
+          <div className="mt-4 rounded bg-gray-50 p-4 dark:bg-gray-800">
             <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Pro-rata Method</label>
             <div className="mt-2 flex gap-4">
               <label className="flex items-center gap-2">
@@ -274,7 +274,7 @@ export default function LeavePolicyPage() {
                   value="MONTHLY"
                   checked={policy.proRataMethod === "MONTHLY"}
                   onChange={(e) => setPolicy({ ...policy, proRataMethod: e.target.value as LeavePolicy["proRataMethod"] })}
-                  className="h-4 w-4 text-blue-600"
+                  className="h-4 w-4 text-gray-900 dark:text-white"
                 />
                 <span className="text-sm text-gray-700 dark:text-gray-300">By Month</span>
               </label>
@@ -285,7 +285,7 @@ export default function LeavePolicyPage() {
                   value="DAILY"
                   checked={policy.proRataMethod === "DAILY"}
                   onChange={(e) => setPolicy({ ...policy, proRataMethod: e.target.value as LeavePolicy["proRataMethod"] })}
-                  className="h-4 w-4 text-blue-600"
+                  className="h-4 w-4 text-gray-900 dark:text-white"
                 />
                 <span className="text-sm text-gray-700 dark:text-gray-300">By Day</span>
               </label>
@@ -312,7 +312,7 @@ export default function LeavePolicyPage() {
             <select
               value={policy.carryForwardProcessingMonth}
               onChange={(e) => setPolicy({ ...policy, carryForwardProcessingMonth: parseInt(e.target.value) })}
-              className="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              className="mt-1.5 w-full rounded border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             >
               {MONTHS.map((m) => (
                 <option key={m.value} value={m.value}>{m.label}</option>
@@ -324,7 +324,7 @@ export default function LeavePolicyPage() {
             <select
               value={policy.maxCarryForwardMonths}
               onChange={(e) => setPolicy({ ...policy, maxCarryForwardMonths: parseInt(e.target.value) })}
-              className="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              className="mt-1.5 w-full rounded border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             >
               <option value={0}>Never expires</option>
               <option value={3}>3 months</option>
@@ -351,7 +351,7 @@ export default function LeavePolicyPage() {
               onChange={(e) => setPolicy({ ...policy, allowNegativeBalance: e.target.checked })}
               className="peer sr-only"
             />
-            <div className="h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full dark:bg-gray-700" />
+            <div className="h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-gray-900 dark:peer-checked:bg-white peer-checked:after:translate-x-full dark:bg-gray-700" />
           </label>
         </div>
 
@@ -364,7 +364,7 @@ export default function LeavePolicyPage() {
               max="30"
               value={policy.maxNegativeBalance}
               onChange={(e) => setPolicy({ ...policy, maxNegativeBalance: parseInt(e.target.value) || 0 })}
-              className="mt-1.5 w-32 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              className="mt-1.5 w-32 rounded border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
         )}
@@ -387,7 +387,7 @@ export default function LeavePolicyPage() {
               type="checkbox"
               checked={policy.sendResetNotification}
               onChange={(e) => setPolicy({ ...policy, sendResetNotification: e.target.checked })}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600"
+              className="h-4 w-4 rounded border-gray-300 text-gray-900 dark:text-white"
             />
           </label>
 
@@ -401,7 +401,7 @@ export default function LeavePolicyPage() {
                 type="checkbox"
                 checked={policy.sendLowBalanceAlert}
                 onChange={(e) => setPolicy({ ...policy, sendLowBalanceAlert: e.target.checked })}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                className="h-4 w-4 rounded border-gray-300 text-gray-900 dark:text-white"
               />
             </label>
             {policy.sendLowBalanceAlert && (
@@ -423,9 +423,9 @@ export default function LeavePolicyPage() {
       </Card>
 
       {/* Summary */}
-      <Card className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20">
-        <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">Current Policy Summary</h3>
-        <ul className="mt-3 space-y-1.5 text-sm text-blue-800 dark:text-blue-200">
+      <Card className="border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Current Policy Summary</h3>
+        <ul className="mt-3 space-y-1.5 text-sm text-gray-700 dark:text-gray-300">
           <li>
             Leave resets:{" "}
             <strong>

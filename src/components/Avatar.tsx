@@ -24,7 +24,7 @@ export function Avatar({ src, name, size = "md", className, colorClass }: Avatar
     .toUpperCase()
     .slice(0, 2);
 
-  const defaultColorClass = "bg-gradient-to-br from-blue-500 to-blue-600";
+  const defaultColorClass = "bg-gray-900 dark:bg-gray-700";
 
   if (src) {
     return (
@@ -68,7 +68,7 @@ export function AvatarWithFallback({ src, name, size = "md", className, colorCla
     .toUpperCase()
     .slice(0, 2);
 
-  const defaultColorClass = "bg-gradient-to-br from-blue-500 to-blue-600";
+  const defaultColorClass = "bg-gray-900 dark:bg-gray-700";
 
   return (
     <div className={cn(sizeClasses[size], "relative flex-shrink-0", className)}>

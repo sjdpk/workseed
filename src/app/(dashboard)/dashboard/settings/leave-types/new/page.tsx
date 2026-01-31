@@ -72,7 +72,7 @@ export default function NewLeaveTypePage() {
   if (pageLoading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
       </div>
     );
   }
@@ -94,7 +94,7 @@ export default function NewLeaveTypePage() {
             <Input id="code" label="Code *" placeholder="e.g., AL, SL, CL" value={formData.code} onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })} required />
             <div>
               <label htmlFor="color" className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Color</label>
-              <input id="color" type="color" value={formData.color} onChange={(e) => setFormData({ ...formData, color: e.target.value })} className="h-10 w-full rounded-md border border-gray-300 dark:border-gray-600" />
+              <input id="color" type="color" value={formData.color} onChange={(e) => setFormData({ ...formData, color: e.target.value })} className="h-10 w-full rounded border border-gray-300 dark:border-gray-600" />
             </div>
           </div>
           <Input id="description" label="Description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />

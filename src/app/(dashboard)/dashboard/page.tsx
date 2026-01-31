@@ -78,20 +78,20 @@ export default function DashboardPage() {
   const typeConfig = {
     URGENT: { bg: "bg-red-50 dark:bg-red-900/20", border: "border-red-200 dark:border-red-800", icon: "text-red-500", badge: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300" },
     IMPORTANT: { bg: "bg-yellow-50 dark:bg-yellow-900/20", border: "border-yellow-200 dark:border-yellow-800", icon: "text-yellow-500", badge: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300" },
-    GENERAL: { bg: "bg-blue-50 dark:bg-blue-900/20", border: "border-blue-200 dark:border-blue-800", icon: "text-blue-500", badge: "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300" },
+    GENERAL: { bg: "bg-gray-50 dark:bg-gray-800", border: "border-gray-200 dark:border-gray-700", icon: "text-gray-500", badge: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300" },
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
       </div>
     );
   }
 
   // Stats cards for HR/Admin
   const adminStatCards = [
-    { name: "Total Users", value: stats.totalUsers, href: "/dashboard/users", icon: UsersIcon, color: "bg-blue-600" },
+    { name: "Total Users", value: stats.totalUsers, href: "/dashboard/users", icon: UsersIcon, color: "bg-gray-900 dark:bg-white dark:text-gray-900" },
     { name: "Departments", value: stats.totalDepartments, href: "/dashboard/departments", icon: BuildingIcon, color: "bg-green-600" },
     { name: "Branches", value: stats.totalBranches, href: "/dashboard/branches", icon: LocationIcon, color: "bg-purple-600" },
     { name: "Pending Leaves", value: stats.pendingLeaves, href: "/dashboard/leaves/requests", icon: ClockIcon, color: "bg-orange-600" },
@@ -201,8 +201,8 @@ export default function DashboardPage() {
           </Link>
           <Link href="/dashboard/leaves">
             <Card className="flex items-center gap-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
-              <div className="rounded p-3 bg-blue-600">
-                <CalendarIcon className="h-6 w-6 text-white" />
+              <div className="rounded p-3 bg-gray-900 dark:bg-white">
+                <CalendarIcon className="h-6 w-6 text-white dark:text-gray-900" />
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">My Leaves</p>
@@ -218,8 +218,8 @@ export default function DashboardPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Link href="/dashboard/leaves">
             <Card className="flex items-center gap-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
-              <div className="rounded p-3 bg-blue-600">
-                <CalendarIcon className="h-6 w-6 text-white" />
+              <div className="rounded p-3 bg-gray-900 dark:bg-white">
+                <CalendarIcon className="h-6 w-6 text-white dark:text-gray-900" />
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">My Leaves</p>

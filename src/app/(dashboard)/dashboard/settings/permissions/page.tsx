@@ -140,7 +140,7 @@ export default function PermissionsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
       </div>
     );
   }
@@ -210,9 +210,9 @@ export default function PermissionsPage() {
         <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">Control who can see leave information</p>
 
         {/* Default Hierarchy Info */}
-        <div className="mb-4 rounded bg-blue-50 p-3 dark:bg-blue-900/20">
-          <p className="text-xs font-medium text-blue-800 dark:text-blue-300">Default Leave Viewing Hierarchy:</p>
-          <ul className="mt-1 space-y-0.5 text-xs text-blue-700 dark:text-blue-400">
+        <div className="mb-4 rounded bg-gray-50 p-3 dark:bg-gray-800">
+          <p className="text-xs font-medium text-gray-800 dark:text-gray-300">Default Leave Viewing Hierarchy:</p>
+          <ul className="mt-1 space-y-0.5 text-xs text-gray-700 dark:text-gray-400">
             <li>• <strong>Admin/HR:</strong> View all organization leave requests</li>
             <li>• <strong>Manager:</strong> View only their direct reports' leave requests</li>
             <li>• <strong>Team Lead:</strong> View their team members' leave requests</li>

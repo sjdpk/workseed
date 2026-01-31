@@ -89,7 +89,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 const CONDITION_COLORS: Record<string, string> = {
   NEW: "text-green-600 dark:text-green-400",
-  EXCELLENT: "text-blue-600 dark:text-blue-400",
+  EXCELLENT: "text-gray-600 dark:text-gray-400",
   GOOD: "text-cyan-600 dark:text-cyan-400",
   FAIR: "text-yellow-600 dark:text-yellow-400",
   POOR: "text-red-600 dark:text-red-400",
@@ -236,7 +236,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
       </div>
     );
   }
@@ -262,7 +262,7 @@ export default function ProfilePage() {
       {/* Profile Header */}
       <Card>
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 text-2xl font-semibold text-blue-600 dark:bg-blue-900/50 dark:text-blue-400">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gray-100 text-2xl font-semibold text-gray-900 dark:bg-gray-800 dark:text-white">
             {user.profilePicture ? (
               <img
                 src={user.profilePicture}
@@ -378,7 +378,7 @@ export default function ProfilePage() {
                       return (
                         <div
                           key={alloc.id}
-                          className="rounded-lg border border-gray-200 p-4 dark:border-gray-700"
+                          className="rounded border border-gray-200 p-4 dark:border-gray-700"
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -440,7 +440,7 @@ export default function ProfilePage() {
               {assets.map((asset) => (
                 <div
                   key={asset.id}
-                  className="rounded-lg border border-gray-200 p-4 dark:border-gray-700"
+                  className="rounded border border-gray-200 p-4 dark:border-gray-700"
                 >
                   <div className="flex items-start gap-3">
                     <span className="text-2xl">{CATEGORY_ICONS[asset.category] || "📦"}</span>
@@ -729,7 +729,7 @@ export default function ProfilePage() {
                     href={user.linkedIn}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 rounded bg-blue-100 px-3 py-1.5 text-sm text-blue-700 hover:bg-blue-200 dark:bg-blue-900/50 dark:text-blue-400"
+                    className="flex items-center gap-2 rounded bg-gray-100 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300"
                   >
                     LinkedIn
                   </a>

@@ -320,7 +320,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
       </div>
     );
   }
@@ -542,7 +542,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+            className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
           >
             {yearOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -680,14 +680,14 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
         </div>
 
         {assets.length === 0 ? (
-          <div className="rounded-lg border-2 border-dashed border-gray-200 p-6 text-center dark:border-gray-700">
+          <div className="rounded border-2 border-dashed border-gray-200 p-6 text-center dark:border-gray-700">
             <svg className="mx-auto h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
             </svg>
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">No assets currently assigned to this employee.</p>
             <a
               href={`/dashboard/assets?unassigned=true`}
-              className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+              className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-gray-900 hover:text-gray-700 dark:text-white dark:hover:text-gray-300"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -725,7 +725,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                     <td className="px-3 py-2">
                       <span className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${
                         asset.condition === "NEW" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
-                        asset.condition === "EXCELLENT" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" :
+                        asset.condition === "EXCELLENT" ? "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300" :
                         asset.condition === "GOOD" ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400" :
                         asset.condition === "FAIR" ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" :
                         "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"

@@ -66,7 +66,7 @@ const STATUS_OPTIONS = [
 
 const STATUS_COLORS: Record<string, string> = {
   AVAILABLE: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  ASSIGNED: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  ASSIGNED: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
   MAINTENANCE: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
   RETIRED: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
   LOST: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
@@ -75,7 +75,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 const CONDITION_COLORS: Record<string, string> = {
   NEW: "text-green-600 dark:text-green-400",
-  EXCELLENT: "text-blue-600 dark:text-blue-400",
+  EXCELLENT: "text-gray-600 dark:text-gray-400",
   GOOD: "text-cyan-600 dark:text-cyan-400",
   FAIR: "text-yellow-600 dark:text-yellow-400",
   POOR: "text-red-600 dark:text-red-400",
@@ -203,7 +203,7 @@ export default function AssetsPage() {
           <p className="text-sm text-gray-500 dark:text-gray-400">Available</p>
         </Card>
         <Card className="text-center">
-          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">
             {assets.filter((a) => a.status === "ASSIGNED").length}
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-400">Assigned</p>
@@ -220,7 +220,7 @@ export default function AssetsPage() {
       <Card>
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
           </div>
         ) : assets.length === 0 ? (
           <div className="py-8 text-center text-gray-500 dark:text-gray-400">

@@ -82,7 +82,7 @@ const CONDITION_OPTIONS = [
 
 const STATUS_COLORS: Record<string, string> = {
   AVAILABLE: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  ASSIGNED: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  ASSIGNED: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
   MAINTENANCE: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
   RETIRED: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
   LOST: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
@@ -320,7 +320,7 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
       </div>
     );
   }
@@ -360,10 +360,10 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
 
       {/* Current Assignment */}
       {asset.assignedTo && (
-        <Card className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20">
+        <Card className="border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-sm font-medium text-blue-600 dark:bg-blue-900/50 dark:text-blue-400">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-sm font-medium text-gray-900 dark:bg-gray-700 dark:text-white">
                 {asset.assignedTo.firstName[0]}
                 {asset.assignedTo.lastName[0]}
               </div>
@@ -470,7 +470,7 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
                 rows={3}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               />
             </div>
           </Card>
@@ -512,7 +512,7 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
               rows={4}
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
             />
           </Card>
 
@@ -658,7 +658,7 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
                       className={`text-xs ${
                         assignment.returnedAt
                           ? "text-gray-500 dark:text-gray-400"
-                          : "text-blue-600 dark:text-blue-400"
+                          : "text-gray-900 dark:text-white"
                       }`}
                     >
                       {assignment.returnedAt ? "Returned" : "Active"}
@@ -736,12 +736,12 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
                       value={assignData.notes}
                       onChange={(e) => setAssignData({ ...assignData, notes: e.target.value })}
                       placeholder="Optional notes about this assignment..."
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                      className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:focus:border-white"
                     />
                   </div>
 
                   {/* Asset Summary */}
-                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
+                  <div className="rounded border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
                     <h3 className="mb-2 text-sm font-medium text-gray-900 dark:text-white">
                       Asset Summary
                     </h3>
@@ -830,12 +830,12 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
                 <div className="space-y-4">
                   {/* Current Assignee Info */}
                   {asset?.assignedTo && (
-                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
-                      <h3 className="mb-2 text-sm font-medium text-blue-900 dark:text-blue-300">
+                    <div className="rounded border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+                      <h3 className="mb-2 text-sm font-medium text-gray-900 dark:text-gray-300">
                         Currently Assigned To
                       </h3>
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-sm font-medium text-blue-600 dark:bg-blue-900/50 dark:text-blue-400">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-sm font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
                           {asset.assignedTo.firstName[0]}
                           {asset.assignedTo.lastName[0]}
                         </div>
@@ -869,18 +869,18 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
                       value={returnData.returnNotes}
                       onChange={(e) => setReturnData({ ...returnData, returnNotes: e.target.value })}
                       placeholder="Any notes about the condition or return..."
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                      className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:focus:border-gray-100"
                     />
                   </div>
 
                   {/* Condition Guide */}
-                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
+                  <div className="rounded border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
                     <h3 className="mb-2 text-sm font-medium text-gray-900 dark:text-white">
                       Condition Guide
                     </h3>
                     <ul className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
                       <li><span className="font-medium text-green-600">New:</span> Unused, original packaging</li>
-                      <li><span className="font-medium text-blue-600">Excellent:</span> Like new, no visible wear</li>
+                      <li><span className="font-medium text-gray-600">Excellent:</span> Like new, no visible wear</li>
                       <li><span className="font-medium text-cyan-600">Good:</span> Minor wear, fully functional</li>
                       <li><span className="font-medium text-yellow-600">Fair:</span> Visible wear, functional</li>
                       <li><span className="font-medium text-red-600">Poor:</span> Heavy wear, may need repair</li>

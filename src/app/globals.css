@@ -5,6 +5,41 @@
 :root {
   --background: #ffffff;
   --foreground: #111827;
+  --accent-500: #374151;
+  --accent-600: #1f2937;
+  --accent-700: #111827;
+}
+
+/* Accent color themes */
+[data-accent="gray"] {
+  --accent-500: #374151;
+  --accent-600: #1f2937;
+  --accent-700: #111827;
+}
+[data-accent="blue"] {
+  --accent-500: #3b82f6;
+  --accent-600: #2563eb;
+  --accent-700: #1d4ed8;
+}
+[data-accent="green"] {
+  --accent-500: #22c55e;
+  --accent-600: #16a34a;
+  --accent-700: #15803d;
+}
+[data-accent="purple"] {
+  --accent-500: #a855f7;
+  --accent-600: #9333ea;
+  --accent-700: #7e22ce;
+}
+[data-accent="orange"] {
+  --accent-500: #f97316;
+  --accent-600: #ea580c;
+  --accent-700: #c2410c;
+}
+[data-accent="red"] {
+  --accent-500: #ef4444;
+  --accent-600: #dc2626;
+  --accent-700: #b91c1c;
 }
 
 .dark {
