@@ -127,14 +127,17 @@ export default function DashboardPage() {
       {/* Notices Section */}
       {notices.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+          <Link href="/dashboard/notices" className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5 hover:text-gray-600 dark:hover:text-gray-300 w-fit">
             <MegaphoneIcon className="h-4 w-4" />
             Announcements
-          </h2>
+            <svg className="h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+          </Link>
           {notices.map((notice) => {
             const config = typeConfig[notice.type];
             return (
-              <div key={notice.id} className={`rounded-lg border p-3 ${config.bg} ${config.border}`}>
+              <Link key={notice.id} href="/dashboard/notices" className={`block rounded-lg border p-3 ${config.bg} ${config.border} hover:shadow-sm transition-shadow`}>
                 <div className="flex items-start gap-2.5">
                   <div className={`mt-0.5 ${config.icon}`}>
                     {notice.type === "URGENT" ? (
@@ -160,7 +163,7 @@ export default function DashboardPage() {
                     </p>
                   </div>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>

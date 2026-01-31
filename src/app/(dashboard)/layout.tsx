@@ -55,6 +55,10 @@ export default function DashboardLayout({
         }
         if (orgData.success) {
           setOrgSettings(orgData.data.settings);
+          // Set page title to org name
+          if (orgData.data.settings.name) {
+            document.title = orgData.data.settings.name;
+          }
           // Apply organization theme
           if (orgData.data.settings.theme?.accentColor) {
             document.documentElement.setAttribute("data-accent", orgData.data.settings.theme.accentColor);

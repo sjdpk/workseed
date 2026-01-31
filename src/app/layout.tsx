@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "HRM System",
+  title: "Dashboard",
   description: "Human Resource Management System",
 };
 
