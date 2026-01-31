@@ -56,6 +56,15 @@ export const PERMISSIONS = {
   // Dashboard stats
   DASHBOARD_VIEW_ALL_STATS: ["ADMIN", "HR"],
   DASHBOARD_VIEW_TEAM_STATS: ["ADMIN", "HR", "MANAGER", "TEAM_LEAD"],
+
+  // Asset management
+  ASSET_VIEW_ALL: ["ADMIN", "HR"],
+  ASSET_VIEW_OWN: ["ADMIN", "HR", "MANAGER", "TEAM_LEAD", "EMPLOYEE"], // Can see own assigned assets
+  ASSET_CREATE: ["ADMIN", "HR"],
+  ASSET_EDIT: ["ADMIN", "HR"],
+  ASSET_DELETE: ["ADMIN"],
+  ASSET_ASSIGN: ["ADMIN", "HR"],
+  ASSET_RETURN: ["ADMIN", "HR"],
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -102,5 +111,8 @@ export function getNavigationPermissions(role: string) {
     canApproveLeaves: hasPermission(role, "LEAVE_REQUEST_APPROVE"),
     canViewSettings: hasPermission(role, "SETTINGS_VIEW"),
     canViewAllStats: hasPermission(role, "DASHBOARD_VIEW_ALL_STATS"),
+    canViewAssets: hasPermission(role, "ASSET_VIEW_ALL"),
+    canManageAssets: hasPermission(role, "ASSET_CREATE"),
+    canViewOwnAssets: hasPermission(role, "ASSET_VIEW_OWN"),
   };
 }

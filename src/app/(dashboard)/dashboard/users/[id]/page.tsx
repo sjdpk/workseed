@@ -59,6 +59,19 @@ interface Allocation {
   notes?: string;
 }
 
+interface Asset {
+  id: string;
+  assetTag: string;
+  name: string;
+  category: string;
+  brand?: string;
+  model?: string;
+  serialNumber?: string;
+  status: string;
+  condition: string;
+  assignedAt?: string;
+}
+
 export default function EditUserPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
@@ -71,6 +84,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
   const [managers, setManagers] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
   const [allocations, setAllocations] = useState<Allocation[]>([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -127,7 +141,8 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
       fetch("/api/users?limit=100").then(r => r.json()),
       fetch("/api/leave-types").then(r => r.json()),
       fetch(`/api/leave-allocations?userId=${id}&year=${selectedYear}`).then(r => r.json()),
-    ]).then(([meData, userData, branchesData, deptData, teamsData, usersData, leaveTypesData, allocData]) => {
+      fetch(`/api/assets?userId=${id}`).then(r => r.json()),
+    ]).then(([meData, userData, branchesData, deptData, teamsData, usersData, leaveTypesData, allocData, assetsData]) => {
       if (meData.success) {
         setCurrentUser(meData.data.user);
         if (!ALLOWED_ROLES.includes(meData.data.user.role)) {
@@ -179,6 +194,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
       ));
       if (leaveTypesData.success) setLeaveTypes(leaveTypesData.data.leaveTypes);
       if (allocData.success) setAllocations(allocData.data.allocations);
+      if (assetsData.assets) setAssets(assetsData.assets);
       setLoading(false);
     });
   }, [id, router]);
@@ -635,6 +651,105 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
         <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
           <strong>Tip:</strong> For mid-year joiners, reduce &quot;Allocated&quot; or use negative &quot;Adjust&quot; value. Balance = Allocated + Adjust - Used
         </p>
+      </Card>
+
+      {/* Assigned Assets Section */}
+      <Card>
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Assigned Assets</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Company assets assigned to this employee</p>
+          </div>
+          <div className="flex gap-2">
+            <a
+              href={`/dashboard/assets?unassigned=true`}
+              className="inline-flex items-center gap-1 rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Assign Asset
+            </a>
+            <a
+              href="/dashboard/assets"
+              className="inline-flex items-center rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              Manage All
+            </a>
+          </div>
+        </div>
+
+        {assets.length === 0 ? (
+          <div className="rounded-lg border-2 border-dashed border-gray-200 p-6 text-center dark:border-gray-700">
+            <svg className="mx-auto h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">No assets currently assigned to this employee.</p>
+            <a
+              href={`/dashboard/assets?unassigned=true`}
+              className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Assign an asset
+            </a>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="border-b border-gray-200 dark:border-gray-700">
+                <tr>
+                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Asset</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Category</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Condition</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Assigned On</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                {assets.map((asset) => (
+                  <tr key={asset.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <td className="px-3 py-2">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{asset.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{asset.assetTag}</p>
+                        {asset.serialNumber && (
+                          <p className="text-xs text-gray-400">S/N: {asset.serialNumber}</p>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-sm text-gray-700 dark:text-gray-300">
+                      {asset.category.replace(/_/g, " ")}
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${
+                        asset.condition === "NEW" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
+                        asset.condition === "EXCELLENT" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" :
+                        asset.condition === "GOOD" ? "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400" :
+                        asset.condition === "FAIR" ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" :
+                        "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                      }`}>
+                        {asset.condition}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
+                      {asset.assignedAt ? new Date(asset.assignedAt).toLocaleDateString() : "-"}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <a
+                        href={`/dashboard/assets/${asset.id}`}
+                        className="inline-flex items-center rounded border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                      >
+                        View
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </div>
   );

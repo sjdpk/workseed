@@ -11,7 +11,9 @@ export type AuditAction =
   | "CANCEL"
   | "VIEW"
   | "EXPORT"
-  | "IMPORT";
+  | "IMPORT"
+  | "ASSIGN"
+  | "RETURN";
 
 export type AuditEntity =
   | "USER"
@@ -23,7 +25,9 @@ export type AuditEntity =
   | "LEAVE_ALLOCATION"
   | "NOTICE"
   | "SETTINGS"
-  | "DOCUMENT";
+  | "DOCUMENT"
+  | "ASSET"
+  | "ASSET_ASSIGNMENT";
 
 interface AuditLogInput {
   userId: string;
@@ -43,7 +47,7 @@ export async function createAuditLog(input: AuditLogInput) {
         action: input.action,
         entity: input.entity,
         entityId: input.entityId,
-        details: input.details,
+        details: input.details as object | undefined,
         ipAddress: input.ipAddress,
         userAgent: input.userAgent,
       },

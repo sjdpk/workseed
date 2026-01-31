@@ -56,6 +56,40 @@ enum DocumentType {
   OTHER
 }
 
+enum AssetCategory {
+  LAPTOP
+  DESKTOP
+  MOBILE
+  TABLET
+  MONITOR
+  KEYBOARD
+  MOUSE
+  HEADSET
+  FURNITURE
+  VEHICLE
+  ID_CARD
+  ACCESS_CARD
+  SOFTWARE_LICENSE
+  OTHER
+}
+
+enum AssetStatus {
+  AVAILABLE
+  ASSIGNED
+  MAINTENANCE
+  RETIRED
+  LOST
+  DAMAGED
+}
+
+enum AssetCondition {
+  NEW
+  EXCELLENT
+  GOOD
+  FAIR
+  POOR
+}
+
 // Organization Settings
 model OrganizationSettings {
   id                    String   @id @default(uuid()) @db.Uuid
@@ -197,6 +231,8 @@ model User {
   notices         Notice[]        @relation("NoticeCreator")
   teamsLed        Team[]          @relation("TeamLead")
   departmentsLed  Department[]    @relation("DepartmentHead")
+  assignedAssets  Asset[]         @relation("AssetAssignee")
+  assetHistory    AssetAssignment[]
 
   @@map("users")
 }
@@ -322,4 +358,58 @@ model Notice {
   updatedAt   DateTime  @updatedAt
 
   @@map("notices")
+}
+
+// Asset (Company Property)
+model Asset {
+  id              String         @id @default(uuid()) @db.Uuid
+  assetTag        String         @unique // Unique identifier like AST-00001
+  name            String
+  category        AssetCategory
+  brand           String?
+  model           String?
+  serialNumber    String?        @unique
+  description     String?
+  purchaseDate    DateTime?
+  purchasePrice   Float?
+  warrantyExpiry  DateTime?
+  status          AssetStatus    @default(AVAILABLE)
+  condition       AssetCondition @default(NEW)
+  location        String?        // Storage location when not assigned
+  notes           String?
+  specifications  Json?          // Flexible specs like RAM, storage, etc.
+
+  // Current assignment
+  assignedToId    String?        @db.Uuid
+  assignedTo      User?          @relation("AssetAssignee", fields: [assignedToId], references: [id])
+  assignedAt      DateTime?
+
+  // Metadata
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // Relations
+  assignments     AssetAssignment[]
+
+  @@map("assets")
+}
+
+// Asset Assignment History
+model AssetAssignment {
+  id            String    @id @default(uuid()) @db.Uuid
+  assetId       String    @db.Uuid
+  asset         Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  userId        String    @db.Uuid
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedAt    DateTime  @default(now())
+  returnedAt    DateTime?
+  assignedById  String    @db.Uuid // Who assigned the asset
+  returnedById  String?   @db.Uuid // Who processed the return
+  condition     AssetCondition // Condition at time of assignment
+  returnCondition AssetCondition? // Condition at return
+  notes         String?
+  returnNotes   String?
+
+  @@map("asset_assignments")
 }

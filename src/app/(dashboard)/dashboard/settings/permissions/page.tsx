@@ -19,6 +19,7 @@ interface PermissionSettings {
   // Self-service settings
   employeesCanEditOwnProfile: boolean;
   employeesCanViewOwnDocuments: boolean;
+  showOwnAssetsToEmployee: boolean;
 
   // Approval settings
   teamLeadCanApproveLeaves: boolean;
@@ -48,6 +49,7 @@ const defaultPermissions: PermissionSettings = {
 
   employeesCanEditOwnProfile: true,
   employeesCanViewOwnDocuments: true,
+  showOwnAssetsToEmployee: true,
 
   teamLeadCanApproveLeaves: true,
   managerCanApproveLeaves: true,
@@ -322,6 +324,19 @@ export default function PermissionsPage() {
             <div>
               <span className="text-sm font-medium text-gray-900 dark:text-white">View Own Documents</span>
               <p className="text-xs text-gray-500 dark:text-gray-400">Employees can view their uploaded documents</p>
+            </div>
+          </label>
+
+          <label className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              checked={permissions.showOwnAssetsToEmployee}
+              onChange={(e) => setPermissions({ ...permissions, showOwnAssetsToEmployee: e.target.checked })}
+              className="rounded border-gray-300 dark:border-gray-600"
+            />
+            <div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">View Own Assets</span>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Employees can see company assets assigned to them</p>
             </div>
           </label>
         </div>

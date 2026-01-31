@@ -149,9 +149,7 @@ export default function UsersPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Role</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Department</th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
-                  {hasPermission("EDIT") && (
-                    <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Actions</th>
-                  )}
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
@@ -184,13 +182,18 @@ export default function UsersPage() {
                         {user.status}
                       </span>
                     </td>
-                    {hasPermission("EDIT") && (
-                      <td className="whitespace-nowrap px-4 py-3 text-right">
-                        <Button variant="ghost" size="sm" onClick={() => router.push(`/dashboard/users/${user.id}`)}>
-                          Edit
+                    <td className="whitespace-nowrap px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => router.push(`/dashboard/users/${user.id}/view`)}>
+                          View
                         </Button>
-                      </td>
-                    )}
+                        {hasPermission("EDIT") && (
+                          <Button variant="ghost" size="sm" onClick={() => router.push(`/dashboard/users/${user.id}`)}>
+                            Edit
+                          </Button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
