@@ -107,6 +107,7 @@ export default function DashboardLayout({
     { name: "Dashboard", href: "/dashboard", icon: HomeIcon, show: true },
     { name: "My Profile", href: "/dashboard/profile", icon: UserIcon, show: true },
     { name: "Directory", href: "/dashboard/directory", icon: ContactIcon, show: true },
+    { name: "Announcements", href: "/dashboard/announcements", icon: MegaphoneIcon, show: true },
   ].filter(item => item.show);
 
   // ORGANIZATION - Structure management (HR only)
