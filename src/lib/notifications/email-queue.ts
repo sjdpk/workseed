@@ -15,9 +15,23 @@ const APP_NAME = process.env.APP_NAME || "HRM System";
 
 // Create transporter lazily to avoid issues during build
 let transporter: Transporter | null = null;
+let isEtherealTransporter = false;
+let transporterInitializing: Promise<Transporter> | null = null;
 
-function getTransporter(): Transporter {
-  if (!transporter) {
+async function getTransporter(): Promise<Transporter> {
+  if (transporter) return transporter;
+  if (transporterInitializing) return transporterInitializing;
+
+  transporterInitializing = initTransporter();
+  return transporterInitializing;
+}
+
+async function initTransporter(): Promise<Transporter> {
+  const isProduction = process.env.NODE_ENV === "production";
+  const hasSmtpConfig = process.env.SMTP_USER && process.env.SMTP_PASSWORD;
+
+  if (isProduction && hasSmtpConfig) {
+    // Production: Use configured SMTP
     transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || "smtp.gmail.com",
       port: parseInt(process.env.SMTP_PORT || "587"),
@@ -27,14 +41,50 @@ function getTransporter(): Transporter {
         pass: process.env.SMTP_PASSWORD,
       },
     });
+    isEtherealTransporter = false;
+    logger.info("Email transporter initialized with production SMTP");
+  } else if (hasSmtpConfig) {
+    // Development with SMTP config: Use configured SMTP
+    transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || "smtp.gmail.com",
+      port: parseInt(process.env.SMTP_PORT || "587"),
+      secure: process.env.SMTP_SECURE === "true",
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASSWORD,
+      },
+    });
+    isEtherealTransporter = false;
+    logger.info("Email transporter initialized with configured SMTP");
+  } else {
+    // Development without SMTP: Use Ethereal (fake SMTP for testing)
+    const testAccount = await nodemailer.createTestAccount();
+    transporter = nodemailer.createTransport({
+      host: "smtp.ethereal.email",
+      port: 587,
+      secure: false,
+      auth: {
+        user: testAccount.user,
+        pass: testAccount.pass,
+      },
+    });
+    isEtherealTransporter = true;
+    logger.info("Email transporter initialized with Ethereal test account", {
+      user: testAccount.user,
+    });
   }
+
   return transporter;
 }
 
 /**
- * Check if SMTP is configured
+ * Check if SMTP is configured (or Ethereal available in dev)
  */
 export function isSmtpConfigured(): boolean {
+  // In development, we always have Ethereal as fallback
+  if (process.env.NODE_ENV !== "production") {
+    return true;
+  }
   return !!(process.env.SMTP_USER && process.env.SMTP_PASSWORD);
 }
 
@@ -112,6 +162,14 @@ export async function incrementRetryCount(
 }
 
 /**
+ * Validate email address format
+ */
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+/**
  * Send a single email
  */
 export async function sendSingleEmail(
@@ -119,20 +177,37 @@ export async function sendSingleEmail(
   subject: string,
   html: string
 ): Promise<boolean> {
-  if (!isSmtpConfigured()) {
-    logger.debug("Email not sent - SMTP not configured", { subject, to });
-    return false;
+  // Validate email address
+  if (!to || !isValidEmail(to)) {
+    logger.error("Invalid email address", { to, subject });
+    throw new Error(`Invalid email address: ${to}`);
   }
 
   try {
-    await getTransporter().sendMail({
-      from: `"${APP_NAME}" <${FROM_EMAIL}>`,
+    const transport = await getTransporter();
+    const fromEmail = isEtherealTransporter ? "noreply@test.local" : FROM_EMAIL;
+
+    const info = await transport.sendMail({
+      from: `"${APP_NAME}" <${fromEmail}>`,
       to,
       subject,
       html,
     });
 
-    logger.info("Email sent successfully", { to, subject });
+    logger.info("Email sent successfully", { to, subject, messageId: info.messageId });
+
+    // Log preview URL for Ethereal (development testing)
+    if (isEtherealTransporter) {
+      const previewUrl = nodemailer.getTestMessageUrl(info);
+      if (previewUrl) {
+        logger.info("Ethereal preview URL", { previewUrl });
+        console.log("\n========================================");
+        console.log("EMAIL SENT! Preview URL:");
+        console.log(previewUrl);
+        console.log("========================================\n");
+      }
+    }
+
     return true;
   } catch (error) {
     logger.error("Email sending failed", { error, to, subject });
@@ -211,12 +286,9 @@ export async function processQueue(
     skipped: 0,
   };
 
-  if (!isSmtpConfigured()) {
-    logger.debug("Queue processing skipped - SMTP not configured");
-    return result;
-  }
-
   try {
+    // Initialize transporter (will use Ethereal in dev if SMTP not configured)
+    await getTransporter();
     // Get batch of queued emails
     const queuedEmails = await prisma.emailLog.findMany({
       where: {

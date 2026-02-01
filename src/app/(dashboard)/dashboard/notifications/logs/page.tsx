@@ -70,6 +70,44 @@ export default function EmailLogsPage() {
   });
 
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
+  const [processing, setProcessing] = useState(false);
+  const [queueStats, setQueueStats] = useState<{ queued: number; smtpConfigured: boolean } | null>(null);
+
+  const fetchQueueStatus = async () => {
+    try {
+      const res = await fetch("/api/notifications/queue");
+      const data = await res.json();
+      if (data.success) {
+        setQueueStats({
+          queued: data.data.stats?.queued || 0,
+          smtpConfigured: data.data.smtpConfigured,
+        });
+      }
+    } catch {
+      // Ignore
+    }
+  };
+
+  const processQueue = async () => {
+    setProcessing(true);
+    try {
+      const res = await fetch("/api/notifications/queue?action=process", {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Processed: ${data.data.result.sent} sent, ${data.data.result.failed} failed`);
+        fetchLogs();
+        fetchQueueStatus();
+      } else {
+        toast.error(data.error || "Failed to process queue");
+      }
+    } catch {
+      toast.error("Failed to process queue");
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -96,6 +134,7 @@ export default function EmailLogsPage() {
 
   useEffect(() => {
     fetchLogs();
+    fetchQueueStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.page, filters.status, filters.type]);
 
@@ -183,6 +222,31 @@ export default function EmailLogsPage() {
             className="h-9 w-40 rounded border border-gray-300 bg-white px-3 text-sm placeholder-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500"
           />
           <Button onClick={handleSearch} size="sm">Search</Button>
+          {queueStats && queueStats.queued > 0 && (
+            <Button
+              onClick={processQueue}
+              disabled={processing}
+              size="sm"
+              variant="outline"
+            >
+              {processing ? (
+                <span className="flex items-center gap-1.5">
+                  <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Sending...
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5">
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                  Send ({queueStats.queued})
+                </span>
+              )}
+            </Button>
+          )}
           {(filters.status || filters.type || filters.email) && (
             <Button
               variant="outline"
@@ -258,7 +322,7 @@ export default function EmailLogsPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${getStatusBadge(log.status)}`}>
+                          <span className={`inline-flex rounded-md px-2 py-0.5 text-xs font-medium ${getStatusBadge(log.status)}`}>
                             {log.status}
                           </span>
                         </td>

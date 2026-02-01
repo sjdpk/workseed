@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button, Card, useToast } from "@/components";
 import type { LeaveRequest, LeaveType, Department } from "@/types";
 
@@ -36,6 +36,18 @@ export default function LeaveRequestsPage() {
   const [scope, setScope] = useState<string>("own");
   const [showFilters, setShowFilters] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
+
+  // Rejection dialog
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectingRequestId, setRejectingRequestId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [rejecting, setRejecting] = useState(false);
+  const rejectionInputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Revert dialog
+  const [revertDialogOpen, setRevertDialogOpen] = useState(false);
+  const [revertingRequestId, setRevertingRequestId] = useState<string | null>(null);
+  const [reverting, setReverting] = useState(false);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
@@ -135,6 +147,54 @@ export default function LeaveRequestsPage() {
       }
     } catch {
       toast.error("An error occurred. Please try again.");
+    }
+  };
+
+  const openRejectDialog = (requestId: string) => {
+    setRejectingRequestId(requestId);
+    setRejectionReason("");
+    setRejectDialogOpen(true);
+    setTimeout(() => rejectionInputRef.current?.focus(), 100);
+  };
+
+  const handleReject = async () => {
+    if (!rejectingRequestId) return;
+    setRejecting(true);
+    await handleAction(rejectingRequestId, "REJECTED", rejectionReason || undefined);
+    setRejecting(false);
+    setRejectDialogOpen(false);
+    setRejectingRequestId(null);
+    setRejectionReason("");
+  };
+
+  const openRevertDialog = (requestId: string) => {
+    setRevertingRequestId(requestId);
+    setRevertDialogOpen(true);
+  };
+
+  const handleRevert = async () => {
+    if (!revertingRequestId) return;
+    setReverting(true);
+    try {
+      const res = await fetch(`/api/leave-requests?id=${revertingRequestId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "PENDING" }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Leave request reverted to pending");
+        fetchRequests();
+        setSelectedRequest(null);
+      } else {
+        toast.error(data.error || "Failed to revert leave request");
+      }
+    } catch {
+      toast.error("An error occurred. Please try again.");
+    } finally {
+      setReverting(false);
+      setRevertDialogOpen(false);
+      setRevertingRequestId(null);
     }
   };
 
@@ -463,10 +523,7 @@ export default function LeaveRequestsPage() {
                             Approve
                           </button>
                           <button
-                            onClick={() => {
-                              const reason = prompt("Rejection reason (optional):");
-                              handleAction(req.id, "REJECTED", reason || undefined);
-                            }}
+                            onClick={() => openRejectDialog(req.id)}
                             className="rounded border border-gray-300 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300"
                           >
                             Reject
@@ -713,16 +770,233 @@ export default function LeaveRequestsPage() {
                   <Button
                     variant="outline"
                     className="flex-1"
-                    onClick={() => {
-                      const reason = prompt("Rejection reason (optional):");
-                      handleAction(selectedRequest.id, "REJECTED", reason || undefined);
-                    }}
+                    onClick={() => openRejectDialog(selectedRequest.id)}
                   >
                     Reject
                   </Button>
                 </div>
               </div>
             )}
+
+            {/* Revert Action for Approved/Rejected */}
+            {(selectedRequest.status === "APPROVED" || selectedRequest.status === "REJECTED") &&
+              canApprove && (
+                <div className="border-t border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => openRevertDialog(selectedRequest.id)}
+                  >
+                    <svg
+                      className="mr-2 h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+                      />
+                    </svg>
+                    Revert to Pending
+                  </Button>
+                </div>
+              )}
+          </div>
+        </div>
+      )}
+
+      {/* Revert Confirmation Dialog */}
+      {revertDialogOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => {
+              if (!reverting) {
+                setRevertDialogOpen(false);
+                setRevertingRequestId(null);
+              }
+            }}
+          />
+          <div className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-900">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
+                <svg
+                  className="h-5 w-5 text-amber-600 dark:text-amber-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Revert Leave Request
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  This will change the status back to pending
+                </p>
+              </div>
+            </div>
+
+            <p className="mb-4 text-sm text-gray-600 dark:text-gray-300">
+              Are you sure you want to revert this leave request to pending status? If the request
+              was approved, the leave balance will be restored.
+            </p>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setRevertDialogOpen(false);
+                  setRevertingRequestId(null);
+                }}
+                disabled={reverting}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 bg-amber-600 hover:bg-amber-700 dark:bg-amber-600 dark:hover:bg-amber-700"
+                onClick={handleRevert}
+                disabled={reverting}
+              >
+                {reverting ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      />
+                    </svg>
+                    Reverting...
+                  </span>
+                ) : (
+                  "Revert to Pending"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rejection Dialog */}
+      {rejectDialogOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => {
+              if (!rejecting) {
+                setRejectDialogOpen(false);
+                setRejectingRequestId(null);
+                setRejectionReason("");
+              }
+            }}
+          />
+          <div className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-900">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+                <svg
+                  className="h-5 w-5 text-red-600 dark:text-red-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Reject Leave Request
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  This action cannot be undone
+                </p>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label
+                htmlFor="rejectionReason"
+                className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Rejection Reason <span className="text-gray-400">(optional)</span>
+              </label>
+              <textarea
+                ref={rejectionInputRef}
+                id="rejectionReason"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Enter reason for rejection..."
+                rows={3}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 dark:focus:border-white dark:focus:ring-white"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setRejectDialogOpen(false);
+                  setRejectingRequestId(null);
+                  setRejectionReason("");
+                }}
+                disabled={rejecting}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700"
+                onClick={handleReject}
+                disabled={rejecting}
+              >
+                {rejecting ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      />
+                    </svg>
+                    Rejecting...
+                  </span>
+                ) : (
+                  "Reject Request"
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       )}

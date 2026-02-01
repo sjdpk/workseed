@@ -194,7 +194,7 @@ export default function TemplatesPage() {
                     </td>
                     <td className="px-4 py-3">
                       <span
-                        className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${getTypeBadgeColor(template.type)}`}
+                        className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-medium ${getTypeBadgeColor(template.type)}`}
                       >
                         {template.type.replace(/_/g, " ")}
                       </span>
@@ -202,7 +202,7 @@ export default function TemplatesPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <span
-                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                          className={`inline-flex rounded-md px-2 py-0.5 text-xs font-medium ${
                             template.isActive
                               ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
                               : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
@@ -211,7 +211,7 @@ export default function TemplatesPage() {
                           {template.isActive ? "Active" : "Inactive"}
                         </span>
                         {template.isSystem && (
-                          <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                          <span className="inline-flex rounded-md bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
                             System
                           </span>
                         )}

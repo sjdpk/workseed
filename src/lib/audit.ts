@@ -10,6 +10,7 @@ export type AuditAction =
   | "APPROVE"
   | "REJECT"
   | "CANCEL"
+  | "REVERT"
   | "VIEW"
   | "EXPORT"
   | "IMPORT"

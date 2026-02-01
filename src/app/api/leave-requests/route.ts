@@ -22,9 +22,10 @@ const createLeaveRequestSchema = z.object({
 });
 
 const updateLeaveRequestSchema = z.object({
-  status: z.enum(["APPROVED", "REJECTED", "CANCELLED"]),
+  status: z.enum(["APPROVED", "REJECTED", "CANCELLED", "PENDING"]),
   rejectionReason: z.string().optional(),
   cancelReason: z.string().optional(),
+  revertReason: z.string().optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -336,6 +337,21 @@ export async function PATCH(request: NextRequest) {
           { status: 403 }
         );
       }
+    } else if (data.status === "PENDING") {
+      // Revert - only approvers can revert
+      if (!canApprove) {
+        return NextResponse.json(
+          { success: false, error: "Not authorized to revert status" },
+          { status: 403 }
+        );
+      }
+      // Can only revert from APPROVED or REJECTED
+      if (leaveRequest.status !== "APPROVED" && leaveRequest.status !== "REJECTED") {
+        return NextResponse.json(
+          { success: false, error: "Can only revert approved or rejected requests" },
+          { status: 400 }
+        );
+      }
     }
 
     const updateData: Record<string, unknown> = {
@@ -352,6 +368,30 @@ export async function PATCH(request: NextRequest) {
 
     if (data.status === "CANCELLED" && data.cancelReason) {
       updateData.cancelReason = data.cancelReason;
+    }
+
+    // If reverting to PENDING, clear approval info
+    if (data.status === "PENDING") {
+      updateData.approverId = null;
+      updateData.approvedAt = null;
+      updateData.rejectionReason = null;
+    }
+
+    // If reverting from APPROVED, restore the used days
+    if (data.status === "PENDING" && leaveRequest.status === "APPROVED") {
+      const year = leaveRequest.startDate.getFullYear();
+      await prisma.leaveAllocation.update({
+        where: {
+          userId_leaveTypeId_year: {
+            userId: leaveRequest.userId,
+            leaveTypeId: leaveRequest.leaveTypeId,
+            year,
+          },
+        },
+        data: {
+          used: { decrement: leaveRequest.days },
+        },
+      });
     }
 
     // If approved, update the allocation's used days
@@ -431,7 +471,13 @@ export async function PATCH(request: NextRequest) {
     // Audit log
     const { ipAddress, userAgent } = getRequestMeta(request.headers);
     const auditAction =
-      data.status === "APPROVED" ? "APPROVE" : data.status === "REJECTED" ? "REJECT" : "CANCEL";
+      data.status === "APPROVED"
+        ? "APPROVE"
+        : data.status === "REJECTED"
+          ? "REJECT"
+          : data.status === "PENDING"
+            ? "REVERT"
+            : "CANCEL";
     await createAuditLog({
       userId: currentUser.id,
       action: auditAction,

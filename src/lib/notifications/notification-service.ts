@@ -115,13 +115,11 @@ export async function queueNotification(
       queuedCount: emailLogIds.length,
     });
 
-    // Optionally trigger immediate processing for high-priority
-    if (context.priority === "URGENT" || context.priority === "HIGH") {
-      // Process queue immediately (but don't wait for it)
-      processQueue(10).catch((error) => {
-        logger.error("Failed to process urgent queue", { error });
-      });
-    }
+    // Process queue immediately (but don't wait for it)
+    // This ensures emails are sent right away instead of waiting for manual processing
+    processQueue(emailLogIds.length || 10).catch((error) => {
+      logger.error("Failed to process queue", { error });
+    });
 
     return emailLogIds;
   } catch (error) {
