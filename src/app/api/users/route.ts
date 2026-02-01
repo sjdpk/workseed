@@ -85,6 +85,8 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search") || "";
     const teamId = searchParams.get("teamId");
     const departmentId = searchParams.get("departmentId");
+    const role = searchParams.get("role");
+    const status = searchParams.get("status");
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
@@ -104,6 +106,14 @@ export async function GET(request: NextRequest) {
 
     if (departmentId) {
       where.departmentId = departmentId;
+    }
+
+    if (role) {
+      where.role = role;
+    }
+
+    if (status) {
+      where.status = status;
     }
 
     const [users, total] = await Promise.all([
