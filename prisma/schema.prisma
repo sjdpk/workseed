@@ -237,6 +237,7 @@ model User {
   employeeRequests EmployeeRequest[]
   requestApprovals EmployeeRequest[] @relation("RequestApprover")
   notificationPreferences NotificationPreference[]
+  passwordResetTokens PasswordResetToken[]
 
   @@map("users")
 }
@@ -635,4 +636,19 @@ model NotificationPreference {
 
   @@unique([userId, type])
   @@map("notification_preferences")
+}
+
+// Password Reset Token - For forgot password functionality
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([token])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
 }

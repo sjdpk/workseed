@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { ThemeToggle } from "@/components";
@@ -309,6 +310,14 @@ export default function LoginPage() {
                       </svg>
                     )}
                   </button>
+                </div>
+                <div className="flex justify-end">
+                  <Link
+                    href="/forgot-password"
+                    className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    Forgot password?
+                  </Link>
                 </div>
               </div>
 
