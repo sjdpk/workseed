@@ -3,7 +3,7 @@
 
 import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { prisma } from "./prisma";
 
 // JWT signing secret - should be set in environment variables
@@ -42,11 +42,19 @@ export async function verifyToken(token: string) {
   }
 }
 
-// Retrieve the current authenticated user from the session cookie
+// Retrieve the current authenticated user from the session cookie or Authorization header
 // Returns null if no valid session exists
 export async function getCurrentUser() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("auth-token")?.value;
+  let token = cookieStore.get("auth-token")?.value;
+
+  // Also check Authorization header
+  if (!token) {
+    const authHeader = (await headers()).get("Authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      token = authHeader.substring(7);
+    }
+  }
 
   if (!token) return null;
 

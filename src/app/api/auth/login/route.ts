@@ -11,6 +11,8 @@ const loginSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    logger.info("Login attempt", { email: body.email });
+
     const { email, password } = loginSchema.parse(body);
 
     const user = await prisma.user.findUnique({
@@ -23,6 +25,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
+      logger.warn("Login failed - user not found", { email });
       return NextResponse.json(
         { success: false, error: "Invalid email or password" },
         { status: 401 }
@@ -38,11 +41,14 @@ export async function POST(request: NextRequest) {
 
     const isValid = await verifyPassword(password, user.password);
     if (!isValid) {
+      logger.warn("Login failed - invalid password", { email });
       return NextResponse.json(
         { success: false, error: "Invalid email or password" },
         { status: 401 }
       );
     }
+
+    logger.info("Login successful", { email, userId: user.id });
 
     // Update last login
     await prisma.user.update({
@@ -68,6 +74,7 @@ export async function POST(request: NextRequest) {
           employeeId: user.employeeId,
           branch: user.branch,
         },
+        token, // Return token for cross-origin/mobile clients
       },
     });
 

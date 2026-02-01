@@ -18,6 +18,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const { id } = await params;
 
+    // Validate UUID format
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      return NextResponse.json({ success: false, error: "Invalid allocation ID" }, { status: 400 });
+    }
+
     const allocation = await prisma.leaveAllocation.findUnique({
       where: { id },
       include: {
@@ -58,6 +63,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const { id } = await params;
+
+    // Validate UUID format
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      return NextResponse.json({ success: false, error: "Invalid allocation ID" }, { status: 400 });
+    }
+
     const body = await request.json();
     const data = updateAllocationSchema.parse(body);
 
