@@ -43,6 +43,56 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [orgSettings, setOrgSettings] = useState<OrgSettings | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  // Refetch notifications when sidebar opens
+  const openNotifications = () => {
+    fetchNotifications();
+    setShowNotifications(true);
+  };
+  const [notificationData, setNotificationData] = useState<{
+    pendingLeaves: { id: string; user: string; type: string; days: number }[];
+    upcomingBirthdays: { id: string; name: string; department: string; daysUntil: number }[];
+    upcomingAnniversaries: { id: string; name: string; department: string; years: number; daysUntil: number }[];
+    recentHires: { id: string; name: string; department: string; joiningDate: string | null }[];
+  }>({
+    pendingLeaves: [],
+    upcomingBirthdays: [],
+    upcomingAnniversaries: [],
+    recentHires: [],
+  });
+
+  // Calculate actual count from notification data
+  const notificationCount =
+    notificationData.pendingLeaves.length +
+    notificationData.upcomingBirthdays.length +
+    notificationData.upcomingAnniversaries.length;
+
+  // Fetch notifications data
+  const fetchNotifications = async () => {
+    try {
+      const res = await fetch("/api/dashboard");
+      const data = await res.json();
+
+      if (data.success) {
+        setNotificationData({
+          pendingLeaves: (data.data.recentLeaves || [])
+            .filter((l: { status: string }) => l.status === "PENDING")
+            .map((l: { id: string; user: string; type: string; days: number }) => ({
+              id: l.id,
+              user: l.user,
+              type: l.type,
+              days: l.days,
+            })),
+          upcomingBirthdays: data.data.upcomingBirthdays || [],
+          upcomingAnniversaries: data.data.upcomingAnniversaries || [],
+          recentHires: data.data.recentHires || [],
+        });
+      }
+    } catch {
+      // Silently fail
+    }
+  };
 
   useEffect(() => {
     Promise.all([
@@ -107,6 +157,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       })
       .catch(() => router.push("/login"));
   }, [router]);
+
+  // Fetch notifications on mount, on route change, and periodically
+  useEffect(() => {
+    if (user) {
+      fetchNotifications();
+      // Refresh every 60 seconds
+      const interval = setInterval(fetchNotifications, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [user, pathname]);
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -742,6 +802,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </button>
 
             <div className="flex items-center gap-3 ml-auto">
+              <button
+                onClick={openNotifications}
+                className="relative flex h-9 w-9 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+              >
+                <BellIcon className="h-5 w-5" />
+                {notificationCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
+                    {notificationCount > 99 ? "99+" : notificationCount}
+                  </span>
+                )}
+              </button>
               <ThemeToggle />
               <Button variant="outline" size="sm" onClick={handleLogout}>
                 Logout
@@ -751,6 +822,178 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <main className="p-4 lg:p-6">{children}</main>
         </div>
+
+        {/* Notifications Sidebar */}
+        {showNotifications && (
+          <div className="fixed inset-0 z-50 overflow-hidden">
+            <div
+              className="absolute inset-0 bg-black/20"
+              onClick={() => setShowNotifications(false)}
+            />
+            <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl dark:bg-gray-900">
+              <div className="flex h-full flex-col">
+                <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-800">
+                  <div className="flex items-center gap-2">
+                    <BellIcon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Notifications</h2>
+                    {notificationCount > 0 && (
+                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-medium text-white">
+                        {notificationCount}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setShowNotifications(false)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto">
+                  {/* Pending Leave Requests */}
+                  {notificationData.pendingLeaves.length > 0 && (
+                    <div className="border-b border-gray-100 dark:border-gray-800">
+                      <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-800/50">
+                        <ClockIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Pending Leaves</span>
+                        <span className="text-xs text-gray-400">({notificationData.pendingLeaves.length})</span>
+                      </div>
+                      <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                        {notificationData.pendingLeaves.map((leave) => (
+                          <Link
+                            key={leave.id}
+                            href="/dashboard/leaves/requests"
+                            onClick={() => setShowNotifications(false)}
+                            className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                          >
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-300">
+                              {leave.user.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{leave.user}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{leave.type} · {leave.days}d</p>
+                            </div>
+                            <ChevronRightIcon className="h-4 w-4 text-gray-300 dark:text-gray-600" />
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Upcoming Birthdays */}
+                  {notificationData.upcomingBirthdays.length > 0 && (
+                    <div className="border-b border-gray-100 dark:border-gray-800">
+                      <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-800/50">
+                        <CakeIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Birthdays</span>
+                        <span className="text-xs text-gray-400">({notificationData.upcomingBirthdays.length})</span>
+                      </div>
+                      <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                        {notificationData.upcomingBirthdays.map((b) => (
+                          <div key={b.id} className="flex items-center gap-3 px-4 py-3">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-300">
+                              {b.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{b.name}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{b.department}</p>
+                            </div>
+                            <span className={`text-xs px-2 py-0.5 rounded ${
+                              b.daysUntil === 0
+                                ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
+                                : "text-gray-500 dark:text-gray-400"
+                            }`}>
+                              {b.daysUntil === 0 ? "Today" : b.daysUntil === 1 ? "Tomorrow" : `${b.daysUntil}d`}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Work Anniversaries */}
+                  {notificationData.upcomingAnniversaries.length > 0 && (
+                    <div className="border-b border-gray-100 dark:border-gray-800">
+                      <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-800/50">
+                        <TrophyIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Anniversaries</span>
+                        <span className="text-xs text-gray-400">({notificationData.upcomingAnniversaries.length})</span>
+                      </div>
+                      <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                        {notificationData.upcomingAnniversaries.map((a) => (
+                          <div key={a.id} className="flex items-center gap-3 px-4 py-3">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-300">
+                              {a.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{a.name}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{a.years}yr · {a.department}</p>
+                            </div>
+                            <span className={`text-xs px-2 py-0.5 rounded ${
+                              a.daysUntil === 0
+                                ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
+                                : "text-gray-500 dark:text-gray-400"
+                            }`}>
+                              {a.daysUntil === 0 ? "Today" : a.daysUntil === 1 ? "Tomorrow" : `${a.daysUntil}d`}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recent Hires */}
+                  {notificationData.recentHires.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-800/50">
+                        <UserPlusIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">New Hires</span>
+                        <span className="text-xs text-gray-400">({notificationData.recentHires.length})</span>
+                      </div>
+                      <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                        {notificationData.recentHires.slice(0, 5).map((h) => (
+                          <Link
+                            key={h.id}
+                            href={`/dashboard/users/${h.id}/view`}
+                            onClick={() => setShowNotifications(false)}
+                            className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                          >
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-300">
+                              {h.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{h.name}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{h.department || "No department"}</p>
+                            </div>
+                            {h.joiningDate && (
+                              <span className="text-xs text-gray-400">
+                                {new Date(h.joiningDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                              </span>
+                            )}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Empty State */}
+                  {notificationCount === 0 && notificationData.recentHires.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 mb-3">
+                        <BellIcon className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">All caught up!</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">No new notifications</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </ToastProvider>
   );
@@ -1095,6 +1338,66 @@ function FileIcon({ className }: { className?: string }) {
         strokeWidth={1.5}
         d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
       />
+    </svg>
+  );
+}
+
+function BellIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
+      />
+    </svg>
+  );
+}
+
+function CakeIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M12 8.25v-1.5m0 1.5c-1.355 0-2.697.056-4.024.166C6.845 8.51 6 9.473 6 10.608v2.513m6-4.87c1.355 0 2.697.055 4.024.165C17.155 8.51 18 9.473 18 10.608v2.513m-3-4.87v-1.5m-6 1.5v-1.5m12 9.75l-1.5.75a3.354 3.354 0 01-3 0 3.354 3.354 0 00-3 0 3.354 3.354 0 01-3 0 3.354 3.354 0 00-3 0 3.354 3.354 0 01-3 0L3 16.5m18-6.121v3.246c0 1.135-.845 2.098-1.976 2.192a48.424 48.424 0 01-8.024.166 48.42 48.42 0 01-4.024-.166C5.845 15.719 5 14.756 5 13.621v-3.246m16 0c0 1.135-.845 2.098-1.976 2.192a48.424 48.424 0 01-8.024.166 48.42 48.42 0 01-4.024-.166C5.845 12.719 5 11.756 5 10.621"
+      />
+    </svg>
+  );
+}
+
+function TrophyIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m3.044-1.35a6.726 6.726 0 01-2.749 1.35m0 0v1.122c0 .621-.504 1.125-1.125 1.125H12m-.773-2.247L12 10.5m0 0l.773-.252M12 10.5v2.25m7.27-2.772a6.003 6.003 0 00-1.904-5.712m1.904 5.712a6.726 6.726 0 01-2.749 1.35m2.749-1.35v.249m0 0c.982.143 1.954.317 2.916.52M18.75 4.236V4.5c0 2.108-.966 3.99-2.48 5.228"
+      />
+    </svg>
+  );
+}
+
+function UserPlusIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z"
+      />
+    </svg>
+  );
+}
+
+function ChevronRightIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.25 4.5l7.5 7.5-7.5 7.5" />
     </svg>
   );
 }

@@ -9,6 +9,29 @@ interface OrgSettings {
   logoUrl?: string | null;
 }
 
+// Default logo component - clean hexagon with initials
+function DefaultLogo({ name, size = "md" }: { name: string; size?: "sm" | "md" | "lg" }) {
+  const sizes = {
+    sm: { container: "h-8 w-8", text: "text-xs" },
+    md: { container: "h-10 w-10", text: "text-sm" },
+    lg: { container: "h-12 w-12", text: "text-base" },
+  };
+  const initials = name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  return (
+    <div
+      className={`${sizes[size].container} flex items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/25`}
+    >
+      <span className={`${sizes[size].text} font-bold text-white`}>{initials || "HR"}</span>
+    </div>
+  );
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -19,7 +42,7 @@ export default function LoginPage() {
   const [orgSettings, setOrgSettings] = useState<OrgSettings | null>(null);
 
   useEffect(() => {
-    fetch("/api/organization")
+    fetch("/api/organization/public")
       .then((r) => r.json())
       .then((data) => {
         if (data.success) {
@@ -94,81 +117,91 @@ export default function LoginPage() {
     }
   };
 
+  const orgName = orgSettings?.name || "HRM System";
+
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Left side - Branding */}
-      <div className="hidden w-1/2 bg-gray-900 lg:flex lg:flex-col lg:justify-between p-12">
-        <div>
-          <div className="flex items-center gap-2.5">
+      <div className="relative hidden w-1/2 overflow-hidden bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800 lg:flex lg:flex-col lg:justify-between p-12">
+        {/* Decorative elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-1/2 -left-1/4 h-96 w-96 rounded-full bg-indigo-500/10 blur-3xl" />
+          <div className="absolute -bottom-1/2 -right-1/4 h-96 w-96 rounded-full bg-purple-500/10 blur-3xl" />
+          <div className="absolute top-1/4 right-1/4 h-64 w-64 rounded-full bg-blue-500/5 blur-2xl" />
+        </div>
+
+        <div className="relative">
+          <div className="flex items-center gap-3">
             {orgSettings?.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element -- Dynamic URL from org settings
-              <img src={orgSettings.logoUrl} alt="" className="h-8 w-8 rounded-md object-contain" />
+              <img
+                src={orgSettings.logoUrl}
+                alt=""
+                className="h-10 w-10 rounded-xl object-contain shadow-lg"
+              />
             ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-600">
-                <svg
-                  className="h-5 w-5 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"
-                  />
-                </svg>
-              </div>
+              <DefaultLogo name={orgName} size="md" />
             )}
-            <span className="text-base font-semibold text-white">
-              {orgSettings?.name || "HRM System"}
-            </span>
+            <span className="text-lg font-semibold text-white">{orgName}</span>
           </div>
         </div>
 
-        <div className="space-y-4">
-          <h1 className="text-3xl font-semibold leading-tight text-white">
+        <div className="relative space-y-6">
+          <h1 className="text-4xl font-bold leading-tight text-white">
             Manage your team
             <br />
-            with confidence
+            <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+              with confidence
+            </span>
           </h1>
-          <p className="text-sm text-gray-400 max-w-md">
-            Streamline HR operations, track employee data, and build a better workplace.
+          <p className="text-base text-gray-400 max-w-md leading-relaxed">
+            Streamline HR operations, track employee data, and build a better workplace with our
+            comprehensive management platform.
           </p>
+          <div className="flex items-center gap-6 pt-4">
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <svg className="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Secure & Private
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <svg className="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Easy to Use
+            </div>
+          </div>
         </div>
 
-        <p className="text-sm text-gray-500">
-          © {new Date().getFullYear()} {orgSettings?.name || "HRM System"}. All rights reserved.
+        <p className="relative text-sm text-gray-500">
+          © {new Date().getFullYear()} {orgName}. All rights reserved.
         </p>
       </div>
 
       {/* Right side - Login form */}
       <div className="flex w-full flex-col lg:w-1/2">
         <div className="flex items-center justify-between p-6 lg:p-8">
-          <div className="flex items-center gap-2 lg:hidden">
+          <div className="flex items-center gap-2.5 lg:hidden">
             {orgSettings?.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element -- Dynamic URL from org settings
-              <img src={orgSettings.logoUrl} alt="" className="h-7 w-7 rounded-md object-contain" />
+              <img
+                src={orgSettings.logoUrl}
+                alt=""
+                className="h-8 w-8 rounded-xl object-contain shadow-md"
+              />
             ) : (
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-600">
-                <svg
-                  className="h-5 w-5 text-white dark:text-gray-900"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
-              </div>
+              <DefaultLogo name={orgName} size="sm" />
             )}
-            <span className="font-semibold text-gray-900 dark:text-white">
-              {orgSettings?.name || "HRM"}
-            </span>
+            <span className="font-semibold text-gray-900 dark:text-white">{orgName}</span>
           </div>
           <div className="ml-auto">
             <ThemeToggle />
@@ -177,10 +210,10 @@ export default function LoginPage() {
 
         <div className="flex flex-1 items-center justify-center px-6 pb-12 lg:px-16">
           <div className="w-full max-w-sm">
-            <div className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Welcome back</h2>
+            <div className="mb-8 text-center lg:text-left">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome back</h2>
               <p className="mt-2 text-gray-600 dark:text-gray-400">
-                Enter your credentials to access your account
+                Sign in to continue to your dashboard
               </p>
             </div>
 
