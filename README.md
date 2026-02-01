@@ -1,4 +1,4 @@
-# HRM System
+# Workseed
 
 A comprehensive Human Resource Management system built with Next.js, React, and PostgreSQL.
 
@@ -101,7 +101,7 @@ The application will be available at `http://localhost:3000`.
 
 | Variable              | Description                                  | Default                   |
 | --------------------- | -------------------------------------------- | ------------------------- |
-| `APP_NAME`            | Application name for emails                  | HRM System                |
+| `APP_NAME`            | Application name for emails                  | Workseed                  |
 | `NEXT_PUBLIC_APP_URL` | Public application URL                       | http://localhost:3000     |
 | `LOG_LEVEL`           | Minimum log level (DEBUG, INFO, WARN, ERROR) | DEBUG (dev) / INFO (prod) |
 

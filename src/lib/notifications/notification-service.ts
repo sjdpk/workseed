@@ -419,7 +419,7 @@ export async function testEmailConfiguration(
   try {
     const emailLogIds = await sendCustomEmail({
       to: testEmail,
-      subject: "Test Email - HRM System",
+      subject: "Test Email - Workseed",
       content: `
         <h2 class="title">Test Email</h2>
         <p>This is a test email to verify your email configuration is working correctly.</p>

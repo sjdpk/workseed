@@ -1,6 +1,6 @@
 // Application constants
 
-export const APP_NAME = "TheSystem";
+export const APP_NAME = "Workseed";
 
 export const ROUTES = {
   HOME: "/",

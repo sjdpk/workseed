@@ -1,6 +1,6 @@
 # API Documentation
 
-Complete reference for the HRM System API endpoints.
+Complete reference for the Workseed API endpoints.
 
 ## Authentication
 

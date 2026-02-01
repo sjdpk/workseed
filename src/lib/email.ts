@@ -13,7 +13,7 @@ const transporter = nodemailer.createTransport({
 });
 
 const FROM_EMAIL = process.env.SMTP_FROM || "noreply@hrm.local";
-const APP_NAME = process.env.APP_NAME || "HRM System";
+const APP_NAME = process.env.APP_NAME || "Workseed";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
 interface EmailOptions {

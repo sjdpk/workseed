@@ -9,28 +9,6 @@ interface OrgSettings {
   logoUrl?: string | null;
 }
 
-function DefaultLogo({ name, size = "md" }: { name: string; size?: "sm" | "md" | "lg" }) {
-  const sizes = {
-    sm: { container: "h-8 w-8", text: "text-xs" },
-    md: { container: "h-10 w-10", text: "text-sm" },
-    lg: { container: "h-12 w-12", text: "text-base" },
-  };
-  const initials = name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
-  return (
-    <div
-      className={`${sizes[size].container} flex items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/25`}
-    >
-      <span className={`${sizes[size].text} font-bold text-white`}>{initials || "HR"}</span>
-    </div>
-  );
-}
-
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
@@ -78,7 +56,7 @@ export default function ForgotPasswordPage() {
     }
   };
 
-  const orgName = orgSettings?.name || "HRM System";
+  const orgName = orgSettings?.name || "Workseed";
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -92,16 +70,12 @@ export default function ForgotPasswordPage() {
 
         <div className="relative">
           <div className="flex items-center gap-3">
-            {orgSettings?.logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={orgSettings.logoUrl}
-                alt=""
-                className="h-10 w-10 rounded-xl object-contain shadow-lg"
-              />
-            ) : (
-              <DefaultLogo name={orgName} size="md" />
-            )}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={orgSettings?.logoUrl || "/logo.png"}
+              alt=""
+              className="h-10 w-10 rounded-xl object-contain shadow-lg"
+            />
             <span className="text-lg font-semibold text-white">{orgName}</span>
           </div>
         </div>
@@ -129,16 +103,12 @@ export default function ForgotPasswordPage() {
       <div className="flex w-full flex-col lg:w-1/2">
         <div className="flex items-center justify-between p-6 lg:p-8">
           <div className="flex items-center gap-2.5 lg:hidden">
-            {orgSettings?.logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={orgSettings.logoUrl}
-                alt=""
-                className="h-8 w-8 rounded-xl object-contain shadow-md"
-              />
-            ) : (
-              <DefaultLogo name={orgName} size="sm" />
-            )}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={orgSettings?.logoUrl || "/logo.png"}
+              alt=""
+              className="h-8 w-8 rounded-xl object-contain shadow-md"
+            />
             <span className="font-semibold text-gray-900 dark:text-white">{orgName}</span>
           </div>
           <div className="ml-auto">

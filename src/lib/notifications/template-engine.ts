@@ -3,7 +3,7 @@ import { logger } from "@/lib/logger";
 import type { EmailTemplate } from "@prisma/client";
 import type { NotificationType, TemplateVariables, RenderedEmail } from "./types";
 
-const APP_NAME = process.env.APP_NAME || "HRM System";
+const APP_NAME = process.env.APP_NAME || "Workseed";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
 /**

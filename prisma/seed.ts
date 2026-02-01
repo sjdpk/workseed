@@ -1039,7 +1039,7 @@ async function main() {
   await Promise.all([
     prisma.notice.create({
       data: {
-        title: "Welcome to the New HRM System",
+        title: "Welcome to Workseed",
         content:
           "We are excited to announce the launch of our new Human Resource Management System. This system will help streamline leave management, attendance tracking, and employee information management. Please take some time to explore the features and let us know if you have any questions.",
         type: "GENERAL",

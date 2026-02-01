@@ -16,7 +16,7 @@ export async function GET() {
       success: true,
       data: {
         settings: {
-          name: settings?.name || "HRM System",
+          name: settings?.name || "Workseed",
           logoUrl: settings?.logoUrl || null,
         },
       },
@@ -26,7 +26,7 @@ export async function GET() {
       success: true,
       data: {
         settings: {
-          name: "HRM System",
+          name: "Workseed",
           logoUrl: null,
         },
       },

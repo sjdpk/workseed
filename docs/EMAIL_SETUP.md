@@ -9,7 +9,7 @@
 ### Step 2: Generate App Password
 1. Go to [App Passwords](https://myaccount.google.com/apppasswords)
 2. Select "Mail" and "Other (Custom name)"
-3. Enter "HRM System" and click Generate
+3. Enter "Workseed" and click Generate
 4. Copy the 16-character password
 
 ### Step 3: Configure Environment

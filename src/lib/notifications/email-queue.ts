@@ -11,7 +11,7 @@ import {
 } from "./types";
 
 const FROM_EMAIL = process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@hrm.local";
-const APP_NAME = process.env.APP_NAME || "HRM System";
+const APP_NAME = process.env.APP_NAME || "Workseed";
 
 // Create transporter lazily to avoid issues during build
 let transporter: Transporter | null = null;

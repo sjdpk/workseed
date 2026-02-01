@@ -416,39 +416,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               href="/dashboard"
               className={`flex items-center min-w-0 ${collapsed ? "justify-center" : "gap-2.5"}`}
             >
-              {orgSettings?.logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element -- Dynamic URL from org settings
-                <img
-                  src={orgSettings.logoUrl}
-                  alt={orgSettings.name || "Logo"}
-                  className="h-7 w-7 rounded object-contain flex-shrink-0"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                    e.currentTarget.nextElementSibling?.classList.remove("hidden");
-                  }}
-                />
-              ) : null}
-              <div
-                className={`flex h-7 w-7 items-center justify-center rounded-md bg-emerald-600 flex-shrink-0 ${orgSettings?.logoUrl ? "hidden" : ""}`}
-              >
-                <svg
-                  className="h-4 w-4 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"
-                  />
-                </svg>
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic URL from org settings */}
+              <img
+                src={orgSettings?.logoUrl || "/logo.png"}
+                alt={orgSettings?.name || "Workseed"}
+                className="h-7 w-7 rounded object-contain flex-shrink-0"
+              />
               {!collapsed && (
                 <div className="min-w-0">
                   <span className="text-sm font-semibold text-gray-900 dark:text-white truncate block">
-                    {orgSettings?.name || "HRM"}
+                    {orgSettings?.name || "Workseed"}
                   </span>
                 </div>
               )}

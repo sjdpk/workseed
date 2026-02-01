@@ -87,7 +87,7 @@ class EmailServiceClass {
     }
 
     try {
-      const appName = process.env.APP_NAME || "Workseed HRM";
+      const appName = process.env.APP_NAME || "Workseed";
       const fromEmail = process.env.SMTP_FROM || `noreply@${appName.toLowerCase().replace(/\s+/g, "")}.com`;
 
       const info = await this.transporter.sendMail({
@@ -125,7 +125,7 @@ class EmailServiceClass {
     firstName: string,
     resetLink: string
   ): Promise<string | null> {
-    const appName = process.env.APP_NAME || "Workseed HRM";
+    const appName = process.env.APP_NAME || "Workseed";
 
     const html = `
       <!DOCTYPE html>
@@ -204,7 +204,7 @@ The ${appName} Team
    * Send welcome email
    */
   async sendWelcomeEmail(email: string, firstName: string): Promise<string | null> {
-    const appName = process.env.APP_NAME || "Workseed HRM";
+    const appName = process.env.APP_NAME || "Workseed";
 
     const html = `
       <!DOCTYPE html>
