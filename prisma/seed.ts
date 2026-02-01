@@ -1,7 +1,8 @@
 /* eslint-disable no-console -- CLI seed script uses console for output */
+/* eslint-disable @typescript-eslint/no-explicit-any -- Prisma adapter typing workaround */
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, AssetCondition } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import pg from "pg";
 
@@ -9,7 +10,8 @@ const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
 });
 const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+// Using 'any' to work around PrismaPg adapter typing limitations
+const prisma: any = new PrismaClient({ adapter });
 
 async function main() {
   console.log("Seeding database with sample data...\n");
@@ -755,10 +757,10 @@ async function main() {
   // LEAVE REQUESTS
   // ============================================
   console.log("Creating leave requests...");
-  const annualLeave = allLeaveTypes.find((lt) => lt.code === "AL");
-  const sickLeave = allLeaveTypes.find((lt) => lt.code === "SL");
-  const casualLeave = allLeaveTypes.find((lt) => lt.code === "CL");
-  const wfh = allLeaveTypes.find((lt) => lt.code === "WFH");
+  const annualLeave = allLeaveTypes.find((lt: any) => lt.code === "AL");
+  const sickLeave = allLeaveTypes.find((lt: any) => lt.code === "SL");
+  const casualLeave = allLeaveTypes.find((lt: any) => lt.code === "CL");
+  const wfh = allLeaveTypes.find((lt: any) => lt.code === "WFH");
 
   const leaveRequests = [];
 
@@ -1628,11 +1630,11 @@ async function main() {
     userId: string;
     assignedById: string;
     assignedAt: Date;
-    condition: string;
+    condition: AssetCondition;
     notes: string;
     returnedAt?: Date;
     returnedById?: string;
-    returnCondition?: string;
+    returnCondition?: AssetCondition;
     returnNotes?: string;
   }) => {
     const existing = await prisma.assetAssignment.findFirst({
@@ -1828,6 +1830,403 @@ async function main() {
   console.log(`  Created ${attendanceCount} attendance records`);
 
   // ============================================
+  // EMAIL TEMPLATES
+  // ============================================
+  console.log("Creating email templates...");
+  const emailTemplates = [
+    {
+      name: "leave_request_submitted",
+      displayName: "Leave Request Submitted",
+      type: "LEAVE_REQUEST_SUBMITTED" as const,
+      subject: "Leave Request Submitted - {{leaveType}}",
+      htmlBody: `<h2 class="title">Leave Request Submitted</h2>
+<p class="content">Your leave request has been submitted successfully and is pending approval.</p>
+<div class="info-row"><span class="info-label">Employee:</span><span class="info-value">{{employeeName}}</span></div>
+<div class="info-row"><span class="info-label">Leave Type:</span><span class="info-value">{{leaveType}}</span></div>
+<div class="info-row"><span class="info-label">Duration:</span><span class="info-value">{{startDate}} to {{endDate}} ({{days}} days)</span></div>
+<div class="info-row"><span class="info-label">Reason:</span><span class="info-value">{{reason}}</span></div>
+<p class="content">You will be notified once your request has been reviewed.</p>`,
+      variables: {
+        employeeName: "Employee full name",
+        leaveType: "Type of leave",
+        startDate: "Start date",
+        endDate: "End date",
+        days: "Number of days",
+        reason: "Reason for leave",
+      },
+      isSystem: true,
+    },
+    {
+      name: "leave_request_approved",
+      displayName: "Leave Request Approved",
+      type: "LEAVE_REQUEST_APPROVED" as const,
+      subject: "Leave Request Approved - {{leaveType}}",
+      htmlBody: `<h2 class="title">Leave Request Approved</h2>
+<p class="content">Great news! Your leave request has been approved.</p>
+<div class="info-row"><span class="info-label">Leave Type:</span><span class="info-value">{{leaveType}}</span></div>
+<div class="info-row"><span class="info-label">Duration:</span><span class="info-value">{{startDate}} to {{endDate}} ({{days}} days)</span></div>
+<div class="info-row"><span class="info-label">Approved By:</span><span class="info-value">{{approverName}}</span></div>
+<p class="content">Enjoy your time off!</p>`,
+      variables: {
+        employeeName: "Employee full name",
+        leaveType: "Type of leave",
+        startDate: "Start date",
+        endDate: "End date",
+        days: "Number of days",
+        approverName: "Approver name",
+      },
+      isSystem: true,
+    },
+    {
+      name: "leave_request_rejected",
+      displayName: "Leave Request Rejected",
+      type: "LEAVE_REQUEST_REJECTED" as const,
+      subject: "Leave Request Rejected - {{leaveType}}",
+      htmlBody: `<h2 class="title">Leave Request Rejected</h2>
+<p class="content">Unfortunately, your leave request has been rejected.</p>
+<div class="info-row"><span class="info-label">Leave Type:</span><span class="info-value">{{leaveType}}</span></div>
+<div class="info-row"><span class="info-label">Duration:</span><span class="info-value">{{startDate}} to {{endDate}} ({{days}} days)</span></div>
+<div class="info-row"><span class="info-label">Rejected By:</span><span class="info-value">{{approverName}}</span></div>
+<div class="info-row"><span class="info-label">Reason:</span><span class="info-value">{{rejectionReason}}</span></div>
+<p class="content">Please contact HR if you have any questions.</p>`,
+      variables: {
+        employeeName: "Employee full name",
+        leaveType: "Type of leave",
+        startDate: "Start date",
+        endDate: "End date",
+        days: "Number of days",
+        approverName: "Approver name",
+        rejectionReason: "Reason for rejection",
+      },
+      isSystem: true,
+    },
+    {
+      name: "leave_pending_approval",
+      displayName: "Leave Pending Approval",
+      type: "LEAVE_PENDING_APPROVAL" as const,
+      subject: "Leave Request Pending Your Approval - {{employeeName}}",
+      htmlBody: `<h2 class="title">Leave Request Pending Approval</h2>
+<p class="content">A new leave request requires your attention.</p>
+<div class="info-row"><span class="info-label">Employee:</span><span class="info-value">{{employeeName}}</span></div>
+<div class="info-row"><span class="info-label">Leave Type:</span><span class="info-value">{{leaveType}}</span></div>
+<div class="info-row"><span class="info-label">Duration:</span><span class="info-value">{{startDate}} to {{endDate}} ({{days}} days)</span></div>
+<div class="info-row"><span class="info-label">Reason:</span><span class="info-value">{{reason}}</span></div>
+<p class="content">Please review and take action on this request.</p>`,
+      variables: {
+        employeeName: "Employee full name",
+        leaveType: "Type of leave",
+        startDate: "Start date",
+        endDate: "End date",
+        days: "Number of days",
+        reason: "Reason for leave",
+      },
+      isSystem: true,
+    },
+    {
+      name: "request_approved",
+      displayName: "Request Approved",
+      type: "REQUEST_APPROVED" as const,
+      subject: "Request Approved - {{subject}}",
+      htmlBody: `<h2 class="title">Request Approved</h2>
+<p class="content">Your request has been approved.</p>
+<div class="info-row"><span class="info-label">Request Type:</span><span class="info-value">{{requestType}}</span></div>
+<div class="info-row"><span class="info-label">Subject:</span><span class="info-value">{{subject}}</span></div>
+<div class="info-row"><span class="info-label">Approved By:</span><span class="info-value">{{approverName}}</span></div>
+<div class="info-row"><span class="info-label">Response:</span><span class="info-value">{{response}}</span></div>`,
+      variables: {
+        employeeName: "Employee full name",
+        requestType: "Type of request",
+        subject: "Request subject",
+        approverName: "Approver name",
+        response: "Approver response",
+      },
+      isSystem: true,
+    },
+    {
+      name: "request_rejected",
+      displayName: "Request Rejected",
+      type: "REQUEST_REJECTED" as const,
+      subject: "Request Rejected - {{subject}}",
+      htmlBody: `<h2 class="title">Request Rejected</h2>
+<p class="content">Unfortunately, your request has been rejected.</p>
+<div class="info-row"><span class="info-label">Request Type:</span><span class="info-value">{{requestType}}</span></div>
+<div class="info-row"><span class="info-label">Subject:</span><span class="info-value">{{subject}}</span></div>
+<div class="info-row"><span class="info-label">Rejected By:</span><span class="info-value">{{approverName}}</span></div>
+<div class="info-row"><span class="info-label">Response:</span><span class="info-value">{{response}}</span></div>`,
+      variables: {
+        employeeName: "Employee full name",
+        requestType: "Type of request",
+        subject: "Request subject",
+        approverName: "Approver name",
+        response: "Approver response",
+      },
+      isSystem: true,
+    },
+    {
+      name: "announcement_published",
+      displayName: "Announcement Published",
+      type: "ANNOUNCEMENT_PUBLISHED" as const,
+      subject: "{{type}} Announcement: {{title}}",
+      htmlBody: `<h2 class="title">{{title}}</h2>
+<span class="badge">{{type}}</span>
+<div class="content">{{content}}</div>
+<p class="subtitle">Published by {{publishedBy}}</p>`,
+      variables: {
+        title: "Announcement title",
+        content: "Announcement content",
+        type: "Announcement type (GENERAL, IMPORTANT, URGENT)",
+        publishedBy: "Publisher name",
+        recipientName: "Recipient first name",
+      },
+      isSystem: true,
+    },
+    {
+      name: "welcome_email",
+      displayName: "Welcome Email",
+      type: "WELCOME_EMAIL" as const,
+      subject: "Welcome to {{appName}}, {{employeeName}}!",
+      htmlBody: `<h2 class="title">Welcome to the Team!</h2>
+<p class="content">Hello {{employeeName}},</p>
+<p class="content">We're thrilled to have you join us! Your account has been created and is ready to use.</p>
+<div class="info-row"><span class="info-label">Employee ID:</span><span class="info-value">{{employeeId}}</span></div>
+<div class="info-row"><span class="info-label">Department:</span><span class="info-value">{{department}}</span></div>
+<div class="info-row"><span class="info-label">Designation:</span><span class="info-value">{{designation}}</span></div>
+<p class="content">Please log in to access the HR system and complete your onboarding tasks.</p>`,
+      variables: {
+        employeeName: "Employee full name",
+        employeeId: "Employee ID",
+        department: "Department name",
+        designation: "Job designation",
+        appName: "Application name",
+      },
+      isSystem: true,
+    },
+    {
+      name: "appreciation",
+      displayName: "Appreciation",
+      type: "APPRECIATION" as const,
+      subject: "You've Received Recognition! {{badge}}",
+      htmlBody: `<h2 class="title">You've Been Recognized!</h2>
+<p class="content">Congratulations {{recipientName}}!</p>
+<p class="content">You've received the <strong>{{badge}}</strong> badge from {{senderName}}.</p>
+<div class="content" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; font-style: italic;">"{{message}}"</div>
+<p class="content">Keep up the great work!</p>`,
+      variables: {
+        recipientName: "Recipient name",
+        badge: "Badge name",
+        senderName: "Sender name",
+        message: "Appreciation message",
+      },
+      isSystem: true,
+    },
+    {
+      name: "asset_assigned",
+      displayName: "Asset Assigned",
+      type: "ASSET_ASSIGNED" as const,
+      subject: "Asset Assigned: {{assetName}}",
+      htmlBody: `<h2 class="title">Asset Assigned to You</h2>
+<p class="content">The following asset has been assigned to you:</p>
+<div class="info-row"><span class="info-label">Asset:</span><span class="info-value">{{assetName}}</span></div>
+<div class="info-row"><span class="info-label">Asset Tag:</span><span class="info-value">{{assetTag}}</span></div>
+<div class="info-row"><span class="info-label">Category:</span><span class="info-value">{{category}}</span></div>
+<div class="info-row"><span class="info-label">Assigned By:</span><span class="info-value">{{assignedBy}}</span></div>
+<p class="content">Please take good care of this equipment.</p>`,
+      variables: {
+        employeeName: "Employee name",
+        assetName: "Asset name",
+        assetTag: "Asset tag",
+        category: "Asset category",
+        assignedBy: "Person who assigned",
+      },
+      isSystem: true,
+    },
+  ];
+
+  for (const template of emailTemplates) {
+    await prisma.emailTemplate.upsert({
+      where: { name: template.name },
+      update: {
+        displayName: template.displayName,
+        subject: template.subject,
+        htmlBody: template.htmlBody,
+        variables: template.variables,
+      },
+      create: template,
+    });
+  }
+  console.log(`  Created ${emailTemplates.length} email templates`);
+
+  // ============================================
+  // NOTIFICATION RULES
+  // ============================================
+  console.log("Creating notification rules...");
+  const notificationRules = [
+    {
+      type: "LEAVE_REQUEST_SUBMITTED" as const,
+      name: "Leave Request Submitted",
+      description: "When an employee submits a leave request",
+      isActive: true,
+      recipientConfig: {
+        notifyRequester: true,
+        notifyManager: false,
+        notifyTeamLead: false,
+        notifyDepartmentHead: false,
+        notifyHR: true,
+        notifyAdmin: false,
+        customRecipients: [],
+      },
+    },
+    {
+      type: "LEAVE_REQUEST_APPROVED" as const,
+      name: "Leave Request Approved",
+      description: "When a leave request is approved",
+      isActive: true,
+      recipientConfig: {
+        notifyRequester: true,
+        notifyManager: false,
+        notifyTeamLead: false,
+        notifyDepartmentHead: false,
+        notifyHR: false,
+        notifyAdmin: false,
+        customRecipients: [],
+      },
+    },
+    {
+      type: "LEAVE_REQUEST_REJECTED" as const,
+      name: "Leave Request Rejected",
+      description: "When a leave request is rejected",
+      isActive: true,
+      recipientConfig: {
+        notifyRequester: true,
+        notifyManager: false,
+        notifyTeamLead: false,
+        notifyDepartmentHead: false,
+        notifyHR: false,
+        notifyAdmin: false,
+        customRecipients: [],
+      },
+    },
+    {
+      type: "LEAVE_PENDING_APPROVAL" as const,
+      name: "Leave Pending Approval",
+      description: "Reminder for pending leave approvals",
+      isActive: true,
+      recipientConfig: {
+        notifyRequester: false,
+        notifyManager: true,
+        notifyTeamLead: true,
+        notifyDepartmentHead: false,
+        notifyHR: true,
+        notifyAdmin: false,
+        customRecipients: [],
+      },
+    },
+    {
+      type: "REQUEST_APPROVED" as const,
+      name: "Request Approved",
+      description: "When a request is approved",
+      isActive: true,
+      recipientConfig: {
+        notifyRequester: true,
+        notifyManager: false,
+        notifyTeamLead: false,
+        notifyDepartmentHead: false,
+        notifyHR: false,
+        notifyAdmin: false,
+        customRecipients: [],
+      },
+    },
+    {
+      type: "REQUEST_REJECTED" as const,
+      name: "Request Rejected",
+      description: "When a request is rejected",
+      isActive: true,
+      recipientConfig: {
+        notifyRequester: true,
+        notifyManager: false,
+        notifyTeamLead: false,
+        notifyDepartmentHead: false,
+        notifyHR: false,
+        notifyAdmin: false,
+        customRecipients: [],
+      },
+    },
+    {
+      type: "ANNOUNCEMENT_PUBLISHED" as const,
+      name: "Announcement Published",
+      description: "When a new announcement is published",
+      isActive: true,
+      recipientConfig: {
+        notifyRequester: false,
+        notifyManager: false,
+        notifyTeamLead: false,
+        notifyDepartmentHead: false,
+        notifyHR: false,
+        notifyAdmin: false,
+        customRecipients: [],
+      },
+    },
+    {
+      type: "WELCOME_EMAIL" as const,
+      name: "Welcome Email",
+      description: "Welcome email for new employees",
+      isActive: true,
+      recipientConfig: {
+        notifyRequester: true,
+        notifyManager: false,
+        notifyTeamLead: false,
+        notifyDepartmentHead: false,
+        notifyHR: false,
+        notifyAdmin: false,
+        customRecipients: [],
+      },
+    },
+    {
+      type: "APPRECIATION" as const,
+      name: "Appreciation",
+      description: "Appreciation/recognition emails",
+      isActive: true,
+      recipientConfig: {
+        notifyRequester: true,
+        notifyManager: false,
+        notifyTeamLead: false,
+        notifyDepartmentHead: false,
+        notifyHR: false,
+        notifyAdmin: false,
+        customRecipients: [],
+      },
+    },
+    {
+      type: "ASSET_ASSIGNED" as const,
+      name: "Asset Assigned",
+      description: "When an asset is assigned to an employee",
+      isActive: true,
+      recipientConfig: {
+        notifyRequester: true,
+        notifyManager: false,
+        notifyTeamLead: false,
+        notifyDepartmentHead: false,
+        notifyHR: false,
+        notifyAdmin: false,
+        customRecipients: [],
+      },
+    },
+  ];
+
+  for (const rule of notificationRules) {
+    await prisma.notificationRule.upsert({
+      where: { type: rule.type },
+      update: {
+        name: rule.name,
+        description: rule.description,
+        recipientConfig: rule.recipientConfig,
+      },
+      create: rule,
+    });
+  }
+  console.log(`  Created ${notificationRules.length} notification rules`);
+
+  // ============================================
   // ORGANIZATION SETTINGS
   // ============================================
   console.log("Creating organization settings...");
@@ -1861,6 +2260,8 @@ async function main() {
   console.log(`  - ${assets.length} Assets`);
   console.log(`  - ${assetAssignments.length} Asset Assignments`);
   console.log(`  - ${attendanceCount} Attendance Records`);
+  console.log(`  - ${emailTemplates.length} Email Templates`);
+  console.log(`  - ${notificationRules.length} Notification Rules`);
   console.log("\n-------------------------------------------");
   console.log("Login Credentials (all use same password):");
   console.log("-------------------------------------------");

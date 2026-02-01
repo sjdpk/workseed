@@ -28,7 +28,9 @@ export type AuditEntity =
   | "SETTINGS"
   | "DOCUMENT"
   | "ASSET"
-  | "ASSET_ASSIGNMENT";
+  | "ASSET_ASSIGNMENT"
+  | "EMAIL_TEMPLATE"
+  | "NOTIFICATION_RULE";
 
 interface AuditLogInput {
   userId: string;

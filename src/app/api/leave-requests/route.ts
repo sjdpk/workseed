@@ -6,10 +6,8 @@ import {
   isManagerOrAbove,
   createAuditLog,
   getRequestMeta,
-  sendLeaveRequestSubmitted,
-  sendLeaveRequestStatusUpdate,
-  sendNewLeaveRequestForApproval,
 } from "@/lib";
+import { sendLeaveNotification } from "@/lib/notifications";
 import { logger } from "@/lib/logger";
 import { z } from "@/lib/validation";
 
@@ -248,35 +246,18 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Send email notification to employee
-    const startDateStr = new Date(data.startDate).toLocaleDateString();
-    const endDateStr = new Date(data.endDate).toLocaleDateString();
-
-    sendLeaveRequestSubmitted(currentUser.email, {
-      employeeName: `${currentUser.firstName} ${currentUser.lastName}`,
+    // Send notification via notification service (non-blocking)
+    sendLeaveNotification("LEAVE_REQUEST_SUBMITTED", {
+      leaveRequestId: leaveRequest.id,
+      userId: currentUser.id,
+      userEmail: currentUser.email,
+      userName: `${currentUser.firstName} ${currentUser.lastName}`,
       leaveType: leaveRequest.leaveType.name,
-      startDate: startDateStr,
-      endDate: endDateStr,
+      startDate: new Date(data.startDate).toLocaleDateString(),
+      endDate: new Date(data.endDate).toLocaleDateString(),
       days: data.days,
       reason: data.reason,
-    }).catch(console.error);
-
-    // Send notification to approvers (HR users)
-    const hrUsers = await prisma.user.findMany({
-      where: { role: { in: ["ADMIN", "HR"] }, status: "ACTIVE" },
-      select: { email: true },
     });
-
-    for (const hrUser of hrUsers) {
-      sendNewLeaveRequestForApproval(hrUser.email, {
-        employeeName: `${currentUser.firstName} ${currentUser.lastName}`,
-        leaveType: leaveRequest.leaveType.name,
-        startDate: startDateStr,
-        endDate: endDateStr,
-        days: data.days,
-        reason: data.reason,
-      }).catch(console.error);
-    }
 
     return NextResponse.json({ success: true, data: { leaveRequest } }, { status: 201 });
   } catch (error) {
@@ -421,23 +402,29 @@ export async function PATCH(request: NextRequest) {
       },
     });
 
-    // Send email notification to employee on status change
-    if (data.status === "APPROVED" || data.status === "REJECTED") {
-      const startDateStr = leaveRequest.startDate.toLocaleDateString();
-      const endDateStr = leaveRequest.endDate.toLocaleDateString();
+    // Send notification via notification service (non-blocking)
+    if (data.status === "APPROVED" || data.status === "REJECTED" || data.status === "CANCELLED") {
       const userEmail = (updated.user as { email?: string })?.email;
+      const notificationType =
+        data.status === "APPROVED"
+          ? "LEAVE_REQUEST_APPROVED"
+          : data.status === "REJECTED"
+            ? "LEAVE_REQUEST_REJECTED"
+            : "LEAVE_REQUEST_CANCELLED";
 
       if (userEmail) {
-        sendLeaveRequestStatusUpdate(userEmail, {
-          employeeName: `${updated.user.firstName} ${updated.user.lastName}`,
+        sendLeaveNotification(notificationType, {
+          leaveRequestId: leaveRequest.id,
+          userId: leaveRequest.userId,
+          userEmail,
+          userName: `${updated.user.firstName} ${updated.user.lastName}`,
           leaveType: updated.leaveType.name,
-          startDate: startDateStr,
-          endDate: endDateStr,
+          startDate: leaveRequest.startDate.toLocaleDateString(),
+          endDate: leaveRequest.endDate.toLocaleDateString(),
           days: leaveRequest.days,
-          status: data.status,
           approverName: `${currentUser.firstName} ${currentUser.lastName}`,
           rejectionReason: data.rejectionReason,
-        }).catch(console.error);
+        });
       }
     }
 

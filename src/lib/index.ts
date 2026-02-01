@@ -30,7 +30,7 @@ export type { Permission, Role } from "./permissions";
 export { createAuditLog, getRequestMeta } from "./audit";
 export type { AuditAction, AuditEntity } from "./audit";
 
-// Email
+// Email (legacy - prefer using notifications)
 export {
   sendEmail,
   sendLeaveRequestSubmitted,
@@ -41,6 +41,34 @@ export {
   sendRequestSubmitted,
   sendRequestStatusUpdate,
 } from "./email";
+
+// Notifications (new notification system)
+export {
+  sendNotification,
+  sendNotificationSync,
+  sendCustomEmail,
+  sendAppreciation,
+  sendWelcomeEmail,
+  sendLeaveNotification,
+  sendRequestNotification,
+  sendAnnouncementNotification,
+  sendAssetNotification,
+  processQueue,
+  getEmailStats,
+  getEmailLogs,
+  retryEmail,
+  testEmailConfiguration,
+  getTemplate,
+  getTemplateById,
+  getNotificationRule,
+  isSmtpConfigured,
+} from "./notifications";
+export type {
+  NotificationContext,
+  NotificationRecipient,
+  RecipientConfig,
+  EmailStats,
+} from "./notifications";
 
 // Logger
 export { logger } from "./logger";

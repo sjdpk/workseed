@@ -236,6 +236,7 @@ model User {
   attendance      Attendance[]
   employeeRequests EmployeeRequest[]
   requestApprovals EmployeeRequest[] @relation("RequestApprover")
+  notificationPreferences NotificationPreference[]
 
   @@map("users")
 }
@@ -495,6 +496,36 @@ enum RequestStatus {
   CANCELLED
 }
 
+// Notification Types for email system
+enum NotificationType {
+  LEAVE_REQUEST_SUBMITTED
+  LEAVE_REQUEST_APPROVED
+  LEAVE_REQUEST_REJECTED
+  LEAVE_REQUEST_CANCELLED
+  LEAVE_PENDING_APPROVAL
+  REQUEST_SUBMITTED
+  REQUEST_APPROVED
+  REQUEST_REJECTED
+  ANNOUNCEMENT_PUBLISHED
+  BIRTHDAY_REMINDER
+  WORK_ANNIVERSARY
+  ASSET_ASSIGNED
+  ASSET_RETURNED
+  WELCOME_EMAIL
+  PASSWORD_RESET
+  APPRECIATION
+  CUSTOM
+}
+
+// Email delivery status
+enum EmailStatus {
+  PENDING
+  QUEUED
+  SENDING
+  SENT
+  FAILED
+}
+
 // Employee Self-Service Requests
 model EmployeeRequest {
   id            String        @id @default(uuid()) @db.Uuid
@@ -522,4 +553,86 @@ model EmployeeRequest {
   updatedAt     DateTime      @updatedAt
 
   @@map("employee_requests")
+}
+
+// ============================================
+// EMAIL NOTIFICATION SYSTEM
+// ============================================
+
+// Email Template - Admin configurable templates
+model EmailTemplate {
+  id          String           @id @default(uuid()) @db.Uuid
+  name        String           @unique // Internal name e.g., "leave_request_submitted"
+  displayName String           // Human-readable name
+  type        NotificationType
+  subject     String           // Email subject (supports variables like {{employeeName}})
+  htmlBody    String           @db.Text // HTML template body
+  variables   Json?            // Available template variables with descriptions
+  isActive    Boolean          @default(true)
+  isSystem    Boolean          @default(false) // System templates cannot be deleted
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  emailLogs   EmailLog[]
+
+  @@map("email_templates")
+}
+
+// Email Log - Track all email sends
+model EmailLog {
+  id             String           @id @default(uuid()) @db.Uuid
+  templateId     String?          @db.Uuid
+  template       EmailTemplate?   @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  recipientId    String?          @db.Uuid // User ID if recipient is a system user
+  recipientEmail String
+  recipientName  String?
+  subject        String
+  status         EmailStatus      @default(PENDING)
+  type           NotificationType
+  entityType     String?          // e.g., "LEAVE_REQUEST", "EMPLOYEE_REQUEST"
+  entityId       String?          @db.Uuid // Related entity ID
+  sentAt         DateTime?
+  failedAt       DateTime?
+  errorMessage   String?
+  retryCount     Int              @default(0)
+  metadata       Json?            // Additional context data
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([status])
+  @@index([type])
+  @@index([recipientId])
+  @@index([createdAt])
+  @@map("email_logs")
+}
+
+// Notification Rules - Configurable recipient rules per notification type
+model NotificationRule {
+  id              String           @id @default(uuid()) @db.Uuid
+  type            NotificationType @unique
+  name            String
+  description     String?
+  isActive        Boolean          @default(true)
+  // Recipient configuration JSON:
+  // { notifyRequester, notifyManager, notifyTeamLead, notifyHR, notifyAdmin, customRecipients[] }
+  recipientConfig Json
+  conditions      Json?            // Optional conditions for when to trigger
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@map("notification_rules")
+}
+
+// Notification Preferences - Per user notification settings
+model NotificationPreference {
+  id           String           @id @default(uuid()) @db.Uuid
+  userId       String           @db.Uuid
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         NotificationType
+  emailEnabled Boolean          @default(true)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@unique([userId, type])
+  @@map("notification_preferences")
 }

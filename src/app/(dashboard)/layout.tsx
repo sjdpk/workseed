@@ -279,6 +279,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: "Org Chart", href: "/dashboard/org-chart", icon: OrgChartIcon, show: true },
   ].filter((item) => item.show);
 
+  // NOTIFICATIONS - Email notifications (HR only)
+  const notificationsNavigation = [
+    { name: "Overview", href: "/dashboard/notifications", icon: EmailIcon, show: isHROrAbove },
+    { name: "Templates", href: "/dashboard/notifications/templates", icon: FileIcon, show: isHROrAbove },
+    { name: "Rules", href: "/dashboard/notifications/rules", icon: SettingsIcon, show: isHROrAbove },
+    { name: "Logs", href: "/dashboard/notifications/logs", icon: LogIcon, show: isHROrAbove },
+  ].filter((item) => item.show);
+
   // SETTINGS - Admin/HR settings
   const settingsNavigation = [
     {
@@ -317,7 +325,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       icon: CalendarIcon,
       show: hasRoleAccess("leaveTypes"),
     },
-    { name: "Import Data", href: "/dashboard/import", icon: UploadIcon, show: isHROrAbove },
+        { name: "Import Data", href: "/dashboard/import", icon: UploadIcon, show: isHROrAbove },
     {
       name: "Audit Logs",
       href: "/dashboard/settings/audit-logs",
@@ -579,6 +587,38 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {manageNavigation.map((item) => {
                       const isActive =
                         pathname === item.href || pathname.startsWith(item.href + "/");
+                      return (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          onMouseEnter={collapsed ? handleTooltipPosition : undefined}
+                          className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
+                            isActive
+                              ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
+                              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+                          }`}
+                        >
+                          <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+                          {!collapsed && <span className="text-[13px]">{item.name}</span>}
+                          {collapsed && <span className="sidebar-tooltip">{item.name}</span>}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* NOTIFICATIONS */}
+              {notificationsNavigation.length > 0 && (
+                <div>
+                  {!collapsed && (
+                    <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
+                      Notifications
+                    </p>
+                  )}
+                  <div className="space-y-0.5">
+                    {notificationsNavigation.map((item) => {
+                      const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
                       return (
                         <Link
                           key={item.name}
@@ -1028,6 +1068,32 @@ function CalendarCheckIcon({ className }: { className?: string }) {
         strokeLinejoin="round"
         strokeWidth={1.5}
         d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z"
+      />
+    </svg>
+  );
+}
+
+function EmailIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
+      />
+    </svg>
+  );
+}
+
+function FileIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
       />
     </svg>
   );

@@ -65,6 +65,14 @@ export const PERMISSIONS = {
   ASSET_DELETE: ["ADMIN"],
   ASSET_ASSIGN: ["ADMIN", "HR"],
   ASSET_RETURN: ["ADMIN", "HR"],
+
+  // Notification management
+  NOTIFICATION_TEMPLATE_VIEW: ["ADMIN", "HR"],
+  NOTIFICATION_TEMPLATE_EDIT: ["ADMIN"],
+  NOTIFICATION_RULE_VIEW: ["ADMIN", "HR"],
+  NOTIFICATION_RULE_EDIT: ["ADMIN"],
+  NOTIFICATION_LOG_VIEW: ["ADMIN", "HR"],
+  NOTIFICATION_QUEUE_MANAGE: ["ADMIN"],
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -114,5 +122,7 @@ export function getNavigationPermissions(role: string) {
     canViewAssets: hasPermission(role, "ASSET_VIEW_ALL"),
     canManageAssets: hasPermission(role, "ASSET_CREATE"),
     canViewOwnAssets: hasPermission(role, "ASSET_VIEW_OWN"),
+    canViewNotifications: hasPermission(role, "NOTIFICATION_LOG_VIEW"),
+    canManageNotifications: hasPermission(role, "NOTIFICATION_TEMPLATE_EDIT"),
   };
 }

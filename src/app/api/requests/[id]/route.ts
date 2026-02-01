@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
-import { sendRequestStatusUpdate } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
+import { sendRequestNotification } from "@/lib/notifications";
 
 // PUT - Update request (approve/reject by Admin/HR, or cancel by owner)
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -76,18 +76,24 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       },
     });
 
-    // Send email notification on status change
+    // Send notification via notification service (non-blocking)
     if (status === "APPROVED" || status === "REJECTED") {
       const userEmail = (updatedRequest.user as { email?: string })?.email;
-      if (userEmail && updatedRequest.approver) {
-        sendRequestStatusUpdate(userEmail, {
-          employeeName: `${updatedRequest.user.firstName} ${updatedRequest.user.lastName}`,
+      const notificationType = status === "APPROVED" ? "REQUEST_APPROVED" : "REQUEST_REJECTED";
+
+      if (userEmail) {
+        sendRequestNotification(notificationType, {
+          requestId: id,
+          userId: existingRequest.userId,
+          userEmail,
+          userName: `${updatedRequest.user.firstName} ${updatedRequest.user.lastName}`,
           requestType: existingRequest.type,
           subject: existingRequest.subject,
-          status: status as "APPROVED" | "REJECTED",
+          approverName: updatedRequest.approver
+            ? `${updatedRequest.approver.firstName} ${updatedRequest.approver.lastName}`
+            : "System",
           response,
-          approverName: `${updatedRequest.approver.firstName} ${updatedRequest.approver.lastName}`,
-        }).catch(console.error);
+        });
       }
     }
 
