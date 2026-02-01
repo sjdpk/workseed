@@ -27,15 +27,18 @@ export default function MyLeavesPage() {
     setLoading(false);
   };
 
-  /* eslint-disable react-hooks/set-state-in-effect -- Intentional: Initial data fetch on component mount */
   useEffect(() => {
     fetchData();
+  }, []);
+
+  // Handle success message from redirect
+  useEffect(() => {
     if (searchParams.get("success") === "1") {
       toast.success("Leave request submitted successfully!");
       window.history.replaceState(null, "", "/dashboard/leaves");
     }
-  }, [searchParams, toast]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const handleCancel = async (id: string) => {
     if (!confirm("Are you sure you want to cancel this leave request?")) return;
