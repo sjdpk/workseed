@@ -110,9 +110,9 @@ export default function AssetsPage() {
       const res = await fetch(`/api/assets?${params}`);
       const data = await res.json();
 
-      if (data.assets) {
-        setAssets(data.assets);
-        setPagination(data.pagination);
+      if (data.success && data.data?.assets) {
+        setAssets(data.data.assets);
+        setPagination(data.data.pagination);
       }
     } catch {
       toast.error("Failed to fetch assets");
