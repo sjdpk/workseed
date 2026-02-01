@@ -48,6 +48,7 @@ export default function HolidaysPage() {
 
   useEffect(() => {
     fetchHolidays();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year]);
 
   const fetchHolidays = async () => {
@@ -112,18 +113,11 @@ export default function HolidaysPage() {
     if (holidays.length === 0) return;
 
     const headers = ["Name", "Date", "Type", "Description"];
-    const rows = holidays.map((h) => [
-      h.name,
-      h.date.split("T")[0],
-      h.type,
-      h.description || "",
-    ]);
+    const rows = holidays.map((h) => [h.name, h.date.split("T")[0], h.type, h.description || ""]);
 
     const csvContent = [
       headers.join(","),
-      ...rows.map((row) =>
-        row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(",")
-      ),
+      ...rows.map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(",")),
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -245,16 +239,25 @@ export default function HolidaysPage() {
             className="rounded-md border border-gray-300 px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
           >
             {[year - 1, year, year + 1].map((y) => (
-              <option key={y} value={y}>{y}</option>
+              <option key={y} value={y}>
+                {y}
+              </option>
             ))}
           </select>
           {canManage && (
             <>
-              <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={holidays.length === 0}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportCSV}
+                disabled={holidays.length === 0}
+              >
                 <DownloadIcon className="mr-1.5 h-4 w-4" />
                 Export
               </Button>
-              <label className={`inline-flex cursor-pointer items-center justify-center rounded px-3 py-1.5 text-xs font-medium transition-colors border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-transparent dark:text-gray-200 dark:hover:bg-gray-800 ${importing ? "opacity-50 pointer-events-none" : ""}`}>
+              <label
+                className={`inline-flex cursor-pointer items-center justify-center rounded px-3 py-1.5 text-xs font-medium transition-colors border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-transparent dark:text-gray-200 dark:hover:bg-gray-800 ${importing ? "opacity-50 pointer-events-none" : ""}`}
+              >
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -313,8 +316,12 @@ export default function HolidaysPage() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">{holiday.name}</p>
-                    <span className={`rounded px-1 py-0.5 text-[10px] font-medium ${getTypeColor(holiday.type)}`}>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {holiday.name}
+                    </p>
+                    <span
+                      className={`rounded px-1 py-0.5 text-[10px] font-medium ${getTypeColor(holiday.type)}`}
+                    >
                       {holiday.type.charAt(0) + holiday.type.slice(1).toLowerCase()}
                     </span>
                   </div>
@@ -404,11 +411,13 @@ export default function HolidaysPage() {
                             : "border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600"
                         }`}
                       >
-                        <p className={`text-sm font-medium ${
-                          form.type === option.value
-                            ? "text-gray-900 dark:text-white"
-                            : "text-gray-700 dark:text-gray-300"
-                        }`}>
+                        <p
+                          className={`text-sm font-medium ${
+                            form.type === option.value
+                              ? "text-gray-900 dark:text-white"
+                              : "text-gray-700 dark:text-gray-300"
+                          }`}
+                        >
                           {option.label}
                         </p>
                         <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
@@ -447,7 +456,12 @@ export default function HolidaysPage() {
 function CalendarIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"
+      />
     </svg>
   );
 }
@@ -455,7 +469,12 @@ function CalendarIcon({ className }: { className?: string }) {
 function PencilIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"
+      />
     </svg>
   );
 }
@@ -463,7 +482,12 @@ function PencilIcon({ className }: { className?: string }) {
 function TrashIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+      />
     </svg>
   );
 }
@@ -471,7 +495,12 @@ function TrashIcon({ className }: { className?: string }) {
 function XIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M6 18L18 6M6 6l12 12"
+      />
     </svg>
   );
 }
@@ -479,7 +508,12 @@ function XIcon({ className }: { className?: string }) {
 function DownloadIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+      />
     </svg>
   );
 }
@@ -487,7 +521,12 @@ function DownloadIcon({ className }: { className?: string }) {
 function UploadIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+      />
     </svg>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button, Card, Input } from "@/components";
 
 interface Department {
@@ -36,8 +36,8 @@ export default function DepartmentsPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/auth/me").then(r => r.json()),
-      fetch("/api/departments").then(r => r.json()),
+      fetch("/api/auth/me").then((r) => r.json()),
+      fetch("/api/departments").then((r) => r.json()),
     ]).then(([meData, deptData]) => {
       if (meData.success) {
         setCurrentUser(meData.data.user);
@@ -64,7 +64,7 @@ export default function DepartmentsPage() {
 
   const exportToCSV = () => {
     const headers = ["Name", "Code", "Description", "Branch", "Employees", "Teams"];
-    const rows = filteredDepartments.map(dept => [
+    const rows = filteredDepartments.map((dept) => [
       dept.name,
       dept.code,
       dept.description || "",
@@ -74,7 +74,7 @@ export default function DepartmentsPage() {
     ]);
 
     const csvContent = [headers, ...rows]
-      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
       .join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -103,12 +103,18 @@ export default function DepartmentsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Departments</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Manage organization departments</p>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            Manage organization departments
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={exportToCSV}>Export CSV</Button>
+          <Button variant="outline" onClick={exportToCSV}>
+            Export CSV
+          </Button>
           {hasPermission("CREATE") && (
-            <Button onClick={() => router.push("/dashboard/departments/new")}>Add Department</Button>
+            <Button onClick={() => router.push("/dashboard/departments/new")}>
+              Add Department
+            </Button>
           )}
         </div>
       </div>
@@ -124,7 +130,9 @@ export default function DepartmentsPage() {
 
       {filteredDepartments.length === 0 ? (
         <Card>
-          <p className="text-center text-sm text-gray-500 dark:text-gray-400">No departments found</p>
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+            No departments found
+          </p>
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -132,7 +140,9 @@ export default function DepartmentsPage() {
             <Card key={dept.id}>
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{dept.name}</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {dept.name}
+                  </h3>
                   <span className="text-xs text-gray-500 dark:text-gray-400">{dept.code}</span>
                 </div>
                 <Button
@@ -143,12 +153,18 @@ export default function DepartmentsPage() {
                   Edit
                 </Button>
               </div>
-              {dept.description && <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{dept.description}</p>}
+              {dept.description && (
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{dept.description}</p>
+              )}
               <div className="mt-3 flex gap-4 text-xs text-gray-600 dark:text-gray-400">
                 <span>{dept._count.users} employees</span>
                 <span>{dept._count.teams} teams</span>
               </div>
-              {dept.branch && <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Branch: {dept.branch.name}</p>}
+              {dept.branch && (
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  Branch: {dept.branch.name}
+                </p>
+              )}
             </Card>
           ))}
         </div>

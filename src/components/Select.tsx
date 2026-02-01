@@ -1,5 +1,5 @@
-import { cn } from "@/utils";
 import { SelectHTMLAttributes, forwardRef } from "react";
+import { cn } from "@/utils";
 
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
@@ -39,9 +39,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
             </option>
           ))}
         </select>
-        {error && (
-          <p className="mt-1.5 text-sm text-red-500 dark:text-red-400">{error}</p>
-        )}
+        {error && <p className="mt-1.5 text-sm text-red-500 dark:text-red-400">{error}</p>}
       </div>
     );
   }

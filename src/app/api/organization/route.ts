@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, getCurrentUser, isAdmin } from "@/lib";
-import { z } from "zod/v4";
+import { logger } from "@/lib/logger";
+import { z } from "@/lib/validation";
 
 const updateOrgSchema = z.object({
   name: z.string().min(1).optional(),
@@ -10,20 +11,19 @@ const updateOrgSchema = z.object({
   permissions: z.record(z.string(), z.unknown()).optional(),
   leavePolicy: z.record(z.string(), z.unknown()).optional(),
   defaultLeaveAllocation: z.record(z.string(), z.unknown()).optional(),
-  theme: z.object({
-    accentColor: z.enum(["gray", "blue", "green", "purple", "orange", "red"]).optional(),
-    darkMode: z.enum(["system", "light", "dark"]).optional(),
-  }).optional(),
+  theme: z
+    .object({
+      accentColor: z.enum(["gray", "blue", "green", "purple", "orange", "red"]).optional(),
+      darkMode: z.enum(["system", "light", "dark"]).optional(),
+    })
+    .optional(),
 });
 
 export async function GET() {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     let settings = await prisma.organizationSettings.findFirst();
@@ -40,8 +40,8 @@ export async function GET() {
     }
 
     // Extract leavePolicy from defaultLeaveAllocation for easier access
-    const defaultLeaveAlloc = settings.defaultLeaveAllocation as Record<string, unknown> || {};
-    const permissionsData = settings.permissions as Record<string, unknown> || {};
+    const defaultLeaveAlloc = (settings.defaultLeaveAllocation as Record<string, unknown>) || {};
+    const permissionsData = (settings.permissions as Record<string, unknown>) || {};
     const responseSettings = {
       ...settings,
       leavePolicy: defaultLeaveAlloc.leavePolicy || null,
@@ -53,11 +53,8 @@ export async function GET() {
       data: { settings: responseSettings },
     });
   } catch (error) {
-    console.error("Get organization settings error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    logger.error("Get organization settings error", { error, endpoint: "GET /api/organization" });
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -65,17 +62,14 @@ export async function PATCH(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
 
     // HR can only update leavePolicy, Admin can update everything
     const isHROrAbove = ["ADMIN", "HR"].includes(currentUser.role);
-    const isOnlyLeavePolicy = Object.keys(body).every(k => k === "leavePolicy");
+    const isOnlyLeavePolicy = Object.keys(body).every((k) => k === "leavePolicy");
 
     if (!isAdmin(currentUser.role) && !(isHROrAbove && isOnlyLeavePolicy)) {
       return NextResponse.json(
@@ -94,12 +88,13 @@ export async function PATCH(request: NextRequest) {
     if (data.name !== undefined) updateData.name = data.name;
     if (data.logoUrl !== undefined) updateData.logoUrl = data.logoUrl === "" ? null : data.logoUrl;
     if (data.fiscalYearStart !== undefined) updateData.fiscalYearStart = data.fiscalYearStart;
-    if (data.workingDaysPerWeek !== undefined) updateData.workingDaysPerWeek = data.workingDaysPerWeek;
+    if (data.workingDaysPerWeek !== undefined)
+      updateData.workingDaysPerWeek = data.workingDaysPerWeek;
     if (data.permissions !== undefined) updateData.permissions = data.permissions;
 
     // Handle theme - store it in permissions JSON
     if (data.theme !== undefined) {
-      const currentPermissions = settings?.permissions as Record<string, unknown> || {};
+      const currentPermissions = (settings?.permissions as Record<string, unknown>) || {};
       updateData.permissions = {
         ...currentPermissions,
         theme: data.theme,
@@ -108,7 +103,7 @@ export async function PATCH(request: NextRequest) {
 
     // Handle leavePolicy - store it in defaultLeaveAllocation JSON
     if (data.leavePolicy !== undefined) {
-      const currentSettings = settings?.defaultLeaveAllocation as Record<string, unknown> || {};
+      const currentSettings = (settings?.defaultLeaveAllocation as Record<string, unknown>) || {};
       updateData.defaultLeaveAllocation = {
         ...currentSettings,
         leavePolicy: data.leavePolicy,
@@ -141,15 +136,12 @@ export async function PATCH(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { success: false, error: error.issues[0].message },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: error.issues[0].message }, { status: 400 });
     }
-    console.error("Update organization settings error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    logger.error("Update organization settings error", {
+      error,
+      endpoint: "PATCH /api/organization",
+    });
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

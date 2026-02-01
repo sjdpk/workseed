@@ -5,10 +5,7 @@ export async function GET() {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const users = await prisma.user.findMany({
@@ -30,10 +27,7 @@ export async function GET() {
           select: { id: true, name: true },
         },
       },
-      orderBy: [
-        { role: "asc" },
-        { firstName: "asc" },
-      ],
+      orderBy: [{ role: "asc" }, { firstName: "asc" }],
     });
 
     return NextResponse.json({
@@ -42,9 +36,6 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Get org chart error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

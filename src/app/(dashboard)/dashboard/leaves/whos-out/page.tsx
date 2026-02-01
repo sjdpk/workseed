@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Card } from "@/components";
 import type { LeaveRequest } from "@/types";
 
@@ -19,7 +19,7 @@ export default function WhosOutPage() {
   const [teamLeaves, setTeamLeaves] = useState<LeaveRequest[]>([]);
   const [departmentLeaves, setDepartmentLeaves] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [_currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [canViewTeam, setCanViewTeam] = useState(false);
   const [canViewDepartment, setCanViewDepartment] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("team");
@@ -108,12 +108,8 @@ export default function WhosOutPage() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const upcomingLeaves = currentLeaves.filter(
-    (leave) => new Date(leave.endDate) >= today
-  );
-  const pastLeaves = currentLeaves.filter(
-    (leave) => new Date(leave.endDate) < today
-  ).slice(0, 10); // Show only last 10
+  const upcomingLeaves = currentLeaves.filter((leave) => new Date(leave.endDate) >= today);
+  const pastLeaves = currentLeaves.filter((leave) => new Date(leave.endDate) < today).slice(0, 10); // Show only last 10
 
   // Group upcoming by status (today, this week, later)
   const todayLeaves = upcomingLeaves.filter((leave) => {
@@ -130,8 +126,10 @@ export default function WhosOutPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Who's Out</h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">See when your colleagues are on leave</p>
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Who&apos;s Out</h1>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          See when your colleagues are on leave
+        </p>
       </div>
 
       {/* View Toggle */}
@@ -166,7 +164,7 @@ export default function WhosOutPage() {
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
               <CheckIcon className="h-6 w-6 text-green-600 dark:text-green-400" />
             </div>
-            <h3 className="text-sm font-medium text-gray-900 dark:text-white">Everyone's here!</h3>
+            <h3 className="text-sm font-medium text-gray-900 dark:text-white">Everyone&apos;s here!</h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               No {viewMode === "team" ? "team" : "department"} members are currently on leave
             </p>
@@ -211,7 +209,9 @@ export default function WhosOutPage() {
             <div>
               <div className="mb-3 flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-gray-400" />
-                <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400">Recently Returned</h2>
+                <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400">
+                  Recently Returned
+                </h2>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {pastLeaves.map((leave) => (
@@ -226,16 +226,27 @@ export default function WhosOutPage() {
   );
 }
 
-function LeaveCard({ leave, isToday, isPast }: { leave: LeaveRequest; isToday?: boolean; isPast?: boolean }) {
+function LeaveCard({
+  leave,
+  isToday,
+  isPast,
+}: {
+  leave: LeaveRequest;
+  isToday?: boolean;
+  isPast?: boolean;
+}) {
   return (
     <Card className={`p-4 ${isPast ? "opacity-60" : ""}`}>
       <div className="flex items-center gap-3">
-        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded text-sm font-medium ${
-          isToday
-            ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-            : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
-        }`}>
-          {leave.user?.firstName?.[0]}{leave.user?.lastName?.[0]}
+        <div
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded text-sm font-medium ${
+            isToday
+              ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+              : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+          }`}
+        >
+          {leave.user?.firstName?.[0]}
+          {leave.user?.lastName?.[0]}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
@@ -251,9 +262,19 @@ function LeaveCard({ leave, isToday, isPast }: { leave: LeaveRequest; isToday?: 
       <div className="mt-3 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
         <CalendarIcon className="h-3.5 w-3.5" />
         <span>
-          {new Date(leave.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+          {new Date(leave.startDate).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          })}
           {leave.startDate !== leave.endDate && (
-            <> - {new Date(leave.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</>
+            <>
+              {" "}
+              -{" "}
+              {new Date(leave.endDate).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              })}
+            </>
           )}
         </span>
         <span className="text-gray-400">({leave.days}d)</span>
@@ -265,7 +286,12 @@ function LeaveCard({ leave, isToday, isPast }: { leave: LeaveRequest; isToday?: 
 function CalendarIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+      />
     </svg>
   );
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, getCurrentUser, isHROrAbove } from "@/lib";
-import { z } from "zod/v4";
+import { logger } from "@/lib/logger";
+import { z } from "@/lib/validation";
 
 const updateAllocationSchema = z.object({
   allocated: z.number().min(0).optional(),
@@ -8,17 +9,11 @@ const updateAllocationSchema = z.object({
   notes: z.string().optional().nullable(),
 });
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
@@ -34,46 +29,32 @@ export async function GET(
     });
 
     if (!allocation) {
-      return NextResponse.json(
-        { success: false, error: "Allocation not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: "Allocation not found" }, { status: 404 });
     }
 
     // Only allow viewing own allocation or if HR/Admin
     if (allocation.userId !== currentUser.id && !isHROrAbove(currentUser.role)) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 403 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
-    const balance = allocation.allocated + allocation.carriedOver + allocation.adjusted - allocation.used;
+    const balance =
+      allocation.allocated + allocation.carriedOver + allocation.adjusted - allocation.used;
 
     return NextResponse.json({
       success: true,
       data: { allocation: { ...allocation, balance } },
     });
   } catch (error) {
-    console.error("Get allocation error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    logger.error("Get allocation error", { error, endpoint: "GET /api/leave-allocations/[id]" });
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser || !isHROrAbove(currentUser.role)) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 403 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
     const { id } = await params;
@@ -85,10 +66,7 @@ export async function PATCH(
     });
 
     if (!existing) {
-      return NextResponse.json(
-        { success: false, error: "Allocation not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: "Allocation not found" }, { status: 404 });
     }
 
     const allocation = await prisma.leaveAllocation.update({
@@ -102,7 +80,8 @@ export async function PATCH(
       },
     });
 
-    const balance = allocation.allocated + allocation.carriedOver + allocation.adjusted - allocation.used;
+    const balance =
+      allocation.allocated + allocation.carriedOver + allocation.adjusted - allocation.used;
 
     return NextResponse.json({
       success: true,
@@ -110,15 +89,12 @@ export async function PATCH(
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { success: false, error: error.issues[0].message },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: error.issues[0].message }, { status: 400 });
     }
-    console.error("Update allocation error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    logger.error("Update allocation error", {
+      error,
+      endpoint: "PATCH /api/leave-allocations/[id]",
+    });
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

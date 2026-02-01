@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, hashPassword, getCurrentUser, isHROrAbove, createAuditLog, getRequestMeta } from "@/lib";
+import {
+  prisma,
+  hashPassword,
+  getCurrentUser,
+  isHROrAbove,
+  createAuditLog,
+  getRequestMeta,
+} from "@/lib";
 
 interface UserImportRow {
   email: string;
@@ -26,7 +33,7 @@ interface ImportResult {
   error?: string;
 }
 
-async function generateEmployeeId(): Promise<string> {
+async function _generateEmployeeId(): Promise<string> {
   const count = await prisma.user.count();
   const paddedNumber = String(count + 1).padStart(5, "0");
   return `EMP${paddedNumber}`;
@@ -70,16 +77,30 @@ function parseCSV(csvText: string): UserImportRow[] {
     rows.push({
       email: row.email || row.e_mail || row["e-mail"] || "",
       password: row.password || row.pwd || "Welcome@123",
-      firstName: row.firstname || row["first name"] || row.first_name || row.name?.split(" ")[0] || "",
-      lastName: row.lastname || row["last name"] || row.last_name || row.name?.split(" ").slice(1).join(" ") || "",
-      employeeId: row.employeeid || row["employee id"] || row.employee_id || row.empid || row.emp_id || "",
+      firstName:
+        row.firstname || row["first name"] || row.first_name || row.name?.split(" ")[0] || "",
+      lastName:
+        row.lastname ||
+        row["last name"] ||
+        row.last_name ||
+        row.name?.split(" ").slice(1).join(" ") ||
+        "",
+      employeeId:
+        row.employeeid || row["employee id"] || row.employee_id || row.empid || row.emp_id || "",
       phone: row.phone || row.mobile || row.contact || "",
       role: row.role || "EMPLOYEE",
       status: row.status || "ACTIVE",
       designation: row.designation || row.title || row.position || "",
-      employmentType: row.employmenttype || row["employment type"] || row.employment_type || row.type || "FULL_TIME",
-      joiningDate: row.joiningdate || row["joining date"] || row.joining_date || row.joindate || row.doj || "",
-      departmentCode: row.departmentcode || row["department code"] || row.department || row.dept || "",
+      employmentType:
+        row.employmenttype ||
+        row["employment type"] ||
+        row.employment_type ||
+        row.type ||
+        "FULL_TIME",
+      joiningDate:
+        row.joiningdate || row["joining date"] || row.joining_date || row.joindate || row.doj || "",
+      departmentCode:
+        row.departmentcode || row["department code"] || row.department || row.dept || "",
       teamCode: row.teamcode || row["team code"] || row.team || "",
       branchCode: row.branchcode || row["branch code"] || row.branch || "",
     });
@@ -116,20 +137,14 @@ export async function POST(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser || !isHROrAbove(currentUser.role)) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 403 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
     const body = await request.json();
     const { csvData, dryRun = false } = body;
 
     if (!csvData) {
-      return NextResponse.json(
-        { success: false, error: "CSV data is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: "CSV data is required" }, { status: 400 });
     }
 
     const rows = parseCSV(csvData);
@@ -180,68 +195,120 @@ export async function POST(request: NextRequest) {
       }
 
       if (!row.firstName) {
-        results.push({ success: false, row: rowNum, email: row.email, error: "First name is required" });
+        results.push({
+          success: false,
+          row: rowNum,
+          email: row.email,
+          error: "First name is required",
+        });
         continue;
       }
 
       if (!row.lastName) {
-        results.push({ success: false, row: rowNum, email: row.email, error: "Last name is required" });
+        results.push({
+          success: false,
+          row: rowNum,
+          email: row.email,
+          error: "Last name is required",
+        });
         continue;
       }
 
       // Email format validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(row.email)) {
-        results.push({ success: false, row: rowNum, email: row.email, error: "Invalid email format" });
+        results.push({
+          success: false,
+          row: rowNum,
+          email: row.email,
+          error: "Invalid email format",
+        });
         continue;
       }
 
       // Check duplicate email
       if (emailSet.has(row.email.toLowerCase())) {
-        results.push({ success: false, row: rowNum, email: row.email, error: "Email already exists" });
+        results.push({
+          success: false,
+          row: rowNum,
+          email: row.email,
+          error: "Email already exists",
+        });
         continue;
       }
 
       // Check duplicate employee ID
       let employeeId = row.employeeId || "";
       if (employeeId && empIdSet.has(employeeId.toLowerCase())) {
-        results.push({ success: false, row: rowNum, email: row.email, error: `Employee ID ${employeeId} already exists` });
+        results.push({
+          success: false,
+          row: rowNum,
+          email: row.email,
+          error: `Employee ID ${employeeId} already exists`,
+        });
         continue;
       }
 
       // Validate role
       const role = row.role?.toUpperCase() || "EMPLOYEE";
       if (!VALID_ROLES.includes(role)) {
-        results.push({ success: false, row: rowNum, email: row.email, error: `Invalid role: ${row.role}` });
+        results.push({
+          success: false,
+          row: rowNum,
+          email: row.email,
+          error: `Invalid role: ${row.role}`,
+        });
         continue;
       }
 
       // HR cannot create ADMIN/HR users
       if ((role === "ADMIN" || role === "HR") && currentUser.role !== "ADMIN") {
-        results.push({ success: false, row: rowNum, email: row.email, error: "Only Admin can create Admin/HR users" });
+        results.push({
+          success: false,
+          row: rowNum,
+          email: row.email,
+          error: "Only Admin can create Admin/HR users",
+        });
         continue;
       }
 
       // Validate status
       const status = row.status?.toUpperCase() || "ACTIVE";
       if (!VALID_STATUSES.includes(status)) {
-        results.push({ success: false, row: rowNum, email: row.email, error: `Invalid status: ${row.status}` });
+        results.push({
+          success: false,
+          row: rowNum,
+          email: row.email,
+          error: `Invalid status: ${row.status}`,
+        });
         continue;
       }
 
       // Validate employment type
       const employmentType = row.employmentType?.toUpperCase().replace(" ", "_") || "FULL_TIME";
       if (!VALID_EMPLOYMENT_TYPES.includes(employmentType)) {
-        results.push({ success: false, row: rowNum, email: row.email, error: `Invalid employment type: ${row.employmentType}` });
+        results.push({
+          success: false,
+          row: rowNum,
+          email: row.email,
+          error: `Invalid employment type: ${row.employmentType}`,
+        });
         continue;
       }
 
       // Lookup department
       let departmentId: string | undefined;
       if (row.departmentCode) {
-        departmentId = deptMap.get(row.departmentCode.toLowerCase()) || deptNameMap.get(row.departmentCode.toLowerCase());
+        departmentId =
+          deptMap.get(row.departmentCode.toLowerCase()) ||
+          deptNameMap.get(row.departmentCode.toLowerCase());
         if (!departmentId) {
-          results.push({ success: false, row: rowNum, email: row.email, error: `Department not found: ${row.departmentCode}` });
+          results.push({
+            success: false,
+            row: rowNum,
+            email: row.email,
+            error: `Department not found: ${row.departmentCode}`,
+          });
           continue;
         }
       }
@@ -249,9 +316,15 @@ export async function POST(request: NextRequest) {
       // Lookup team
       let teamId: string | undefined;
       if (row.teamCode) {
-        teamId = teamMap.get(row.teamCode.toLowerCase()) || teamNameMap.get(row.teamCode.toLowerCase());
+        teamId =
+          teamMap.get(row.teamCode.toLowerCase()) || teamNameMap.get(row.teamCode.toLowerCase());
         if (!teamId) {
-          results.push({ success: false, row: rowNum, email: row.email, error: `Team not found: ${row.teamCode}` });
+          results.push({
+            success: false,
+            row: rowNum,
+            email: row.email,
+            error: `Team not found: ${row.teamCode}`,
+          });
           continue;
         }
       }
@@ -259,9 +332,16 @@ export async function POST(request: NextRequest) {
       // Lookup branch
       let branchId: string | undefined;
       if (row.branchCode) {
-        branchId = branchMap.get(row.branchCode.toLowerCase()) || branchNameMap.get(row.branchCode.toLowerCase());
+        branchId =
+          branchMap.get(row.branchCode.toLowerCase()) ||
+          branchNameMap.get(row.branchCode.toLowerCase());
         if (!branchId) {
-          results.push({ success: false, row: rowNum, email: row.email, error: `Branch not found: ${row.branchCode}` });
+          results.push({
+            success: false,
+            row: rowNum,
+            email: row.email,
+            error: `Branch not found: ${row.branchCode}`,
+          });
           continue;
         }
       }
@@ -305,7 +385,9 @@ export async function POST(request: NextRequest) {
             employeeId: u.employeeId,
             name: `${u.data.firstName} ${u.data.lastName}`,
             role: u.data.role?.toUpperCase() || "EMPLOYEE",
-            department: u.departmentId ? departments.find((d) => d.id === u.departmentId)?.name : undefined,
+            department: u.departmentId
+              ? departments.find((d) => d.id === u.departmentId)?.name
+              : undefined,
           })),
         },
       });
@@ -326,11 +408,22 @@ export async function POST(request: NextRequest) {
             firstName: userToCreate.data.firstName,
             lastName: userToCreate.data.lastName,
             phone: userToCreate.data.phone || null,
-            role: (userToCreate.data.role?.toUpperCase() || "EMPLOYEE") as "ADMIN" | "HR" | "MANAGER" | "TEAM_LEAD" | "EMPLOYEE",
-            status: (userToCreate.data.status?.toUpperCase() || "ACTIVE") as "ACTIVE" | "INACTIVE" | "SUSPENDED",
+            role: (userToCreate.data.role?.toUpperCase() || "EMPLOYEE") as
+              | "ADMIN"
+              | "HR"
+              | "MANAGER"
+              | "TEAM_LEAD"
+              | "EMPLOYEE",
+            status: (userToCreate.data.status?.toUpperCase() || "ACTIVE") as
+              | "ACTIVE"
+              | "INACTIVE"
+              | "SUSPENDED",
             designation: userToCreate.data.designation || null,
-            employmentType: (userToCreate.data.employmentType?.toUpperCase().replace(" ", "_") || "FULL_TIME") as "FULL_TIME" | "PART_TIME" | "CONTRACT" | "INTERN",
-            joiningDate: userToCreate.data.joiningDate ? new Date(userToCreate.data.joiningDate) : null,
+            employmentType: (userToCreate.data.employmentType?.toUpperCase().replace(" ", "_") ||
+              "FULL_TIME") as "FULL_TIME" | "PART_TIME" | "CONTRACT" | "INTERN",
+            joiningDate: userToCreate.data.joiningDate
+              ? new Date(userToCreate.data.joiningDate)
+              : null,
             departmentId: userToCreate.departmentId || null,
             teamId: userToCreate.teamId || null,
             branchId: userToCreate.branchId || null,
@@ -383,9 +476,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Import users error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

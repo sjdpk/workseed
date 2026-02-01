@@ -14,11 +14,7 @@ export const metadata: Metadata = {
   description: "Human Resource Management System",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className={inter.variable}>
       <body className={inter.className} suppressHydrationWarning>

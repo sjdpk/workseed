@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, getCurrentUser } from "@/lib";
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     // Admin and HR should use the main Users page
@@ -29,7 +26,7 @@ export async function GET(request: NextRequest) {
     const canViewDepartment = permissions.employeesCanViewDepartmentMembers ?? false;
     const canViewAll = permissions.employeesCanViewAllEmployees ?? false;
 
-    let whereClause: Record<string, unknown> = {
+    const whereClause: Record<string, unknown> = {
       id: { not: currentUser.id }, // Exclude self
     };
 
@@ -90,9 +87,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Get directory error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

@@ -7,17 +7,11 @@ export async function GET(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     if (!ALLOWED_ROLES.includes(currentUser.role)) {
-      return NextResponse.json(
-        { success: false, error: "Forbidden" },
-        { status: 403 }
-      );
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -111,9 +105,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Get attendance records error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

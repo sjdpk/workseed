@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, getCurrentUser, isHROrAbove } from "@/lib";
-import { z } from "zod/v4";
+import { logger } from "@/lib/logger";
+import { z } from "@/lib/validation";
 
 const updateLeaveTypeSchema = z.object({
   name: z.string().min(1).optional(),
@@ -17,17 +18,11 @@ const updateLeaveTypeSchema = z.object({
   color: z.string().optional().nullable(),
 });
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
@@ -37,10 +32,7 @@ export async function GET(
     });
 
     if (!leaveType) {
-      return NextResponse.json(
-        { success: false, error: "Leave type not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: "Leave type not found" }, { status: 404 });
     }
 
     return NextResponse.json({
@@ -48,25 +40,16 @@ export async function GET(
       data: { leaveType },
     });
   } catch (error) {
-    console.error("Get leave type error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    logger.error("Get leave type error", { error, endpoint: "GET /api/leave-types/[id]" });
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser || !isHROrAbove(currentUser.role)) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 403 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
     const { id } = await params;
@@ -78,10 +61,7 @@ export async function PATCH(
     });
 
     if (!existing) {
-      return NextResponse.json(
-        { success: false, error: "Leave type not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: "Leave type not found" }, { status: 404 });
     }
 
     // Check for duplicate code if changing
@@ -121,16 +101,10 @@ export async function PATCH(
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { success: false, error: error.issues[0].message },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: error.issues[0].message }, { status: 400 });
     }
-    console.error("Update leave type error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    logger.error("Update leave type error", { error, endpoint: "PATCH /api/leave-types/[id]" });
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -141,10 +115,7 @@ export async function DELETE(
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser || currentUser.role !== "ADMIN") {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 403 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
     const { id } = await params;
@@ -156,7 +127,10 @@ export async function DELETE(
 
     if (hasData) {
       return NextResponse.json(
-        { success: false, error: "Cannot delete leave type with existing allocations. Deactivate it instead." },
+        {
+          success: false,
+          error: "Cannot delete leave type with existing allocations. Deactivate it instead.",
+        },
         { status: 400 }
       );
     }
@@ -170,10 +144,7 @@ export async function DELETE(
       data: { message: "Leave type deleted" },
     });
   } catch (error) {
-    console.error("Delete leave type error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    logger.error("Delete leave type error", { error, endpoint: "DELETE /api/leave-types/[id]" });
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

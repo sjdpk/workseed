@@ -10,17 +10,11 @@ export async function DELETE(
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     if (!ALLOWED_ROLES.includes(currentUser.role)) {
-      return NextResponse.json(
-        { success: false, error: "Forbidden" },
-        { status: 403 }
-      );
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
     const { id } = await params;
@@ -34,9 +28,6 @@ export async function DELETE(
     });
   } catch (error) {
     console.error("Delete device error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

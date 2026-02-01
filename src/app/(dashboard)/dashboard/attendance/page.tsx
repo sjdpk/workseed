@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button, Card, useToast } from "@/components";
 
 interface AttendanceRecord {
@@ -124,7 +124,11 @@ export default function AttendancePage() {
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+    return new Date(dateStr).toLocaleDateString([], {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
   };
 
   const calculateDuration = (checkIn: string, checkOut: string | null) => {
@@ -152,8 +156,18 @@ export default function AttendancePage() {
         </div>
         <div className="py-12 text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-            <svg className="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            <svg
+              className="h-8 w-8 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
             </svg>
           </div>
           <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
@@ -173,7 +187,11 @@ export default function AttendancePage() {
       {/* Current Time & Action */}
       <div className="max-w-md mx-auto text-center">
         <p className="text-4xl font-light text-gray-900 dark:text-white tabular-nums">
-          {currentTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+          {currentTime.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          })}
         </p>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           {currentTime.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })}
@@ -234,12 +252,11 @@ export default function AttendancePage() {
                 key={record.id}
                 className="flex items-center justify-between rounded bg-gray-50 px-3 py-2 dark:bg-gray-800 text-sm"
               >
-                <span className="text-gray-600 dark:text-gray-400">
-                  {formatDate(record.date)}
-                </span>
+                <span className="text-gray-600 dark:text-gray-400">{formatDate(record.date)}</span>
                 <div className="flex items-center gap-3">
                   <span className="text-gray-900 dark:text-white">
-                    {formatTime(record.checkIn)} → {record.checkOut ? formatTime(record.checkOut) : "-"}
+                    {formatTime(record.checkIn)} →{" "}
+                    {record.checkOut ? formatTime(record.checkOut) : "-"}
                   </span>
                   <span className="text-xs text-gray-500 w-14 text-right">
                     {record.checkOut ? calculateDuration(record.checkIn, record.checkOut) : "-"}

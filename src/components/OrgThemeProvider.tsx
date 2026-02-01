@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useTheme } from "next-themes";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
 interface OrgTheme {
   accentColor: string;
@@ -52,9 +52,5 @@ export function OrgThemeProvider({ children }: { children: ReactNode }) {
       });
   }, [setNextTheme]);
 
-  return (
-    <OrgThemeContext.Provider value={{ theme, loading }}>
-      {children}
-    </OrgThemeContext.Provider>
-  );
+  return <OrgThemeContext.Provider value={{ theme, loading }}>{children}</OrgThemeContext.Provider>;
 }

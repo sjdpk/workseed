@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
+import { useEffect, useState } from "react";
 import { Button, Card, Input, useToast } from "@/components";
 
 const ALLOWED_ROLES = ["ADMIN", "HR"];
@@ -185,25 +185,14 @@ export default function MobileSetupPage() {
           {showQR && formData.baseUrl ? (
             <div className="text-center">
               <div className="inline-block rounded-2xl bg-white p-6 shadow-sm">
-                <QRCodeSVG
-                  value={getQRData()}
-                  size={180}
-                  level="M"
-                  includeMargin={false}
-                />
+                <QRCodeSVG value={getQRData()} size={180} level="M" includeMargin={false} />
               </div>
-              <p className="mt-3 text-sm font-medium text-gray-900 dark:text-white">
-                {orgName}
-              </p>
-              <p className="mt-1 text-xs text-gray-500 break-all">
-                {formData.baseUrl}
-              </p>
+              <p className="mt-3 text-sm font-medium text-gray-900 dark:text-white">{orgName}</p>
+              <p className="mt-1 text-xs text-gray-500 break-all">{formData.baseUrl}</p>
             </div>
           ) : (
             <div className="rounded-md border-2 border-dashed border-gray-200 p-12 text-center dark:border-gray-700">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Save to generate QR code
-              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Save to generate QR code</p>
             </div>
           )}
         </div>

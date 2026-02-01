@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/permissions";
 import { createAuditLog, getRequestMeta } from "@/lib/audit";
-import { z } from "zod";
+import { getCurrentUser } from "@/lib/auth";
+import { logger } from "@/lib/logger";
+import { hasPermission } from "@/lib/permissions";
+import { prisma } from "@/lib/prisma";
+import { z } from "@/lib/validation";
 
 const assignSchema = z.object({
   assetId: z.string().uuid("Invalid asset ID"),
@@ -22,11 +23,11 @@ export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     if (!hasPermission(user.role, "ASSET_ASSIGN")) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
     const body = await request.json();
@@ -38,19 +39,16 @@ export async function POST(request: NextRequest) {
     });
 
     if (!asset) {
-      return NextResponse.json({ error: "Asset not found" }, { status: 404 });
+      return NextResponse.json({ success: false, error: "Asset not found" }, { status: 404 });
     }
 
     if (!asset.isActive) {
-      return NextResponse.json(
-        { error: "Asset is not active" },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: "Asset is not active" }, { status: 400 });
     }
 
     if (asset.status !== "AVAILABLE") {
       return NextResponse.json(
-        { error: `Asset is not available. Current status: ${asset.status}` },
+        { success: false, error: `Asset is not available. Current status: ${asset.status}` },
         { status: 400 }
       );
     }
@@ -62,7 +60,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!targetUser) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
     }
 
     // Create assignment record and update asset in transaction
@@ -119,22 +117,22 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({
-      message: "Asset assigned successfully",
-      asset: updatedAsset,
-      assignment,
+      success: true,
+      data: {
+        message: "Asset assigned successfully",
+        asset: updatedAsset,
+        assignment,
+      },
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Validation failed", details: error.issues },
+        { success: false, error: "Validation failed", details: error.issues },
         { status: 400 }
       );
     }
-    console.error("Assign asset error:", error);
-    return NextResponse.json(
-      { error: "Failed to assign asset" },
-      { status: 500 }
-    );
+    logger.error("Assign asset error", { error, endpoint: "POST /api/assets/assign" });
+    return NextResponse.json({ success: false, error: "Failed to assign asset" }, { status: 500 });
   }
 }
 
@@ -143,11 +141,11 @@ export async function PATCH(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     if (!hasPermission(user.role, "ASSET_RETURN")) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
     const body = await request.json();
@@ -169,12 +167,12 @@ export async function PATCH(request: NextRequest) {
     });
 
     if (!asset) {
-      return NextResponse.json({ error: "Asset not found" }, { status: 404 });
+      return NextResponse.json({ success: false, error: "Asset not found" }, { status: 404 });
     }
 
     if (asset.status !== "ASSIGNED" || !asset.assignedToId) {
       return NextResponse.json(
-        { error: "Asset is not currently assigned" },
+        { success: false, error: "Asset is not currently assigned" },
         { status: 400 }
       );
     }
@@ -241,20 +239,20 @@ export async function PATCH(request: NextRequest) {
     });
 
     return NextResponse.json({
-      message: "Asset returned successfully",
-      asset: updatedAsset,
+      success: true,
+      data: {
+        message: "Asset returned successfully",
+        asset: updatedAsset,
+      },
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Validation failed", details: error.issues },
+        { success: false, error: "Validation failed", details: error.issues },
         { status: 400 }
       );
     }
-    console.error("Return asset error:", error);
-    return NextResponse.json(
-      { error: "Failed to return asset" },
-      { status: 500 }
-    );
+    logger.error("Return asset error", { error, endpoint: "PATCH /api/assets/assign" });
+    return NextResponse.json({ success: false, error: "Failed to return asset" }, { status: 500 });
   }
 }

@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 // PUT - Update holiday
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const token = request.cookies.get("auth-token")?.value;
     if (!token) {
@@ -43,7 +40,10 @@ export async function PUT(
     });
   } catch (error) {
     console.error("Error updating holiday:", error);
-    return NextResponse.json({ success: false, error: "Failed to update holiday" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to update holiday" },
+      { status: 500 }
+    );
   }
 }
 
@@ -79,6 +79,9 @@ export async function DELETE(
     });
   } catch (error) {
     console.error("Error deleting holiday:", error);
-    return NextResponse.json({ success: false, error: "Failed to delete holiday" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to delete holiday" },
+      { status: 500 }
+    );
   }
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState, useRef } from "react";
 import { Button, useToast } from "@/components";
 import type { LeaveType, LeaveAllocation } from "@/types";
 
@@ -76,6 +76,7 @@ export default function ApplyLeavePage() {
 
   useEffect(() => {
     calculateDays();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.startDate, formData.endDate, formData.isHalfDay]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -145,7 +146,9 @@ export default function ApplyLeavePage() {
       <div className="mb-6 flex items-start justify-between">
         <div>
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Apply for Leave</h1>
-          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Submit a new leave request</p>
+          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+            Submit a new leave request
+          </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => router.push("/dashboard/leaves")}>
           Cancel
@@ -189,7 +192,12 @@ export default function ApplyLeavePage() {
               viewBox="0 0 24 24"
               stroke="currentColor"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
           </button>
 
@@ -214,7 +222,9 @@ export default function ApplyLeavePage() {
                   filteredLeaveTypes.map((lt) => {
                     const alloc = allocations.find((a) => a.leaveTypeId === lt.id);
                     const balance = alloc?.balance ?? 0;
-                    const total = alloc ? alloc.allocated + alloc.carriedOver + alloc.adjusted : lt.defaultDays;
+                    const total = alloc
+                      ? alloc.allocated + alloc.carriedOver + alloc.adjusted
+                      : lt.defaultDays;
                     const hasBalance = balance > 0;
                     const isSelected = formData.leaveTypeId === lt.id;
 
@@ -234,8 +244,8 @@ export default function ApplyLeavePage() {
                           isSelected
                             ? "bg-gray-50 dark:bg-gray-800"
                             : hasBalance
-                            ? "hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                            : "opacity-40 cursor-not-allowed"
+                              ? "hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                              : "opacity-40 cursor-not-allowed"
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -243,7 +253,9 @@ export default function ApplyLeavePage() {
                             className="h-3 w-3 rounded-full"
                             style={{ backgroundColor: lt.color || "#3B82F6" }}
                           />
-                          <span className={`text-sm ${isSelected ? "font-medium text-gray-900 dark:text-white" : "text-gray-900 dark:text-white"}`}>
+                          <span
+                            className={`text-sm ${isSelected ? "font-medium text-gray-900 dark:text-white" : "text-gray-900 dark:text-white"}`}
+                          >
                             {lt.name}
                           </span>
                           {!lt.isPaid && (
@@ -253,7 +265,9 @@ export default function ApplyLeavePage() {
                           )}
                         </div>
                         <div className="flex items-baseline gap-1">
-                          <span className={`text-sm font-semibold ${hasBalance ? "text-gray-900 dark:text-white" : "text-red-500"}`}>
+                          <span
+                            className={`text-sm font-semibold ${hasBalance ? "text-gray-900 dark:text-white" : "text-red-500"}`}
+                          >
                             {balance}
                           </span>
                           <span className="text-xs text-gray-400">/ {total}</span>
@@ -278,7 +292,11 @@ export default function ApplyLeavePage() {
                 type="date"
                 value={formData.startDate}
                 onChange={(e) =>
-                  setFormData({ ...formData, startDate: e.target.value, endDate: formData.endDate || e.target.value })
+                  setFormData({
+                    ...formData,
+                    startDate: e.target.value,
+                    endDate: formData.endDate || e.target.value,
+                  })
                 }
                 min={new Date().toISOString().split("T")[0]}
                 required
@@ -353,13 +371,28 @@ export default function ApplyLeavePage() {
           <div className="rounded bg-gray-50 p-4 dark:bg-gray-800/50">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: selectedLeaveType?.color || "#3B82F6" }} />
-                <span className="font-medium text-gray-900 dark:text-white">{selectedLeaveType?.name}</span>
+                <div
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: selectedLeaveType?.color || "#3B82F6" }}
+                />
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {selectedLeaveType?.name}
+                </span>
                 <span className="text-gray-400">·</span>
                 <span className="text-sm text-gray-600 dark:text-gray-400">
-                  {new Date(formData.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  {new Date(formData.startDate).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })}
                   {formData.startDate !== formData.endDate && (
-                    <> - {new Date(formData.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</>
+                    <>
+                      {" "}
+                      -{" "}
+                      {new Date(formData.endDate).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </>
                   )}
                 </span>
                 <span className="text-gray-400">·</span>
@@ -367,11 +400,13 @@ export default function ApplyLeavePage() {
               </div>
               <div className="text-sm">
                 <span className="text-gray-500">Remaining: </span>
-                <span className={`font-semibold ${
-                  selectedAllocation && selectedAllocation.balance - formData.days >= 0
-                    ? "text-green-600 dark:text-green-400"
-                    : "text-red-600 dark:text-red-400"
-                }`}>
+                <span
+                  className={`font-semibold ${
+                    selectedAllocation && selectedAllocation.balance - formData.days >= 0
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-red-600 dark:text-red-400"
+                  }`}
+                >
                   {selectedAllocation ? selectedAllocation.balance - formData.days : 0}
                 </span>
               </div>

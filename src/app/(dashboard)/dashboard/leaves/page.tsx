@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button, Card, useToast } from "@/components";
 import type { LeaveAllocation, LeaveRequest } from "@/types";
 
@@ -27,6 +27,7 @@ export default function MyLeavesPage() {
     setLoading(false);
   };
 
+  /* eslint-disable react-hooks/set-state-in-effect -- Intentional: Initial data fetch on component mount */
   useEffect(() => {
     fetchData();
     if (searchParams.get("success") === "1") {
@@ -34,6 +35,7 @@ export default function MyLeavesPage() {
       window.history.replaceState(null, "", "/dashboard/leaves");
     }
   }, [searchParams, toast]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleCancel = async (id: string) => {
     if (!confirm("Are you sure you want to cancel this leave request?")) return;
@@ -68,10 +70,26 @@ export default function MyLeavesPage() {
   };
 
   const statusConfig: Record<string, { bg: string; text: string; dot: string }> = {
-    PENDING: { bg: "bg-amber-50 dark:bg-amber-900/20", text: "text-amber-700 dark:text-amber-300", dot: "bg-amber-500" },
-    APPROVED: { bg: "bg-green-50 dark:bg-green-900/20", text: "text-green-700 dark:text-green-300", dot: "bg-green-500" },
-    REJECTED: { bg: "bg-red-50 dark:bg-red-900/20", text: "text-red-700 dark:text-red-300", dot: "bg-red-500" },
-    CANCELLED: { bg: "bg-gray-100 dark:bg-gray-800", text: "text-gray-600 dark:text-gray-400", dot: "bg-gray-400" },
+    PENDING: {
+      bg: "bg-amber-50 dark:bg-amber-900/20",
+      text: "text-amber-700 dark:text-amber-300",
+      dot: "bg-amber-500",
+    },
+    APPROVED: {
+      bg: "bg-green-50 dark:bg-green-900/20",
+      text: "text-green-700 dark:text-green-300",
+      dot: "bg-green-500",
+    },
+    REJECTED: {
+      bg: "bg-red-50 dark:bg-red-900/20",
+      text: "text-red-700 dark:text-red-300",
+      dot: "bg-red-500",
+    },
+    CANCELLED: {
+      bg: "bg-gray-100 dark:bg-gray-800",
+      text: "text-gray-600 dark:text-gray-400",
+      dot: "bg-gray-400",
+    },
   };
 
   const tabs: { key: TabType; label: string }[] = [
@@ -96,7 +114,9 @@ export default function MyLeavesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white">My Leaves</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Manage your leave balance and requests</p>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            Manage your leave balance and requests
+          </p>
         </div>
         <Button onClick={() => router.push("/dashboard/leaves/apply")}>
           <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -106,12 +126,13 @@ export default function MyLeavesPage() {
         </Button>
       </div>
 
-
       {/* Compact Leave Balance */}
       <Card className="p-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Leave Balance</h2>
-          <span className="text-xs text-gray-500 dark:text-gray-400">{new Date().getFullYear()}</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            {new Date().getFullYear()}
+          </span>
         </div>
         {allocations.length === 0 ? (
           <p className="text-sm text-gray-500 dark:text-gray-400">No leave allocations</p>
@@ -126,9 +147,15 @@ export default function MyLeavesPage() {
                   className="h-2 w-2 rounded-full"
                   style={{ backgroundColor: alloc.leaveType?.color || "#3B82F6" }}
                 />
-                <span className="text-sm text-gray-700 dark:text-gray-300">{alloc.leaveType?.name}</span>
-                <span className="text-sm font-semibold text-gray-900 dark:text-white">{alloc.balance}</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">/ {alloc.allocated + alloc.carriedOver + alloc.adjusted}</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  {alloc.leaveType?.name}
+                </span>
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                  {alloc.balance}
+                </span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  / {alloc.allocated + alloc.carriedOver + alloc.adjusted}
+                </span>
               </div>
             ))}
           </div>
@@ -176,8 +203,18 @@ export default function MyLeavesPage() {
         <div className="p-4">
           {getFilteredRequests().length === 0 ? (
             <div className="py-8 text-center">
-              <svg className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <svg
+                className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
               </svg>
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                 {activeTab === "all" ? "No leave requests yet" : `No ${activeTab} requests`}
@@ -213,9 +250,19 @@ export default function MyLeavesPage() {
                           </div>
                         </td>
                         <td className="py-3 pr-4 text-sm text-gray-600 dark:text-gray-400">
-                          {new Date(req.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          {new Date(req.startDate).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })}
                           {req.startDate !== req.endDate && (
-                            <> - {new Date(req.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</>
+                            <>
+                              {" "}
+                              -{" "}
+                              {new Date(req.endDate).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                              })}
+                            </>
                           )}
                           {req.isHalfDay && (
                             <span className="ml-1 text-xs text-gray-500">
@@ -223,7 +270,9 @@ export default function MyLeavesPage() {
                             </span>
                           )}
                         </td>
-                        <td className="py-3 pr-4 text-sm text-gray-900 dark:text-white">{req.days}</td>
+                        <td className="py-3 pr-4 text-sm text-gray-900 dark:text-white">
+                          {req.days}
+                        </td>
                         <td className="py-3 pr-4">
                           <span
                             className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium ${config.bg} ${config.text}`}
@@ -237,7 +286,9 @@ export default function MyLeavesPage() {
                             {req.reason || "-"}
                           </span>
                           {req.status === "REJECTED" && req.rejectionReason && (
-                            <span className="text-xs text-red-500 truncate block">{req.rejectionReason}</span>
+                            <span className="text-xs text-red-500 truncate block">
+                              {req.rejectionReason}
+                            </span>
                           )}
                         </td>
                         <td className="py-3 text-right">

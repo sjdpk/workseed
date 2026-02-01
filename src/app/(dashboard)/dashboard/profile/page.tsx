@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button, Card, Input, useToast } from "@/components";
 
 interface Asset {
@@ -163,7 +163,9 @@ export default function ProfilePage() {
       // Fetch assets and leave allocations
       const [assetsRes, allocRes] = await Promise.all([
         fetch("/api/assets").then((r) => r.json()),
-        fetch(`/api/leave-allocations?userId=${userData.id}&year=${currentYear}`).then((r) => r.json()),
+        fetch(`/api/leave-allocations?userId=${userData.id}&year=${currentYear}`).then((r) =>
+          r.json()
+        ),
       ]);
 
       if (assetsRes.assets) {
@@ -175,6 +177,7 @@ export default function ProfilePage() {
 
       setLoading(false);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -259,6 +262,7 @@ export default function ProfilePage() {
         <div className="flex items-center gap-4">
           <div className="flex h-16 w-16 items-center justify-center rounded-md bg-gray-100 text-lg font-semibold text-gray-900 dark:bg-gray-800 dark:text-white">
             {user.profilePicture ? (
+              // eslint-disable-next-line @next/next/no-img-element -- Dynamic URL from user profile
               <img
                 src={user.profilePicture}
                 alt={user.firstName}
@@ -322,43 +326,61 @@ export default function ProfilePage() {
           {/* Contact & Personal Info */}
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
-              <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Contact Information</h2>
+              <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">
+                Contact Information
+              </h2>
               <dl className="space-y-3">
                 <div className="flex justify-between">
                   <dt className="text-sm text-gray-500 dark:text-gray-400">Email</dt>
-                  <dd className="text-sm font-medium text-gray-900 dark:text-white">{user.email}</dd>
+                  <dd className="text-sm font-medium text-gray-900 dark:text-white">
+                    {user.email}
+                  </dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-sm text-gray-500 dark:text-gray-400">Phone</dt>
-                  <dd className="text-sm font-medium text-gray-900 dark:text-white">{user.phone || "-"}</dd>
+                  <dd className="text-sm font-medium text-gray-900 dark:text-white">
+                    {user.phone || "-"}
+                  </dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-sm text-gray-500 dark:text-gray-400">Address</dt>
                   <dd className="text-sm font-medium text-gray-900 dark:text-white text-right max-w-[200px]">
-                    {[user.address, user.city, user.state, user.country, user.postalCode].filter(Boolean).join(", ") || "-"}
+                    {[user.address, user.city, user.state, user.country, user.postalCode]
+                      .filter(Boolean)
+                      .join(", ") || "-"}
                   </dd>
                 </div>
               </dl>
             </Card>
 
             <Card>
-              <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Personal Information</h2>
+              <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">
+                Personal Information
+              </h2>
               <dl className="space-y-3">
                 <div className="flex justify-between">
                   <dt className="text-sm text-gray-500 dark:text-gray-400">Date of Birth</dt>
-                  <dd className="text-sm font-medium text-gray-900 dark:text-white">{formatDate(user.dateOfBirth)}</dd>
+                  <dd className="text-sm font-medium text-gray-900 dark:text-white">
+                    {formatDate(user.dateOfBirth)}
+                  </dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-sm text-gray-500 dark:text-gray-400">Gender</dt>
-                  <dd className="text-sm font-medium text-gray-900 dark:text-white">{user.gender || "-"}</dd>
+                  <dd className="text-sm font-medium text-gray-900 dark:text-white">
+                    {user.gender || "-"}
+                  </dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-sm text-gray-500 dark:text-gray-400">Marital Status</dt>
-                  <dd className="text-sm font-medium text-gray-900 dark:text-white">{user.maritalStatus || "-"}</dd>
+                  <dd className="text-sm font-medium text-gray-900 dark:text-white">
+                    {user.maritalStatus || "-"}
+                  </dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-sm text-gray-500 dark:text-gray-400">Nationality</dt>
-                  <dd className="text-sm font-medium text-gray-900 dark:text-white">{user.nationality || "-"}</dd>
+                  <dd className="text-sm font-medium text-gray-900 dark:text-white">
+                    {user.nationality || "-"}
+                  </dd>
                 </div>
               </dl>
             </Card>
@@ -366,19 +388,27 @@ export default function ProfilePage() {
 
           {/* Employment Details */}
           <Card>
-            <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Employment Details</h2>
+            <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">
+              Employment Details
+            </h2>
             <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <dt className="text-sm text-gray-500 dark:text-gray-400">Employment Type</dt>
-                <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{user.employmentType?.replace("_", " ") || "-"}</dd>
+                <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
+                  {user.employmentType?.replace("_", " ") || "-"}
+                </dd>
               </div>
               <div>
                 <dt className="text-sm text-gray-500 dark:text-gray-400">Joining Date</dt>
-                <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{formatDate(user.joiningDate)}</dd>
+                <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
+                  {formatDate(user.joiningDate)}
+                </dd>
               </div>
               <div>
                 <dt className="text-sm text-gray-500 dark:text-gray-400">Department</dt>
-                <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{user.department?.name || "-"}</dd>
+                <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
+                  {user.department?.name || "-"}
+                </dd>
               </div>
               <div>
                 <dt className="text-sm text-gray-500 dark:text-gray-400">Reporting Manager</dt>
@@ -391,15 +421,21 @@ export default function ProfilePage() {
 
           {/* Emergency Contact */}
           <Card>
-            <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Emergency Contact</h2>
+            <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">
+              Emergency Contact
+            </h2>
             <dl className="grid gap-4 sm:grid-cols-2">
               <div>
                 <dt className="text-sm text-gray-500 dark:text-gray-400">Contact Name</dt>
-                <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{user.emergencyContact || "-"}</dd>
+                <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
+                  {user.emergencyContact || "-"}
+                </dd>
               </div>
               <div>
                 <dt className="text-sm text-gray-500 dark:text-gray-400">Contact Phone</dt>
-                <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{user.emergencyContactPhone || "-"}</dd>
+                <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
+                  {user.emergencyContactPhone || "-"}
+                </dd>
               </div>
             </dl>
           </Card>
@@ -407,25 +443,47 @@ export default function ProfilePage() {
           {/* Social Links */}
           {(user.linkedIn || user.twitter || user.github || user.website) && (
             <Card>
-              <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Social Links</h2>
+              <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">
+                Social Links
+              </h2>
               <div className="flex flex-wrap gap-2">
                 {user.linkedIn && (
-                  <a href={user.linkedIn} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded bg-gray-100 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300">
+                  <a
+                    href={user.linkedIn}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded bg-gray-100 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300"
+                  >
                     LinkedIn
                   </a>
                 )}
                 {user.twitter && (
-                  <a href={user.twitter} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded bg-gray-100 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300">
+                  <a
+                    href={user.twitter}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded bg-gray-100 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300"
+                  >
                     Twitter
                   </a>
                 )}
                 {user.github && (
-                  <a href={user.github} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded bg-gray-100 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300">
+                  <a
+                    href={user.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded bg-gray-100 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300"
+                  >
                     GitHub
                   </a>
                 )}
                 {user.website && (
-                  <a href={user.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded bg-gray-100 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300">
+                  <a
+                    href={user.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded bg-gray-100 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300"
+                  >
                     Website
                   </a>
                 )}
@@ -439,40 +497,63 @@ export default function ProfilePage() {
         <div className="space-y-6">
           <Card>
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Leave Balance ({currentYear})</h2>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+                Leave Balance ({currentYear})
+              </h2>
               <Link href="/dashboard/leaves">
-                <Button variant="outline" size="sm">View History</Button>
+                <Button variant="outline" size="sm">
+                  View History
+                </Button>
               </Link>
             </div>
 
             {allocations.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">No leave allocations for this year.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                No leave allocations for this year.
+              </p>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {allocations.map((alloc) => {
                   const total = alloc.allocated + alloc.adjusted;
                   const usedPercent = total > 0 ? (alloc.used / total) * 100 : 0;
                   return (
-                    <div key={alloc.id} className="rounded border border-gray-200 p-4 dark:border-gray-700">
+                    <div
+                      key={alloc.id}
+                      className="rounded border border-gray-200 p-4 dark:border-gray-700"
+                    >
                       <div className="flex items-center gap-2">
-                        <div className="h-3 w-3 rounded-full" style={{ backgroundColor: alloc.leaveType.color || "#3B82F6" }} />
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">{alloc.leaveType.name}</span>
+                        <div
+                          className="h-3 w-3 rounded-full"
+                          style={{ backgroundColor: alloc.leaveType.color || "#3B82F6" }}
+                        />
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                          {alloc.leaveType.name}
+                        </span>
                       </div>
                       <div className="mt-3 flex items-baseline justify-between">
-                        <span className={`text-2xl font-bold ${alloc.balance > 0 ? "text-green-600 dark:text-green-400" : "text-gray-400"}`}>
+                        <span
+                          className={`text-2xl font-bold ${alloc.balance > 0 ? "text-green-600 dark:text-green-400" : "text-gray-400"}`}
+                        >
                           {alloc.balance}
                         </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">/ {total} days</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          / {total} days
+                        </span>
                       </div>
                       <div className="mt-2">
                         <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
                           <div
                             className="h-full rounded-full transition-all"
-                            style={{ width: `${usedPercent}%`, backgroundColor: alloc.leaveType.color || "#3B82F6" }}
+                            style={{
+                              width: `${usedPercent}%`,
+                              backgroundColor: alloc.leaveType.color || "#3B82F6",
+                            }}
                           />
                         </div>
                       </div>
-                      <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Used: {alloc.used} days</p>
+                      <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        Used: {alloc.used} days
+                      </p>
                     </div>
                   );
                 })}
@@ -486,12 +567,18 @@ export default function ProfilePage() {
         <div className="space-y-6">
           <Card>
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Assigned Assets</h2>
-              <span className="text-sm text-gray-500 dark:text-gray-400">{assets.length} asset{assets.length !== 1 ? "s" : ""}</span>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+                Assigned Assets
+              </h2>
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                {assets.length} asset{assets.length !== 1 ? "s" : ""}
+              </span>
             </div>
 
             {assets.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">No assets currently assigned to you.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                No assets currently assigned to you.
+              </p>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {assets.map((asset) => (
@@ -505,9 +592,7 @@ export default function ProfilePage() {
                         <p className="font-medium text-gray-900 dark:text-white truncate">
                           {asset.name}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {asset.assetTag}
-                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{asset.assetTag}</p>
                         {(asset.brand || asset.model) && (
                           <p className="text-xs text-gray-500 dark:text-gray-400">
                             {asset.brand} {asset.model}
@@ -519,7 +604,9 @@ export default function ProfilePage() {
                           </p>
                         )}
                         <div className="mt-2 flex items-center gap-2">
-                          <span className={`text-xs font-medium ${CONDITION_COLORS[asset.condition] || ""}`}>
+                          <span
+                            className={`text-xs font-medium ${CONDITION_COLORS[asset.condition] || ""}`}
+                          >
                             {asset.condition}
                           </span>
                           {asset.assignedAt && (
@@ -576,6 +663,7 @@ export default function ProfilePage() {
               />
               {formData.profilePicture && (
                 <div className="mt-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic URL from user profile */}
                   <img
                     src={formData.profilePicture}
                     alt="Profile preview"

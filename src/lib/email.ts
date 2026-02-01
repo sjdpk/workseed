@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { logger } from "./logger";
 
 // Email configuration from environment variables
 const transporter = nodemailer.createTransport({
@@ -25,7 +26,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
   try {
     // Skip if SMTP is not configured
     if (!process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
-      console.log("Email not sent - SMTP not configured:", options.subject);
+      logger.debug("Email not sent - SMTP not configured", { subject: options.subject });
       return false;
     }
 
@@ -36,10 +37,10 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       html: options.html,
     });
 
-    console.log("Email sent successfully to:", options.to);
+    logger.info("Email sent successfully", { to: options.to, subject: options.subject });
     return true;
   } catch (error) {
-    console.error("Email sending failed:", error);
+    logger.error("Email sending failed", { error, to: options.to, subject: options.subject });
     return false;
   }
 }
@@ -116,12 +117,16 @@ export async function sendLeaveRequestSubmitted(
         <span class="info-label">Duration</span>
         <span class="info-value">${data.startDate} - ${data.endDate} (${data.days} day${data.days > 1 ? "s" : ""})</span>
       </div>
-      ${data.reason ? `
+      ${
+        data.reason
+          ? `
       <div class="info-row">
         <span class="info-label">Reason</span>
         <span class="info-value">${data.reason}</span>
       </div>
-      ` : ""}
+      `
+          : ""
+      }
       <div style="margin-top: 16px;">
         <span class="badge badge-pending">Pending Approval</span>
       </div>
@@ -167,12 +172,16 @@ export async function sendLeaveRequestStatusUpdate(
         <span class="info-label">Duration</span>
         <span class="info-value">${data.startDate} - ${data.endDate} (${data.days} day${data.days > 1 ? "s" : ""})</span>
       </div>
-      ${data.status === "REJECTED" && data.rejectionReason ? `
+      ${
+        data.status === "REJECTED" && data.rejectionReason
+          ? `
       <div class="info-row">
         <span class="info-label">Reason for Rejection</span>
         <span class="info-value">${data.rejectionReason}</span>
       </div>
-      ` : ""}
+      `
+          : ""
+      }
       <div style="margin-top: 16px;">
         <span class="badge ${statusClass}">${statusText}</span>
       </div>
@@ -217,12 +226,16 @@ export async function sendNewLeaveRequestForApproval(
         <span class="info-label">Duration</span>
         <span class="info-value">${data.startDate} - ${data.endDate} (${data.days} day${data.days > 1 ? "s" : ""})</span>
       </div>
-      ${data.reason ? `
+      ${
+        data.reason
+          ? `
       <div class="info-row">
         <span class="info-label">Reason</span>
         <span class="info-value">${data.reason}</span>
       </div>
-      ` : ""}
+      `
+          : ""
+      }
     </div>
 
     <a href="${APP_URL}/dashboard/leaves/requests" class="button">Review Requests</a>
@@ -275,7 +288,12 @@ export async function sendAnnouncementAlert(
     publishedBy: string;
   }
 ): Promise<boolean> {
-  const typeLabel = data.type === "URGENT" ? "🚨 Urgent" : data.type === "IMPORTANT" ? "⚠️ Important" : "📢 General";
+  const typeLabel =
+    data.type === "URGENT"
+      ? "🚨 Urgent"
+      : data.type === "IMPORTANT"
+        ? "⚠️ Important"
+        : "📢 General";
   const preview = data.content.length > 200 ? data.content.substring(0, 200) + "..." : data.content;
 
   const emailContent = `
@@ -364,12 +382,16 @@ export async function sendRequestStatusUpdate(
         <span class="info-label">Handled by</span>
         <span class="info-value">${data.approverName}</span>
       </div>
-      ${data.response ? `
+      ${
+        data.response
+          ? `
       <div class="info-row">
         <span class="info-label">Response</span>
         <span class="info-value">${data.response}</span>
       </div>
-      ` : ""}
+      `
+          : ""
+      }
       <div style="margin-top: 16px;">
         <span class="badge ${statusClass}">${statusText}</span>
       </div>

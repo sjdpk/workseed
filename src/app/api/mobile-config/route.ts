@@ -30,9 +30,6 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Get mobile config error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

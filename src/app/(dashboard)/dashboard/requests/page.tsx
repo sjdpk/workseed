@@ -61,6 +61,7 @@ export default function RequestsPage() {
 
   useEffect(() => {
     fetchRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterStatus, filterType]);
 
   const fetchRequests = async () => {
@@ -85,7 +86,14 @@ export default function RequestsPage() {
     });
     if (res.ok) {
       setShowModal(false);
-      setForm({ type: "GENERAL", subject: "", description: "", priority: "NORMAL", assetCategory: "", documentType: "" });
+      setForm({
+        type: "GENERAL",
+        subject: "",
+        description: "",
+        priority: "NORMAL",
+        assetCategory: "",
+        documentType: "",
+      });
       fetchRequests();
     }
   };
@@ -194,7 +202,9 @@ export default function RequestsPage() {
             <InboxIcon className="h-6 w-6 text-gray-400" />
           </div>
           <p className="mt-3 text-sm font-medium text-gray-900 dark:text-white">No requests yet</p>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Click "New Request" to submit your first request</p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Click &quot;New Request&quot; to submit your first request
+          </p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -209,8 +219,12 @@ export default function RequestsPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{req.subject}</p>
-                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${getStatusColor(req.status)}`}>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    {req.subject}
+                  </p>
+                  <span
+                    className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${getStatusColor(req.status)}`}
+                  >
                     {req.status.charAt(0) + req.status.slice(1).toLowerCase()}
                   </span>
                 </div>
@@ -236,14 +250,21 @@ export default function RequestsPage() {
             <form onSubmit={handleSubmit} className="flex h-full flex-col">
               {/* Header */}
               <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-gray-800">
-                <h2 className="text-base font-semibold text-gray-900 dark:text-white">New Request</h2>
+                <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+                  New Request
+                </h2>
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
                   className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
@@ -271,8 +292,12 @@ export default function RequestsPage() {
                             : "border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600"
                         }`}
                       >
-                        <option.icon className={`h-5 w-5 ${form.type === option.value ? "text-gray-900 dark:text-white" : "text-gray-400"}`} />
-                        <span className={`mt-1.5 text-xs font-medium ${form.type === option.value ? "text-gray-900 dark:text-white" : "text-gray-600 dark:text-gray-400"}`}>
+                        <option.icon
+                          className={`h-5 w-5 ${form.type === option.value ? "text-gray-900 dark:text-white" : "text-gray-400"}`}
+                        />
+                        <span
+                          className={`mt-1.5 text-xs font-medium ${form.type === option.value ? "text-gray-900 dark:text-white" : "text-gray-600 dark:text-gray-400"}`}
+                        >
                           {option.label}
                         </span>
                       </button>
@@ -407,7 +432,9 @@ export default function RequestsPage() {
             <div className="flex h-full flex-col">
               {/* Header */}
               <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
-                <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${getStatusColor(selectedRequest.status)}`}>
+                <span
+                  className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${getStatusColor(selectedRequest.status)}`}
+                >
                   {selectedRequest.status.charAt(0) + selectedRequest.status.slice(1).toLowerCase()}
                 </span>
                 <button
@@ -415,7 +442,12 @@ export default function RequestsPage() {
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
@@ -430,17 +462,24 @@ export default function RequestsPage() {
                   <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
                     <span className="font-medium">Type:</span>
                     <span>{selectedRequest.type}</span>
-                    {selectedRequest.assetCategory && <span>({selectedRequest.assetCategory})</span>}
+                    {selectedRequest.assetCategory && (
+                      <span>({selectedRequest.assetCategory})</span>
+                    )}
                     {selectedRequest.documentType && <span>({selectedRequest.documentType})</span>}
                   </div>
                   <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
                     <span className="font-medium">Priority:</span>
-                    <span className={getPriorityColor(selectedRequest.priority)}>{selectedRequest.priority}</span>
+                    <span className={getPriorityColor(selectedRequest.priority)}>
+                      {selectedRequest.priority}
+                    </span>
                   </div>
                   {isAdminOrHR && (
                     <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
                       <span className="font-medium">From:</span>
-                      <span>{selectedRequest.user.firstName} {selectedRequest.user.lastName} ({selectedRequest.user.employeeId})</span>
+                      <span>
+                        {selectedRequest.user.firstName} {selectedRequest.user.lastName} (
+                        {selectedRequest.user.employeeId})
+                      </span>
                     </div>
                   )}
                   <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
@@ -450,13 +489,17 @@ export default function RequestsPage() {
                   {selectedRequest.approver && (
                     <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
                       <span className="font-medium">Handled by:</span>
-                      <span>{selectedRequest.approver.firstName} {selectedRequest.approver.lastName}</span>
+                      <span>
+                        {selectedRequest.approver.firstName} {selectedRequest.approver.lastName}
+                      </span>
                     </div>
                   )}
                 </div>
 
                 <div className="mt-6">
-                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Description</h3>
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Description
+                  </h3>
                   <p className="mt-2 whitespace-pre-wrap text-sm text-gray-600 dark:text-gray-400">
                     {selectedRequest.description}
                   </p>
@@ -464,8 +507,12 @@ export default function RequestsPage() {
 
                 {selectedRequest.response && (
                   <div className="mt-6 rounded-md bg-gray-50 p-3 dark:bg-gray-800">
-                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Response</h3>
-                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{selectedRequest.response}</p>
+                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Response
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                      {selectedRequest.response}
+                    </p>
                   </div>
                 )}
 
@@ -525,7 +572,12 @@ export default function RequestsPage() {
 function InboxIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859m-17.5 0V6.75A2.25 2.25 0 014.5 4.5h15a2.25 2.25 0 012.25 2.25v6.75m-17.5 0v4.5a2.25 2.25 0 002.25 2.25h13a2.25 2.25 0 002.25-2.25v-4.5" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859m-17.5 0V6.75A2.25 2.25 0 014.5 4.5h15a2.25 2.25 0 012.25 2.25v6.75m-17.5 0v4.5a2.25 2.25 0 002.25 2.25h13a2.25 2.25 0 002.25-2.25v-4.5"
+      />
     </svg>
   );
 }
@@ -533,7 +585,12 @@ function InboxIcon({ className }: { className?: string }) {
 function AssetIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25"
+      />
     </svg>
   );
 }
@@ -541,7 +598,12 @@ function AssetIcon({ className }: { className?: string }) {
 function DocumentIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+      />
     </svg>
   );
 }
@@ -549,7 +611,12 @@ function DocumentIcon({ className }: { className?: string }) {
 function QuestionIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"
+      />
     </svg>
   );
 }
@@ -557,7 +624,12 @@ function QuestionIcon({ className }: { className?: string }) {
 function ChevronRightIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M8.25 4.5l7.5 7.5-7.5 7.5"
+      />
     </svg>
   );
 }

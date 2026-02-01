@@ -77,20 +77,14 @@ export async function POST(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser || !isHROrAbove(currentUser.role)) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 403 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
     const body = await request.json();
     const { csvData, dryRun = false } = body;
 
     if (!csvData) {
-      return NextResponse.json(
-        { success: false, error: "CSV data is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: "CSV data is required" }, { status: 400 });
     }
 
     const rows = parseCSV(csvData);
@@ -103,7 +97,9 @@ export async function POST(request: NextRequest) {
 
     // Fetch existing branches
     const existingBranches = await prisma.branch.findMany({ select: { code: true } });
-    const existingCodes = new Set(existingBranches.map((b: { code: string }) => b.code.toLowerCase()));
+    const existingCodes = new Set(
+      existingBranches.map((b: { code: string }) => b.code.toLowerCase())
+    );
 
     const results: ImportResult[] = [];
     const branchesToCreate: Array<{
@@ -130,23 +126,39 @@ export async function POST(request: NextRequest) {
       }
 
       if (!row.name) {
-        results.push({ success: false, row: rowNum, code: row.code, error: "Branch name is required" });
+        results.push({
+          success: false,
+          row: rowNum,
+          code: row.code,
+          error: "Branch name is required",
+        });
         continue;
       }
 
       // Check duplicate code
       if (existingCodes.has(row.code.toLowerCase())) {
-        results.push({ success: false, row: rowNum, code: row.code, error: `Branch code ${row.code} already exists` });
+        results.push({
+          success: false,
+          row: rowNum,
+          code: row.code,
+          error: `Branch code ${row.code} already exists`,
+        });
         continue;
       }
 
       // Validate email if provided
       if (row.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email)) {
-        results.push({ success: false, row: rowNum, code: row.code, error: `Invalid email format: ${row.email}` });
+        results.push({
+          success: false,
+          row: rowNum,
+          code: row.code,
+          error: `Invalid email format: ${row.email}`,
+        });
         continue;
       }
 
-      const isActive = !row.isActive || ["true", "1", "yes", "active"].includes(row.isActive.toLowerCase());
+      const isActive =
+        !row.isActive || ["true", "1", "yes", "active"].includes(row.isActive.toLowerCase());
 
       existingCodes.add(row.code.toLowerCase());
 
@@ -246,9 +258,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Import branches error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

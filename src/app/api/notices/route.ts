@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, getCurrentUser, isHROrAbove, sendAnnouncementAlert } from "@/lib";
-import { z } from "zod/v4";
+import { logger } from "@/lib/logger";
+import { z } from "@/lib/validation";
 
 const createNoticeSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -13,10 +14,7 @@ export async function GET() {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const now = new Date();
@@ -26,10 +24,7 @@ export async function GET() {
       ? {}
       : {
           isActive: true,
-          OR: [
-            { expiresAt: null },
-            { expiresAt: { gte: now } },
-          ],
+          OR: [{ expiresAt: null }, { expiresAt: { gte: now } }],
         };
 
     const notices = await prisma.notice.findMany({
@@ -50,11 +45,8 @@ export async function GET() {
       data: { notices },
     });
   } catch (error) {
-    console.error("Get notices error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    logger.error("Get notices error", { error, endpoint: "GET /api/notices" });
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -115,15 +107,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { success: false, error: error.issues[0].message },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: error.issues[0].message }, { status: 400 });
     }
-    console.error("Create notice error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    logger.error("Create notice error", { error, endpoint: "POST /api/notices" });
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

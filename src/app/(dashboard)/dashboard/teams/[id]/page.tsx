@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState, use } from "react";
 import { Button, Card, Input, Select, useToast } from "@/components";
 
 interface Department {
@@ -16,7 +16,7 @@ interface User {
   role: string;
 }
 
-interface Team {
+interface _Team {
   id: string;
   name: string;
   code: string;
@@ -112,14 +112,18 @@ export default function EditTeamPage({ params }: { params: Promise<{ id: string 
   }
 
   // Filter potential team leads (TEAM_LEAD or MANAGER roles, or any team member)
-  const potentialLeads = teamMembers.filter((u) => ["TEAM_LEAD", "MANAGER"].includes(u.role) || teamMembers.length <= 5);
+  const _potentialLeads = teamMembers.filter(
+    (u) => ["TEAM_LEAD", "MANAGER"].includes(u.role) || teamMembers.length <= 5
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Edit Team</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Update team details and assign team lead</p>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            Update team details and assign team lead
+          </p>
         </div>
         <Button variant="outline" onClick={() => router.push("/dashboard/teams")}>
           Back
@@ -128,7 +132,9 @@ export default function EditTeamPage({ params }: { params: Promise<{ id: string 
 
       <form onSubmit={handleSubmit}>
         <Card className="space-y-4">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white">Team Information</h2>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+            Team Information
+          </h2>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
@@ -157,21 +163,27 @@ export default function EditTeamPage({ params }: { params: Promise<{ id: string 
           <Select
             id="department"
             label="Department *"
-            options={[{ value: "", label: "Select Department" }, ...departments.map((d) => ({ value: d.id, label: d.name }))]}
+            options={[
+              { value: "", label: "Select Department" },
+              ...departments.map((d) => ({ value: d.id, label: d.name })),
+            ]}
             value={formData.departmentId}
             onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })}
             required
           />
 
           <div className="border-t border-gray-200 pt-4 dark:border-gray-700">
-            <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Team Lead</h2>
+            <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">
+              Team Lead
+            </h2>
             <p className="mb-3 text-sm text-gray-500 dark:text-gray-400">
               Assign a team lead who will manage this team and approve leave requests.
             </p>
 
             {teamMembers.length === 0 ? (
               <div className="rounded bg-yellow-50 p-3 text-sm text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300">
-                No team members found. Add employees to this team first before assigning a team lead.
+                No team members found. Add employees to this team first before assigning a team
+                lead.
               </div>
             ) : (
               <Select
@@ -200,7 +212,9 @@ export default function EditTeamPage({ params }: { params: Promise<{ id: string 
               />
               <div>
                 <span className="text-sm font-medium text-gray-900 dark:text-white">Active</span>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Inactive teams are hidden from selection</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Inactive teams are hidden from selection
+                </p>
               </div>
             </label>
           </div>
@@ -241,7 +255,9 @@ export default function EditTeamPage({ params }: { params: Promise<{ id: string 
                     <p className="text-sm font-medium text-gray-900 dark:text-white">
                       {member.firstName} {member.lastName}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{member.role.replace("_", " ")}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {member.role.replace("_", " ")}
+                    </p>
                   </div>
                 </div>
                 {member.id === formData.leadId && (

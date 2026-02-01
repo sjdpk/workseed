@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, verifyPassword, createToken, createAuditLog, getRequestMeta } from "@/lib";
-import { z } from "zod/v4";
+import { logger } from "@/lib/logger";
+import { z } from "@/lib/validation";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -93,15 +94,9 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { success: false, error: error.issues[0].message },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: error.issues[0].message }, { status: 400 });
     }
-    console.error("Login error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    logger.error("Login error", { error, endpoint: "POST /api/auth/login" });
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

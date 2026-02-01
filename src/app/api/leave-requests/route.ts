@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, getCurrentUser, isHROrAbove, isManagerOrAbove, createAuditLog, getRequestMeta, sendLeaveRequestSubmitted, sendLeaveRequestStatusUpdate, sendNewLeaveRequestForApproval } from "@/lib";
-import { z } from "zod/v4";
+import {
+  prisma,
+  getCurrentUser,
+  isHROrAbove,
+  isManagerOrAbove,
+  createAuditLog,
+  getRequestMeta,
+  sendLeaveRequestSubmitted,
+  sendLeaveRequestStatusUpdate,
+  sendNewLeaveRequestForApproval,
+} from "@/lib";
+import { logger } from "@/lib/logger";
+import { z } from "@/lib/validation";
 
 const createLeaveRequestSchema = z.object({
   leaveTypeId: z.string().uuid(),
@@ -22,10 +33,7 @@ export async function GET(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -83,7 +91,11 @@ export async function GET(request: NextRequest) {
         status: "APPROVED", // Only show approved leaves to team members
       };
       scope = "team_approved";
-    } else if (searchParams.get("department") === "true" && employeesCanViewDepartmentLeaves && currentUser.departmentId) {
+    } else if (
+      searchParams.get("department") === "true" &&
+      employeesCanViewDepartmentLeaves &&
+      currentUser.departmentId
+    ) {
       // Employees viewing department leaves (if permission enabled)
       where = {
         user: { departmentId: currentUser.departmentId },
@@ -155,11 +167,8 @@ export async function GET(request: NextRequest) {
       data: { leaveRequests, scope },
     });
   } catch (error) {
-    console.error("List leave requests error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    logger.error("List leave requests error", { error, endpoint: "GET /api/leave-requests" });
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -167,10 +176,7 @@ export async function POST(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
@@ -195,7 +201,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const balance = allocation.allocated + allocation.carriedOver + allocation.adjusted - allocation.used;
+    const balance =
+      allocation.allocated + allocation.carriedOver + allocation.adjusted - allocation.used;
 
     if (data.days > balance) {
       return NextResponse.json(
@@ -271,22 +278,13 @@ export async function POST(request: NextRequest) {
       }).catch(console.error);
     }
 
-    return NextResponse.json(
-      { success: true, data: { leaveRequest } },
-      { status: 201 }
-    );
+    return NextResponse.json({ success: true, data: { leaveRequest } }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { success: false, error: error.issues[0].message },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: error.issues[0].message }, { status: 400 });
     }
-    console.error("Create leave request error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    logger.error("Create leave request error", { error, endpoint: "POST /api/leave-requests" });
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -294,10 +292,7 @@ export async function PATCH(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -448,7 +443,8 @@ export async function PATCH(request: NextRequest) {
 
     // Audit log
     const { ipAddress, userAgent } = getRequestMeta(request.headers);
-    const auditAction = data.status === "APPROVED" ? "APPROVE" : data.status === "REJECTED" ? "REJECT" : "CANCEL";
+    const auditAction =
+      data.status === "APPROVED" ? "APPROVE" : data.status === "REJECTED" ? "REJECT" : "CANCEL";
     await createAuditLog({
       userId: currentUser.id,
       action: auditAction,
@@ -469,15 +465,9 @@ export async function PATCH(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { success: false, error: error.issues[0].message },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: error.issues[0].message }, { status: 400 });
     }
-    console.error("Update leave request error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    logger.error("Update leave request error", { error, endpoint: "PATCH /api/leave-requests" });
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button, Card, Input, Select, useToast } from "@/components";
 
 const ALLOWED_ROLES = ["ADMIN"];
@@ -21,7 +21,7 @@ interface OrgSettings {
 export default function OrganizationSettingsPage() {
   const router = useRouter();
   const toast = useToast();
-  const [settings, setSettings] = useState<OrgSettings | null>(null);
+  const [_settings, setSettings] = useState<OrgSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -129,19 +129,26 @@ export default function OrganizationSettingsPage() {
     { value: "red", label: "Red", color: "#dc2626" },
   ];
 
-
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Organization Settings</h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Manage company-wide settings</p>
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
+          Organization Settings
+        </h1>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+          Manage company-wide settings
+        </p>
       </div>
 
       <form onSubmit={handleSubmit}>
         <Card className="space-y-6">
           <div>
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Company Information</h2>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Basic information about your organization</p>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+              Company Information
+            </h2>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Basic information about your organization
+            </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -176,6 +183,7 @@ export default function OrganizationSettingsPage() {
                 <div className="flex items-center gap-4">
                   <div className="flex h-16 w-16 items-center justify-center rounded border-2 border-dashed border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800">
                     {!logoError ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- Dynamic URL from form input
                       <img
                         src={formData.logoUrl}
                         alt="Logo preview"
@@ -188,6 +196,7 @@ export default function OrganizationSettingsPage() {
                   </div>
                   <div className="flex h-10 w-10 items-center justify-center rounded bg-gray-100 dark:bg-gray-700">
                     {!logoError ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- Dynamic URL from form input
                       <img
                         src={formData.logoUrl}
                         alt="Logo small"
@@ -200,7 +209,9 @@ export default function OrganizationSettingsPage() {
                   </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">
                     {logoError ? (
-                      <span className="text-red-500">Failed to load image. Please check the URL.</span>
+                      <span className="text-red-500">
+                        Failed to load image. Please check the URL.
+                      </span>
                     ) : (
                       <span>Preview shows how your logo will appear in the header</span>
                     )}
@@ -211,8 +222,12 @@ export default function OrganizationSettingsPage() {
           </div>
 
           <div className="border-t border-gray-200 pt-6 dark:border-gray-700">
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Leave Settings</h2>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Configure leave calculation settings</p>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+              Leave Settings
+            </h2>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Configure leave calculation settings
+            </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -221,20 +236,26 @@ export default function OrganizationSettingsPage() {
               label="Fiscal Year Starts"
               options={monthOptions}
               value={formData.fiscalYearStart.toString()}
-              onChange={(e) => setFormData({ ...formData, fiscalYearStart: parseInt(e.target.value) })}
+              onChange={(e) =>
+                setFormData({ ...formData, fiscalYearStart: parseInt(e.target.value) })
+              }
             />
             <Select
               id="workingDaysPerWeek"
               label="Working Days per Week"
               options={workingDaysOptions}
               value={formData.workingDaysPerWeek.toString()}
-              onChange={(e) => setFormData({ ...formData, workingDaysPerWeek: parseInt(e.target.value) })}
+              onChange={(e) =>
+                setFormData({ ...formData, workingDaysPerWeek: parseInt(e.target.value) })
+              }
             />
           </div>
 
           <div className="border-t border-gray-200 pt-6 dark:border-gray-700">
             <h2 className="text-base font-semibold text-gray-900 dark:text-white">Appearance</h2>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Set organization-wide theme for all users</p>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Set organization-wide theme for all users
+            </p>
           </div>
 
           <div className="space-y-4">
@@ -247,7 +268,12 @@ export default function OrganizationSettingsPage() {
                   <button
                     key={color.value}
                     type="button"
-                    onClick={() => setFormData({ ...formData, theme: { ...formData.theme, accentColor: color.value } })}
+                    onClick={() =>
+                      setFormData({
+                        ...formData,
+                        theme: { ...formData.theme, accentColor: color.value },
+                      })
+                    }
                     className={`flex items-center gap-2 rounded border px-3 py-2 text-sm transition-all ${
                       formData.theme.accentColor === color.value
                         ? "border-gray-900 bg-gray-50 dark:border-white dark:bg-gray-800"
@@ -263,7 +289,6 @@ export default function OrganizationSettingsPage() {
                 ))}
               </div>
             </div>
-
           </div>
 
           <div className="flex justify-end pt-4">

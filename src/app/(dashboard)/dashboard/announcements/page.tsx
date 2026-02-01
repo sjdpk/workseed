@@ -50,9 +50,7 @@ export default function AnnouncementsPage() {
     <div className="max-w-xl">
       <div className="mb-6">
         <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Announcements</h1>
-        <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-          Company news and updates
-        </p>
+        <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Company news and updates</p>
       </div>
 
       {notices.length === 0 ? (
@@ -72,8 +70,8 @@ export default function AnnouncementsPage() {
                 notice.type === "URGENT"
                   ? "border-l-red-500"
                   : notice.type === "IMPORTANT"
-                  ? "border-l-yellow-500"
-                  : "border-l-blue-500"
+                    ? "border-l-yellow-500"
+                    : "border-l-blue-500"
               }`}
             >
               <div className="flex-1 min-w-0">
@@ -101,13 +99,15 @@ export default function AnnouncementsPage() {
             <div className="flex h-full flex-col">
               {/* Header */}
               <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
-                <span className={`text-xs font-medium uppercase ${
-                  selectedNotice.type === "URGENT"
-                    ? "text-red-600 dark:text-red-400"
-                    : selectedNotice.type === "IMPORTANT"
-                    ? "text-yellow-600 dark:text-yellow-400"
-                    : "text-blue-600 dark:text-blue-400"
-                }`}>
+                <span
+                  className={`text-xs font-medium uppercase ${
+                    selectedNotice.type === "URGENT"
+                      ? "text-red-600 dark:text-red-400"
+                      : selectedNotice.type === "IMPORTANT"
+                        ? "text-yellow-600 dark:text-yellow-400"
+                        : "text-blue-600 dark:text-blue-400"
+                  }`}
+                >
                   {selectedNotice.type}
                 </span>
                 <button
@@ -115,7 +115,12 @@ export default function AnnouncementsPage() {
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
@@ -127,13 +132,17 @@ export default function AnnouncementsPage() {
                 </h2>
 
                 <div className="mt-2 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                  <span>{selectedNotice.createdBy.firstName} {selectedNotice.createdBy.lastName}</span>
+                  <span>
+                    {selectedNotice.createdBy.firstName} {selectedNotice.createdBy.lastName}
+                  </span>
                   <span>·</span>
-                  <span>{new Date(selectedNotice.publishedAt).toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric"
-                  })}</span>
+                  <span>
+                    {new Date(selectedNotice.publishedAt).toLocaleDateString("en-US", {
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
                 </div>
 
                 <div className="mt-6 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
@@ -157,7 +166,12 @@ export default function AnnouncementsPage() {
 function MegaphoneIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"
+      />
     </svg>
   );
 }
@@ -165,7 +179,12 @@ function MegaphoneIcon({ className }: { className?: string }) {
 function ChevronRightIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M8.25 4.5l7.5 7.5-7.5 7.5"
+      />
     </svg>
   );
 }

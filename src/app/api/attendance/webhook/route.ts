@@ -21,10 +21,7 @@ export async function POST(request: NextRequest) {
     const apiKey = request.headers.get("X-API-Key") || request.headers.get("x-api-key");
 
     if (!apiKey) {
-      return NextResponse.json(
-        { success: false, error: "Missing API key" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Missing API key" }, { status: 401 });
     }
 
     // Validate API key - use raw query to avoid type issues
@@ -34,10 +31,7 @@ export async function POST(request: NextRequest) {
     `;
 
     if (devices.length === 0) {
-      return NextResponse.json(
-        { success: false, error: "Invalid API key" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Invalid API key" }, { status: 401 });
     }
 
     const device = devices[0];
@@ -133,10 +127,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (existing[0].checkOut) {
-        return NextResponse.json(
-          { success: false, error: "Already checked out" },
-          { status: 400 }
-        );
+        return NextResponse.json({ success: false, error: "Already checked out" }, { status: 400 });
       }
 
       // Update checkout
@@ -162,10 +153,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error("Attendance webhook error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -175,10 +163,7 @@ export async function GET(request: NextRequest) {
     const apiKey = request.headers.get("X-API-Key") || request.headers.get("x-api-key");
 
     if (!apiKey) {
-      return NextResponse.json(
-        { success: false, error: "Missing API key" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Missing API key" }, { status: 401 });
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -187,10 +172,7 @@ export async function GET(request: NextRequest) {
     `;
 
     if (devices.length === 0) {
-      return NextResponse.json(
-        { success: false, error: "Invalid API key" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Invalid API key" }, { status: 401 });
     }
 
     const device = devices[0];
@@ -206,9 +188,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Device connection test error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

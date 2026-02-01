@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/permissions";
 import { createAuditLog, getRequestMeta } from "@/lib/audit";
-import { z } from "zod";
+import { getCurrentUser } from "@/lib/auth";
+import { logger } from "@/lib/logger";
+import { hasPermission } from "@/lib/permissions";
+import { prisma } from "@/lib/prisma";
+import { z } from "@/lib/validation";
 
 const assetUpdateSchema = z.object({
   name: z.string().min(1).optional(),
@@ -32,9 +33,7 @@ const assetUpdateSchema = z.object({
   purchaseDate: z.string().optional().nullable(),
   purchasePrice: z.number().optional().nullable(),
   warrantyExpiry: z.string().optional().nullable(),
-  status: z
-    .enum(["AVAILABLE", "ASSIGNED", "MAINTENANCE", "RETIRED", "LOST", "DAMAGED"])
-    .optional(),
+  status: z.enum(["AVAILABLE", "ASSIGNED", "MAINTENANCE", "RETIRED", "LOST", "DAMAGED"]).optional(),
   condition: z.enum(["NEW", "EXCELLENT", "GOOD", "FAIR", "POOR"]).optional(),
   location: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
@@ -43,14 +42,11 @@ const assetUpdateSchema = z.object({
 });
 
 // GET /api/assets/[id] - Get single asset
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
@@ -90,38 +86,32 @@ export async function GET(
     });
 
     if (!asset) {
-      return NextResponse.json({ error: "Asset not found" }, { status: 404 });
+      return NextResponse.json({ success: false, error: "Asset not found" }, { status: 404 });
     }
 
     // Check permissions - users can only view their own assets
     const canViewAll = hasPermission(user.role, "ASSET_VIEW_ALL");
     if (!canViewAll && asset.assignedToId !== user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
-    return NextResponse.json({ asset });
+    return NextResponse.json({ success: true, data: { asset } });
   } catch (error) {
-    console.error("Get asset error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch asset" },
-      { status: 500 }
-    );
+    logger.error("Get asset error", { error, endpoint: "GET /api/assets/[id]" });
+    return NextResponse.json({ success: false, error: "Failed to fetch asset" }, { status: 500 });
   }
 }
 
 // PATCH /api/assets/[id] - Update asset
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     if (!hasPermission(user.role, "ASSET_EDIT")) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
     const { id } = await params;
@@ -134,20 +124,17 @@ export async function PATCH(
     });
 
     if (!existingAsset) {
-      return NextResponse.json({ error: "Asset not found" }, { status: 404 });
+      return NextResponse.json({ success: false, error: "Asset not found" }, { status: 404 });
     }
 
     // Check for duplicate serial number if changed
-    if (
-      validatedData.serialNumber &&
-      validatedData.serialNumber !== existingAsset.serialNumber
-    ) {
+    if (validatedData.serialNumber && validatedData.serialNumber !== existingAsset.serialNumber) {
       const duplicateSerial = await prisma.asset.findUnique({
         where: { serialNumber: validatedData.serialNumber },
       });
       if (duplicateSerial) {
         return NextResponse.json(
-          { error: "An asset with this serial number already exists" },
+          { success: false, error: "An asset with this serial number already exists" },
           { status: 400 }
         );
       }
@@ -157,16 +144,12 @@ export async function PATCH(
     const updateData: Record<string, unknown> = {};
 
     if (validatedData.name !== undefined) updateData.name = validatedData.name;
-    if (validatedData.category !== undefined)
-      updateData.category = validatedData.category;
-    if (validatedData.brand !== undefined)
-      updateData.brand = validatedData.brand;
-    if (validatedData.model !== undefined)
-      updateData.model = validatedData.model;
+    if (validatedData.category !== undefined) updateData.category = validatedData.category;
+    if (validatedData.brand !== undefined) updateData.brand = validatedData.brand;
+    if (validatedData.model !== undefined) updateData.model = validatedData.model;
     if (validatedData.serialNumber !== undefined)
       updateData.serialNumber = validatedData.serialNumber;
-    if (validatedData.description !== undefined)
-      updateData.description = validatedData.description;
+    if (validatedData.description !== undefined) updateData.description = validatedData.description;
     if (validatedData.purchaseDate !== undefined)
       updateData.purchaseDate = validatedData.purchaseDate
         ? new Date(validatedData.purchaseDate)
@@ -177,18 +160,13 @@ export async function PATCH(
       updateData.warrantyExpiry = validatedData.warrantyExpiry
         ? new Date(validatedData.warrantyExpiry)
         : null;
-    if (validatedData.status !== undefined)
-      updateData.status = validatedData.status;
-    if (validatedData.condition !== undefined)
-      updateData.condition = validatedData.condition;
-    if (validatedData.location !== undefined)
-      updateData.location = validatedData.location;
-    if (validatedData.notes !== undefined)
-      updateData.notes = validatedData.notes;
+    if (validatedData.status !== undefined) updateData.status = validatedData.status;
+    if (validatedData.condition !== undefined) updateData.condition = validatedData.condition;
+    if (validatedData.location !== undefined) updateData.location = validatedData.location;
+    if (validatedData.notes !== undefined) updateData.notes = validatedData.notes;
     if (validatedData.specifications !== undefined)
       updateData.specifications = validatedData.specifications;
-    if (validatedData.isActive !== undefined)
-      updateData.isActive = validatedData.isActive;
+    if (validatedData.isActive !== undefined) updateData.isActive = validatedData.isActive;
 
     const asset = await prisma.asset.update({
       where: { id },
@@ -220,19 +198,16 @@ export async function PATCH(
       userAgent,
     });
 
-    return NextResponse.json({ asset });
+    return NextResponse.json({ success: true, data: { asset } });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Validation failed", details: error.issues },
+        { success: false, error: "Validation failed", details: error.issues },
         { status: 400 }
       );
     }
-    console.error("Update asset error:", error);
-    return NextResponse.json(
-      { error: "Failed to update asset" },
-      { status: 500 }
-    );
+    logger.error("Update asset error", { error, endpoint: "PATCH /api/assets/[id]" });
+    return NextResponse.json({ success: false, error: "Failed to update asset" }, { status: 500 });
   }
 }
 
@@ -244,11 +219,11 @@ export async function DELETE(
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     if (!hasPermission(user.role, "ASSET_DELETE")) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
     const { id } = await params;
@@ -258,7 +233,7 @@ export async function DELETE(
     });
 
     if (!asset) {
-      return NextResponse.json({ error: "Asset not found" }, { status: 404 });
+      return NextResponse.json({ success: false, error: "Asset not found" }, { status: 404 });
     }
 
     // Soft delete - mark as inactive
@@ -282,12 +257,9 @@ export async function DELETE(
       userAgent,
     });
 
-    return NextResponse.json({ message: "Asset deleted successfully" });
+    return NextResponse.json({ success: true, data: { message: "Asset deleted successfully" } });
   } catch (error) {
-    console.error("Delete asset error:", error);
-    return NextResponse.json(
-      { error: "Failed to delete asset" },
-      { status: 500 }
-    );
+    logger.error("Delete asset error", { error, endpoint: "DELETE /api/assets/[id]" });
+    return NextResponse.json({ success: false, error: "Failed to delete asset" }, { status: 500 });
   }
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 // GET - Fetch holidays
 export async function GET(request: NextRequest) {
@@ -38,7 +38,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error fetching holidays:", error);
-    return NextResponse.json({ success: false, error: "Failed to fetch holidays" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch holidays" },
+      { status: 500 }
+    );
   }
 }
 
@@ -64,7 +67,10 @@ export async function POST(request: NextRequest) {
     const { name, date, type, description } = body;
 
     if (!name || !date) {
-      return NextResponse.json({ success: false, error: "Name and date are required" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "Name and date are required" },
+        { status: 400 }
+      );
     }
 
     const holiday = await prisma.holiday.create({
@@ -82,6 +88,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error creating holiday:", error);
-    return NextResponse.json({ success: false, error: "Failed to create holiday" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to create holiday" },
+      { status: 500 }
+    );
   }
 }

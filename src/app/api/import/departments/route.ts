@@ -71,20 +71,14 @@ export async function POST(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser || !isHROrAbove(currentUser.role)) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 403 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
     const body = await request.json();
     const { csvData, dryRun = false } = body;
 
     if (!csvData) {
-      return NextResponse.json(
-        { success: false, error: "CSV data is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: "CSV data is required" }, { status: 400 });
     }
 
     const rows = parseCSV(csvData);
@@ -102,9 +96,15 @@ export async function POST(request: NextRequest) {
       prisma.department.findMany({ select: { code: true } }),
     ]);
 
-    const branchMap = new Map<string, string>(branches.map((b: { id: string; code: string }) => [b.code.toLowerCase(), b.id]));
-    const branchNameMap = new Map<string, string>(branches.map((b: { id: string; name: string }) => [b.name.toLowerCase(), b.id]));
-    const userMap = new Map<string, string>(users.map((u: { id: string; employeeId: string }) => [u.employeeId.toLowerCase(), u.id]));
+    const branchMap = new Map<string, string>(
+      branches.map((b: { id: string; code: string }) => [b.code.toLowerCase(), b.id])
+    );
+    const branchNameMap = new Map<string, string>(
+      branches.map((b: { id: string; name: string }) => [b.name.toLowerCase(), b.id])
+    );
+    const userMap = new Map<string, string>(
+      users.map((u: { id: string; employeeId: string }) => [u.employeeId.toLowerCase(), u.id])
+    );
     const existingCodes = new Set(existingDepts.map((d: { code: string }) => d.code.toLowerCase()));
 
     const results: ImportResult[] = [];
@@ -129,22 +129,39 @@ export async function POST(request: NextRequest) {
       }
 
       if (!row.name) {
-        results.push({ success: false, row: rowNum, code: row.code, error: "Department name is required" });
+        results.push({
+          success: false,
+          row: rowNum,
+          code: row.code,
+          error: "Department name is required",
+        });
         continue;
       }
 
       // Check duplicate code
       if (existingCodes.has(row.code.toLowerCase())) {
-        results.push({ success: false, row: rowNum, code: row.code, error: `Department code ${row.code} already exists` });
+        results.push({
+          success: false,
+          row: rowNum,
+          code: row.code,
+          error: `Department code ${row.code} already exists`,
+        });
         continue;
       }
 
       // Lookup branch
       let branchId: string | undefined;
       if (row.branchCode) {
-        branchId = branchMap.get(row.branchCode.toLowerCase()) || branchNameMap.get(row.branchCode.toLowerCase());
+        branchId =
+          branchMap.get(row.branchCode.toLowerCase()) ||
+          branchNameMap.get(row.branchCode.toLowerCase());
         if (!branchId) {
-          results.push({ success: false, row: rowNum, code: row.code, error: `Branch not found: ${row.branchCode}` });
+          results.push({
+            success: false,
+            row: rowNum,
+            code: row.code,
+            error: `Branch not found: ${row.branchCode}`,
+          });
           continue;
         }
       }
@@ -154,12 +171,18 @@ export async function POST(request: NextRequest) {
       if (row.headEmployeeId) {
         headId = userMap.get(row.headEmployeeId.toLowerCase());
         if (!headId) {
-          results.push({ success: false, row: rowNum, code: row.code, error: `Employee not found for head: ${row.headEmployeeId}` });
+          results.push({
+            success: false,
+            row: rowNum,
+            code: row.code,
+            error: `Employee not found for head: ${row.headEmployeeId}`,
+          });
           continue;
         }
       }
 
-      const isActive = !row.isActive || ["true", "1", "yes", "active"].includes(row.isActive.toLowerCase());
+      const isActive =
+        !row.isActive || ["true", "1", "yes", "active"].includes(row.isActive.toLowerCase());
 
       existingCodes.add(row.code.toLowerCase());
 
@@ -188,7 +211,9 @@ export async function POST(request: NextRequest) {
             row: d.row,
             code: d.code,
             name: d.name,
-            branch: d.branchId ? branches.find((b: { id: string }) => b.id === d.branchId)?.name : undefined,
+            branch: d.branchId
+              ? branches.find((b: { id: string }) => b.id === d.branchId)?.name
+              : undefined,
           })),
         },
       });
@@ -252,9 +277,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Import departments error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

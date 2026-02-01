@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, getCurrentUser, isHROrAbove } from "@/lib";
-import { z } from "zod/v4";
+import { logger } from "@/lib/logger";
+import { z } from "@/lib/validation";
 
 const updateDepartmentSchema = z.object({
   name: z.string().min(1).optional(),
@@ -11,17 +12,11 @@ const updateDepartmentSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
@@ -36,10 +31,7 @@ export async function GET(
     });
 
     if (!department) {
-      return NextResponse.json(
-        { success: false, error: "Department not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: "Department not found" }, { status: 404 });
     }
 
     return NextResponse.json({
@@ -47,25 +39,16 @@ export async function GET(
       data: { department },
     });
   } catch (error) {
-    console.error("Get department error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    logger.error("Get department error", { error, endpoint: "GET /api/departments/[id]" });
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser || !isHROrAbove(currentUser.role)) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 403 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
     const { id } = await params;
@@ -105,16 +88,10 @@ export async function PATCH(
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { success: false, error: error.issues[0].message },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: error.issues[0].message }, { status: 400 });
     }
-    console.error("Update department error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    logger.error("Update department error", { error, endpoint: "PATCH /api/departments/[id]" });
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -125,10 +102,7 @@ export async function DELETE(
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser || !isHROrAbove(currentUser.role)) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 403 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
     const { id } = await params;
@@ -142,15 +116,16 @@ export async function DELETE(
     });
 
     if (!department) {
-      return NextResponse.json(
-        { success: false, error: "Department not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: "Department not found" }, { status: 404 });
     }
 
     if (department._count.users > 0 || department._count.teams > 0) {
       return NextResponse.json(
-        { success: false, error: "Cannot delete department with users or teams. Remove them first or deactivate the department." },
+        {
+          success: false,
+          error:
+            "Cannot delete department with users or teams. Remove them first or deactivate the department.",
+        },
         { status: 400 }
       );
     }
@@ -164,10 +139,7 @@ export async function DELETE(
       message: "Department deleted successfully",
     });
   } catch (error) {
-    console.error("Delete department error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    logger.error("Delete department error", { error, endpoint: "DELETE /api/departments/[id]" });
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

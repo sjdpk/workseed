@@ -28,14 +28,11 @@ export function Avatar({ src, name, size = "md", className, colorClass }: Avatar
 
   if (src) {
     return (
+      // eslint-disable-next-line @next/next/no-img-element -- Dynamic URL from user profile
       <img
         src={src}
         alt={name}
-        className={cn(
-          sizeClasses[size],
-          "rounded-full object-cover flex-shrink-0",
-          className
-        )}
+        className={cn(sizeClasses[size], "rounded-full object-cover flex-shrink-0", className)}
         onError={(e) => {
           // Hide image on error, show initials fallback
           e.currentTarget.style.display = "none";
@@ -74,6 +71,7 @@ export function AvatarWithFallback({ src, name, size = "md", className, colorCla
     <div className={cn(sizeClasses[size], "relative flex-shrink-0", className)}>
       {src ? (
         <>
+          {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic URL from user profile */}
           <img
             src={src}
             alt={name}

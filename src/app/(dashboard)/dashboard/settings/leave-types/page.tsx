@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button, Card, Input } from "@/components";
 import type { LeaveType } from "@/types";
 
@@ -14,7 +14,7 @@ interface CurrentUser {
 export default function LeaveTypesPage() {
   const router = useRouter();
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [_currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -28,8 +28,8 @@ export default function LeaveTypesPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/auth/me").then(r => r.json()),
-      fetch("/api/leave-types?all=true").then(r => r.json()),
+      fetch("/api/auth/me").then((r) => r.json()),
+      fetch("/api/leave-types?all=true").then((r) => r.json()),
     ]).then(([meData, leaveTypesData]) => {
       if (meData.success) {
         setCurrentUser(meData.data.user);
@@ -78,9 +78,13 @@ export default function LeaveTypesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Leave Types</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Configure organization leave policies</p>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            Configure organization leave policies
+          </p>
         </div>
-        <Button onClick={() => router.push("/dashboard/settings/leave-types/new")}>Add Leave Type</Button>
+        <Button onClick={() => router.push("/dashboard/settings/leave-types/new")}>
+          Add Leave Type
+        </Button>
       </div>
 
       <Card className="p-3">
@@ -94,13 +98,21 @@ export default function LeaveTypesPage() {
 
       {filteredLeaveTypes.length === 0 ? (
         <Card>
-          <p className="text-center text-sm text-gray-500 dark:text-gray-400">No leave types found</p>
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+            No leave types found
+          </p>
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredLeaveTypes.map((lt) => (
-            <Card key={lt.id} className={`relative overflow-hidden ${!lt.isActive ? "opacity-60" : ""}`}>
-              <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: lt.color || "#3B82F6" }} />
+            <Card
+              key={lt.id}
+              className={`relative overflow-hidden ${!lt.isActive ? "opacity-60" : ""}`}
+            >
+              <div
+                className="absolute top-0 left-0 w-1 h-full"
+                style={{ backgroundColor: lt.color || "#3B82F6" }}
+              />
               <div className="pl-2">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{lt.name}</h3>
@@ -108,16 +120,26 @@ export default function LeaveTypesPage() {
                     <span className="text-xs text-gray-500 dark:text-gray-400">{lt.code}</span>
                   </div>
                 </div>
-                {lt.description && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{lt.description}</p>}
+                {lt.description && (
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{lt.description}</p>
+                )}
                 <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                  <span className="rounded bg-gray-100 px-2 py-0.5 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{lt.defaultDays} days/year</span>
+                  <span className="rounded bg-gray-100 px-2 py-0.5 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                    {lt.defaultDays} days/year
+                  </span>
                   {lt.isPaid ? (
-                    <span className="rounded bg-green-50 px-2 py-0.5 text-green-700 dark:bg-green-900/30 dark:text-green-300">Paid</span>
+                    <span className="rounded bg-green-50 px-2 py-0.5 text-green-700 dark:bg-green-900/30 dark:text-green-300">
+                      Paid
+                    </span>
                   ) : (
-                    <span className="rounded bg-red-50 px-2 py-0.5 text-red-700 dark:bg-red-900/30 dark:text-red-300">Unpaid</span>
+                    <span className="rounded bg-red-50 px-2 py-0.5 text-red-700 dark:bg-red-900/30 dark:text-red-300">
+                      Unpaid
+                    </span>
                   )}
                   {lt.carryForward && (
-                    <span className="rounded bg-gray-50 px-2 py-0.5 text-gray-700 dark:bg-gray-800 dark:text-gray-300">Carry Forward</span>
+                    <span className="rounded bg-gray-50 px-2 py-0.5 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                      Carry Forward
+                    </span>
                   )}
                 </div>
                 <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-3 dark:border-gray-700">
@@ -129,10 +151,16 @@ export default function LeaveTypesPage() {
                         : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600"
                     }`}
                   >
-                    <span className={`h-2 w-2 rounded-full ${lt.isActive ? "bg-green-500" : "bg-gray-400"}`} />
+                    <span
+                      className={`h-2 w-2 rounded-full ${lt.isActive ? "bg-green-500" : "bg-gray-400"}`}
+                    />
                     {lt.isActive ? "Active" : "Inactive"}
                   </button>
-                  <Button variant="ghost" size="sm" onClick={() => router.push(`/dashboard/settings/leave-types/${lt.id}`)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => router.push(`/dashboard/settings/leave-types/${lt.id}`)}
+                  >
                     Edit
                   </Button>
                 </div>

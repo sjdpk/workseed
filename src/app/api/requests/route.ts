@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth";
 import { sendRequestSubmitted } from "@/lib/email";
+import { prisma } from "@/lib/prisma";
 
 // GET - Fetch requests
 export async function GET(request: NextRequest) {
@@ -26,8 +26,8 @@ export async function GET(request: NextRequest) {
     const requests = await prisma.employeeRequest.findMany({
       where: {
         ...(!isAdminOrHR && { userId: payload.userId }),
-        ...(status && { status: status as any }),
-        ...(type && { type: type as any }),
+        ...(status && { status: status as "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" }),
+        ...(type && { type: type as "ASSET" | "DOCUMENT" | "GENERAL" }),
       },
       include: {
         user: {
@@ -55,7 +55,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error fetching requests:", error);
-    return NextResponse.json({ success: false, error: "Failed to fetch requests" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch requests" },
+      { status: 500 }
+    );
   }
 }
 
@@ -121,6 +124,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error creating request:", error);
-    return NextResponse.json({ success: false, error: "Failed to create request" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to create request" },
+      { status: 500 }
+    );
   }
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Button, Card, Input, Select, useToast } from "@/components";
 
 const CATEGORY_OPTIONS = [
@@ -165,7 +165,10 @@ export default function NewAssetPage() {
             />
           </div>
           <div className="mt-4">
-            <label htmlFor="description" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="description"
+              className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               Description
             </label>
             <textarea
@@ -212,9 +215,7 @@ export default function NewAssetPage() {
         </Card>
 
         <Card>
-          <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">
-            Notes
-          </h2>
+          <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Notes</h2>
           <textarea
             id="notes"
             rows={4}

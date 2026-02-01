@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState, use } from "react";
 import { Button, Card, Input, Select, useToast } from "@/components";
 
 interface Branch {
@@ -95,7 +95,9 @@ export default function EditDepartmentPage({ params }: { params: Promise<{ id: s
   };
 
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this department? This action cannot be undone.")) {
+    if (
+      !confirm("Are you sure you want to delete this department? This action cannot be undone.")
+    ) {
       return;
     }
 
@@ -143,7 +145,9 @@ export default function EditDepartmentPage({ params }: { params: Promise<{ id: s
 
       <form onSubmit={handleSubmit}>
         <Card className="space-y-4">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white">Department Information</h2>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+            Department Information
+          </h2>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
@@ -172,13 +176,18 @@ export default function EditDepartmentPage({ params }: { params: Promise<{ id: s
           <Select
             id="branch"
             label="Branch"
-            options={[{ value: "", label: "No Branch" }, ...branches.map((b) => ({ value: b.id, label: b.name }))]}
+            options={[
+              { value: "", label: "No Branch" },
+              ...branches.map((b) => ({ value: b.id, label: b.name })),
+            ]}
             value={formData.branchId}
             onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
           />
 
           <div className="border-t border-gray-200 pt-4 dark:border-gray-700">
-            <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">Department Head</h2>
+            <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">
+              Department Head
+            </h2>
             <p className="mb-3 text-sm text-gray-500 dark:text-gray-400">
               Assign a department head who will oversee this department.
             </p>
@@ -228,13 +237,19 @@ export default function EditDepartmentPage({ params }: { params: Promise<{ id: s
               />
               <div>
                 <span className="text-sm font-medium text-gray-900 dark:text-white">Active</span>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Inactive departments are hidden from selection</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Inactive departments are hidden from selection
+                </p>
               </div>
             </label>
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
-            <Button variant="outline" type="button" onClick={() => router.push("/dashboard/departments")}>
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => router.push("/dashboard/departments")}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
@@ -251,7 +266,11 @@ export default function EditDepartmentPage({ params }: { params: Promise<{ id: s
           Permanently delete this department. This action cannot be undone.
         </p>
         <div className="mt-4">
-          <Button variant="outline" onClick={handleDelete} className="border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20">
+          <Button
+            variant="outline"
+            onClick={handleDelete}
+            className="border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
+          >
             Delete Department
           </Button>
         </div>

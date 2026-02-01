@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, getCurrentUser, isHROrAbove } from "@/lib";
-import { z } from "zod/v4";
+import { logger } from "@/lib/logger";
+import { z } from "@/lib/validation";
 
 const createTeamSchema = z.object({
   name: z.string().min(1, "Team name is required"),
@@ -14,10 +15,7 @@ export async function GET(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -43,11 +41,8 @@ export async function GET(request: NextRequest) {
       data: { teams },
     });
   } catch (error) {
-    console.error("List teams error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    logger.error("List teams error", { error, endpoint: "GET /api/teams" });
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -55,10 +50,7 @@ export async function POST(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser || !isHROrAbove(currentUser.role)) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 403 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
     const body = await request.json();
@@ -82,21 +74,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(
-      { success: true, data: { team } },
-      { status: 201 }
-    );
+    return NextResponse.json({ success: true, data: { team } }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { success: false, error: error.issues[0].message },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: error.issues[0].message }, { status: 400 });
     }
-    console.error("Create team error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    logger.error("Create team error", { error, endpoint: "POST /api/teams" });
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

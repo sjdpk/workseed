@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, hashPassword, getCurrentUser, isHROrAbove, createAuditLog, getRequestMeta } from "@/lib";
-import { z } from "zod/v4";
+import {
+  prisma,
+  hashPassword,
+  getCurrentUser,
+  isHROrAbove,
+  createAuditLog,
+  getRequestMeta,
+} from "@/lib";
+import { logger } from "@/lib/logger";
+import { z } from "@/lib/validation";
 
 const createUserSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -68,10 +76,7 @@ export async function GET(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser || !isHROrAbove(currentUser.role)) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 403 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -147,11 +152,8 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("List users error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    logger.error("List users error", { error, endpoint: "GET /api/users" });
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -159,19 +161,13 @@ export async function POST(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser || !isHROrAbove(currentUser.role)) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 403 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
     const body = await request.json();
     const data = createUserSchema.parse(body);
 
-    if (
-      (data.role === "ADMIN" || data.role === "HR") &&
-      currentUser.role !== "ADMIN"
-    ) {
+    if ((data.role === "ADMIN" || data.role === "HR") && currentUser.role !== "ADMIN") {
       return NextResponse.json(
         { success: false, error: "Only admins can create admin or HR users" },
         { status: 403 }
@@ -183,10 +179,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingUser) {
-      return NextResponse.json(
-        { success: false, error: "Email already exists" },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: "Email already exists" }, { status: 400 });
     }
 
     // Check if custom employee ID is provided and unique
@@ -270,21 +263,12 @@ export async function POST(request: NextRequest) {
       userAgent,
     });
 
-    return NextResponse.json(
-      { success: true, data: { user } },
-      { status: 201 }
-    );
+    return NextResponse.json({ success: true, data: { user } }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { success: false, error: error.issues[0].message },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: error.issues[0].message }, { status: 400 });
     }
-    console.error("Create user error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    logger.error("Create user error", { error, endpoint: "POST /api/users" });
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

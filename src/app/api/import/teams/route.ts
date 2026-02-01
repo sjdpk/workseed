@@ -39,7 +39,13 @@ function parseCSV(csvText: string): TeamImportRow[] {
       name: row.name || row.team || row.team_name || "",
       description: row.description || row.desc || "",
       departmentCode: row.departmentcode || row.department_code || row.department || row.dept || "",
-      leadEmployeeId: row.leademployeeid || row.lead_employee_id || row.lead || row.teamlead || row.team_lead || "",
+      leadEmployeeId:
+        row.leademployeeid ||
+        row.lead_employee_id ||
+        row.lead ||
+        row.teamlead ||
+        row.team_lead ||
+        "",
       isActive: row.isactive || row.is_active || row.active || row.status || "true",
     });
   }
@@ -71,20 +77,14 @@ export async function POST(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser || !isHROrAbove(currentUser.role)) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 403 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
     const body = await request.json();
     const { csvData, dryRun = false } = body;
 
     if (!csvData) {
-      return NextResponse.json(
-        { success: false, error: "CSV data is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: "CSV data is required" }, { status: 400 });
     }
 
     const rows = parseCSV(csvData);
@@ -102,9 +102,15 @@ export async function POST(request: NextRequest) {
       prisma.team.findMany({ select: { code: true } }),
     ]);
 
-    const deptMap = new Map<string, string>(departments.map((d: { id: string; code: string }) => [d.code.toLowerCase(), d.id]));
-    const deptNameMap = new Map<string, string>(departments.map((d: { id: string; name: string }) => [d.name.toLowerCase(), d.id]));
-    const userMap = new Map<string, string>(users.map((u: { id: string; employeeId: string }) => [u.employeeId.toLowerCase(), u.id]));
+    const deptMap = new Map<string, string>(
+      departments.map((d: { id: string; code: string }) => [d.code.toLowerCase(), d.id])
+    );
+    const deptNameMap = new Map<string, string>(
+      departments.map((d: { id: string; name: string }) => [d.name.toLowerCase(), d.id])
+    );
+    const userMap = new Map<string, string>(
+      users.map((u: { id: string; employeeId: string }) => [u.employeeId.toLowerCase(), u.id])
+    );
     const existingCodes = new Set(existingTeams.map((t: { code: string }) => t.code.toLowerCase()));
 
     const results: ImportResult[] = [];
@@ -129,25 +135,47 @@ export async function POST(request: NextRequest) {
       }
 
       if (!row.name) {
-        results.push({ success: false, row: rowNum, code: row.code, error: "Team name is required" });
+        results.push({
+          success: false,
+          row: rowNum,
+          code: row.code,
+          error: "Team name is required",
+        });
         continue;
       }
 
       if (!row.departmentCode) {
-        results.push({ success: false, row: rowNum, code: row.code, error: "Department is required" });
+        results.push({
+          success: false,
+          row: rowNum,
+          code: row.code,
+          error: "Department is required",
+        });
         continue;
       }
 
       // Check duplicate code
       if (existingCodes.has(row.code.toLowerCase())) {
-        results.push({ success: false, row: rowNum, code: row.code, error: `Team code ${row.code} already exists` });
+        results.push({
+          success: false,
+          row: rowNum,
+          code: row.code,
+          error: `Team code ${row.code} already exists`,
+        });
         continue;
       }
 
       // Lookup department
-      const departmentId = deptMap.get(row.departmentCode.toLowerCase()) || deptNameMap.get(row.departmentCode.toLowerCase());
+      const departmentId =
+        deptMap.get(row.departmentCode.toLowerCase()) ||
+        deptNameMap.get(row.departmentCode.toLowerCase());
       if (!departmentId) {
-        results.push({ success: false, row: rowNum, code: row.code, error: `Department not found: ${row.departmentCode}` });
+        results.push({
+          success: false,
+          row: rowNum,
+          code: row.code,
+          error: `Department not found: ${row.departmentCode}`,
+        });
         continue;
       }
 
@@ -156,12 +184,18 @@ export async function POST(request: NextRequest) {
       if (row.leadEmployeeId) {
         leadId = userMap.get(row.leadEmployeeId.toLowerCase());
         if (!leadId) {
-          results.push({ success: false, row: rowNum, code: row.code, error: `Employee not found for lead: ${row.leadEmployeeId}` });
+          results.push({
+            success: false,
+            row: rowNum,
+            code: row.code,
+            error: `Employee not found for lead: ${row.leadEmployeeId}`,
+          });
           continue;
         }
       }
 
-      const isActive = !row.isActive || ["true", "1", "yes", "active"].includes(row.isActive.toLowerCase());
+      const isActive =
+        !row.isActive || ["true", "1", "yes", "active"].includes(row.isActive.toLowerCase());
 
       existingCodes.add(row.code.toLowerCase());
 
@@ -254,9 +288,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Import teams error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

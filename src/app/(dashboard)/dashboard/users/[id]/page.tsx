@@ -1,9 +1,18 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState, use } from "react";
 import { Button, Card, Input, Select, useToast } from "@/components";
-import type { Branch, Department, Team, Role, Gender, MaritalStatus, EmploymentType, LeaveType } from "@/types";
+import type {
+  Branch,
+  Department,
+  Team,
+  Role,
+  Gender,
+  MaritalStatus,
+  EmploymentType,
+  LeaveType,
+} from "@/types";
 
 const ALLOWED_ROLES = ["ADMIN", "HR"];
 
@@ -84,7 +93,9 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
   const [branches, setBranches] = useState<Branch[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
-  const [managers, setManagers] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
+  const [managers, setManagers] = useState<{ id: string; firstName: string; lastName: string }[]>(
+    []
+  );
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
   const [allocations, setAllocations] = useState<Allocation[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -136,76 +147,94 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/auth/me").then(r => r.json()),
-      fetch(`/api/users/${id}`).then(r => r.json()),
-      fetch("/api/branches").then(r => r.json()),
-      fetch("/api/departments").then(r => r.json()),
-      fetch("/api/teams").then(r => r.json()),
-      fetch("/api/users?limit=100").then(r => r.json()),
-      fetch("/api/leave-types").then(r => r.json()),
-      fetch(`/api/leave-allocations?userId=${id}&year=${selectedYear}`).then(r => r.json()),
-      fetch(`/api/assets?userId=${id}`).then(r => r.json()),
-    ]).then(([meData, userData, branchesData, deptData, teamsData, usersData, leaveTypesData, allocData, assetsData]) => {
-      if (meData.success) {
-        setCurrentUser(meData.data.user);
-        if (!ALLOWED_ROLES.includes(meData.data.user.role)) {
-          router.replace("/dashboard");
-          return;
+      fetch("/api/auth/me").then((r) => r.json()),
+      fetch(`/api/users/${id}`).then((r) => r.json()),
+      fetch("/api/branches").then((r) => r.json()),
+      fetch("/api/departments").then((r) => r.json()),
+      fetch("/api/teams").then((r) => r.json()),
+      fetch("/api/users?limit=100").then((r) => r.json()),
+      fetch("/api/leave-types").then((r) => r.json()),
+      fetch(`/api/leave-allocations?userId=${id}&year=${selectedYear}`).then((r) => r.json()),
+      fetch(`/api/assets?userId=${id}`).then((r) => r.json()),
+    ]).then(
+      ([
+        meData,
+        userData,
+        branchesData,
+        deptData,
+        teamsData,
+        usersData,
+        leaveTypesData,
+        allocData,
+        assetsData,
+      ]) => {
+        if (meData.success) {
+          setCurrentUser(meData.data.user);
+          if (!ALLOWED_ROLES.includes(meData.data.user.role)) {
+            router.replace("/dashboard");
+            return;
+          }
         }
+        if (userData.success) {
+          const u = userData.data.user;
+          setUser(u);
+          setFormData({
+            employeeId: u.employeeId || "",
+            firstName: u.firstName || "",
+            lastName: u.lastName || "",
+            phone: u.phone || "",
+            profilePicture: u.profilePicture || "",
+            linkedIn: u.linkedIn || "",
+            twitter: u.twitter || "",
+            github: u.github || "",
+            website: u.website || "",
+            password: "",
+            role: u.role,
+            status: u.status,
+            dateOfBirth: u.dateOfBirth ? u.dateOfBirth.split("T")[0] : "",
+            gender: u.gender || "",
+            maritalStatus: u.maritalStatus || "",
+            nationality: u.nationality || "",
+            address: u.address || "",
+            city: u.city || "",
+            state: u.state || "",
+            country: u.country || "",
+            postalCode: u.postalCode || "",
+            emergencyContact: u.emergencyContact || "",
+            emergencyContactPhone: u.emergencyContactPhone || "",
+            employmentType: u.employmentType || "FULL_TIME",
+            joiningDate: u.joiningDate ? u.joiningDate.split("T")[0] : "",
+            designation: u.designation || "",
+            branchId: u.branchId || "",
+            departmentId: u.departmentId || "",
+            teamId: u.teamId || "",
+            managerId: u.managerId || "",
+          });
+        }
+        if (branchesData.success) setBranches(branchesData.data.branches);
+        if (deptData.success) setDepartments(deptData.data.departments);
+        if (teamsData.success) setTeams(teamsData.data.teams);
+        if (usersData.success)
+          setManagers(
+            usersData.data.users.filter(
+              (u: { id: string; role: string }) =>
+                ["ADMIN", "HR", "MANAGER", "TEAM_LEAD"].includes(u.role) && u.id !== id
+            )
+          );
+        if (leaveTypesData.success) setLeaveTypes(leaveTypesData.data.leaveTypes);
+        if (allocData.success) setAllocations(allocData.data.allocations);
+        if (assetsData.assets) setAssets(assetsData.assets);
+        setLoading(false);
       }
-      if (userData.success) {
-        const u = userData.data.user;
-        setUser(u);
-        setFormData({
-          employeeId: u.employeeId || "",
-          firstName: u.firstName || "",
-          lastName: u.lastName || "",
-          phone: u.phone || "",
-          profilePicture: u.profilePicture || "",
-          linkedIn: u.linkedIn || "",
-          twitter: u.twitter || "",
-          github: u.github || "",
-          website: u.website || "",
-          password: "",
-          role: u.role,
-          status: u.status,
-          dateOfBirth: u.dateOfBirth ? u.dateOfBirth.split("T")[0] : "",
-          gender: u.gender || "",
-          maritalStatus: u.maritalStatus || "",
-          nationality: u.nationality || "",
-          address: u.address || "",
-          city: u.city || "",
-          state: u.state || "",
-          country: u.country || "",
-          postalCode: u.postalCode || "",
-          emergencyContact: u.emergencyContact || "",
-          emergencyContactPhone: u.emergencyContactPhone || "",
-          employmentType: u.employmentType || "FULL_TIME",
-          joiningDate: u.joiningDate ? u.joiningDate.split("T")[0] : "",
-          designation: u.designation || "",
-          branchId: u.branchId || "",
-          departmentId: u.departmentId || "",
-          teamId: u.teamId || "",
-          managerId: u.managerId || "",
-        });
-      }
-      if (branchesData.success) setBranches(branchesData.data.branches);
-      if (deptData.success) setDepartments(deptData.data.departments);
-      if (teamsData.success) setTeams(teamsData.data.teams);
-      if (usersData.success) setManagers(usersData.data.users.filter((u: { id: string; role: string }) =>
-        ["ADMIN", "HR", "MANAGER", "TEAM_LEAD"].includes(u.role) && u.id !== id
-      ));
-      if (leaveTypesData.success) setLeaveTypes(leaveTypesData.data.leaveTypes);
-      if (allocData.success) setAllocations(allocData.data.allocations);
-      if (assetsData.assets) setAssets(assetsData.assets);
-      setLoading(false);
-    });
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- selectedYear changes handled by separate useEffect
   }, [id, router]);
 
   useEffect(() => {
     if (!loading && id) {
       fetchAllocations();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedYear]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -271,7 +300,11 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
     }
   };
 
-  const handleUpdateAllocation = async (allocationId: string, field: string, value: number | string) => {
+  const handleUpdateAllocation = async (
+    allocationId: string,
+    field: string,
+    value: number | string
+  ) => {
     setSavingAllocation(allocationId);
     try {
       const res = await fetch(`/api/leave-allocations/${allocationId}`, {
@@ -336,10 +369,12 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
     { value: "EMPLOYEE", label: "Employee" },
     { value: "TEAM_LEAD", label: "Team Lead" },
     { value: "MANAGER", label: "Manager" },
-    ...(currentUser.role === "ADMIN" ? [
-      { value: "HR", label: "HR" },
-      { value: "ADMIN", label: "Admin" },
-    ] : []),
+    ...(currentUser.role === "ADMIN"
+      ? [
+          { value: "HR", label: "HR" },
+          { value: "ADMIN", label: "Admin" },
+        ]
+      : []),
   ];
 
   const statusOptions = [
@@ -392,9 +427,13 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Edit User</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{user.firstName} {user.lastName} ({user.employeeId})</p>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            {user.firstName} {user.lastName} ({user.employeeId})
+          </p>
         </div>
-        <Button variant="outline" onClick={() => router.back()}>Back</Button>
+        <Button variant="outline" onClick={() => router.back()}>
+          Back
+        </Button>
       </div>
 
       {/* Tabs */}
@@ -412,7 +451,9 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
             >
               {tab.label}
               {tab.id === "assets" && assets.length > 0 && (
-                <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs dark:bg-gray-800">{assets.length}</span>
+                <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs dark:bg-gray-800">
+                  {assets.length}
+                </span>
               )}
             </button>
           ))}
@@ -426,13 +467,42 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
           <Card>
             <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Account</h2>
             <div className="grid gap-4 sm:grid-cols-3">
-              <Input id="employeeId" label="Employee ID *" value={formData.employeeId} onChange={(e) => setFormData({ ...formData, employeeId: e.target.value.toUpperCase() })} required />
+              <Input
+                id="employeeId"
+                label="Employee ID *"
+                value={formData.employeeId}
+                onChange={(e) =>
+                  setFormData({ ...formData, employeeId: e.target.value.toUpperCase() })
+                }
+                required
+              />
               <Input id="email" type="email" label="Email" value={user.email} disabled />
-              <Input id="password" type="password" label="New Password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="Leave empty to keep" />
+              <Input
+                id="password"
+                type="password"
+                label="New Password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                placeholder="Leave empty to keep"
+              />
             </div>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <Select id="role" label="Role" options={roleOptions} value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value as Role })} disabled={currentUser.role !== "ADMIN" && ["ADMIN", "HR"].includes(user.role)} />
-              <Select id="status" label="Status" options={statusOptions} value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} disabled={currentUser.role !== "ADMIN"} />
+              <Select
+                id="role"
+                label="Role"
+                options={roleOptions}
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value as Role })}
+                disabled={currentUser.role !== "ADMIN" && ["ADMIN", "HR"].includes(user.role)}
+              />
+              <Select
+                id="status"
+                label="Status"
+                options={statusOptions}
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                disabled={currentUser.role !== "ADMIN"}
+              />
             </div>
           </Card>
 
@@ -440,32 +510,114 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
           <Card>
             <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Personal</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Input id="firstName" label="First Name *" value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} required />
-              <Input id="lastName" label="Last Name *" value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} required />
-              <Input id="phone" label="Phone" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
-              <Input id="dateOfBirth" type="date" label="Date of Birth" value={formData.dateOfBirth} onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })} />
-              <Select id="gender" label="Gender" options={genderOptions} value={formData.gender} onChange={(e) => setFormData({ ...formData, gender: e.target.value as Gender })} />
-              <Select id="maritalStatus" label="Marital Status" options={maritalOptions} value={formData.maritalStatus} onChange={(e) => setFormData({ ...formData, maritalStatus: e.target.value as MaritalStatus })} />
-              <Input id="nationality" label="Nationality" value={formData.nationality} onChange={(e) => setFormData({ ...formData, nationality: e.target.value })} />
+              <Input
+                id="firstName"
+                label="First Name *"
+                value={formData.firstName}
+                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                required
+              />
+              <Input
+                id="lastName"
+                label="Last Name *"
+                value={formData.lastName}
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                required
+              />
+              <Input
+                id="phone"
+                label="Phone"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              />
+              <Input
+                id="dateOfBirth"
+                type="date"
+                label="Date of Birth"
+                value={formData.dateOfBirth}
+                onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+              />
+              <Select
+                id="gender"
+                label="Gender"
+                options={genderOptions}
+                value={formData.gender}
+                onChange={(e) => setFormData({ ...formData, gender: e.target.value as Gender })}
+              />
+              <Select
+                id="maritalStatus"
+                label="Marital Status"
+                options={maritalOptions}
+                value={formData.maritalStatus}
+                onChange={(e) =>
+                  setFormData({ ...formData, maritalStatus: e.target.value as MaritalStatus })
+                }
+              />
+              <Input
+                id="nationality"
+                label="Nationality"
+                value={formData.nationality}
+                onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
+              />
             </div>
           </Card>
 
           {/* Profile & Social */}
           <Card>
-            <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Profile & Social</h2>
+            <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">
+              Profile & Social
+            </h2>
             <div className="mb-4 flex items-center gap-4">
               {formData.profilePicture && (
-                <img src={formData.profilePicture} alt="Profile" className="h-12 w-12 rounded-full object-cover border border-gray-200 dark:border-gray-700" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                // eslint-disable-next-line @next/next/no-img-element -- Dynamic URL from form input
+                <img
+                  src={formData.profilePicture}
+                  alt="Profile"
+                  className="h-12 w-12 rounded-full object-cover border border-gray-200 dark:border-gray-700"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
+                />
               )}
               <div className="flex-1">
-                <Input id="profilePicture" label="Profile Picture URL" value={formData.profilePicture} onChange={(e) => setFormData({ ...formData, profilePicture: e.target.value })} placeholder="https://example.com/photo.jpg" />
+                <Input
+                  id="profilePicture"
+                  label="Profile Picture URL"
+                  value={formData.profilePicture}
+                  onChange={(e) => setFormData({ ...formData, profilePicture: e.target.value })}
+                  placeholder="https://example.com/photo.jpg"
+                />
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Input id="linkedIn" label="LinkedIn" value={formData.linkedIn} onChange={(e) => setFormData({ ...formData, linkedIn: e.target.value })} placeholder="https://linkedin.com/in/username" />
-              <Input id="twitter" label="Twitter / X" value={formData.twitter} onChange={(e) => setFormData({ ...formData, twitter: e.target.value })} placeholder="https://twitter.com/username" />
-              <Input id="github" label="GitHub" value={formData.github} onChange={(e) => setFormData({ ...formData, github: e.target.value })} placeholder="https://github.com/username" />
-              <Input id="website" label="Website" value={formData.website} onChange={(e) => setFormData({ ...formData, website: e.target.value })} placeholder="https://example.com" />
+              <Input
+                id="linkedIn"
+                label="LinkedIn"
+                value={formData.linkedIn}
+                onChange={(e) => setFormData({ ...formData, linkedIn: e.target.value })}
+                placeholder="https://linkedin.com/in/username"
+              />
+              <Input
+                id="twitter"
+                label="Twitter / X"
+                value={formData.twitter}
+                onChange={(e) => setFormData({ ...formData, twitter: e.target.value })}
+                placeholder="https://twitter.com/username"
+              />
+              <Input
+                id="github"
+                label="GitHub"
+                value={formData.github}
+                onChange={(e) => setFormData({ ...formData, github: e.target.value })}
+                placeholder="https://github.com/username"
+              />
+              <Input
+                id="website"
+                label="Website"
+                value={formData.website}
+                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                placeholder="https://example.com"
+              />
             </div>
           </Card>
 
@@ -474,27 +626,70 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
             <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Address</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <Input id="address" label="Address" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
+                <Input
+                  id="address"
+                  label="Address"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                />
               </div>
-              <Input id="city" label="City" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} />
-              <Input id="state" label="State" value={formData.state} onChange={(e) => setFormData({ ...formData, state: e.target.value })} />
-              <Input id="country" label="Country" value={formData.country} onChange={(e) => setFormData({ ...formData, country: e.target.value })} />
-              <Input id="postalCode" label="Postal Code" value={formData.postalCode} onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })} />
+              <Input
+                id="city"
+                label="City"
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+              />
+              <Input
+                id="state"
+                label="State"
+                value={formData.state}
+                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+              />
+              <Input
+                id="country"
+                label="Country"
+                value={formData.country}
+                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+              />
+              <Input
+                id="postalCode"
+                label="Postal Code"
+                value={formData.postalCode}
+                onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
+              />
             </div>
           </Card>
 
           {/* Emergency Contact */}
           <Card>
-            <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Emergency Contact</h2>
+            <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">
+              Emergency Contact
+            </h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Input id="emergencyContact" label="Contact Name" value={formData.emergencyContact} onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })} />
-              <Input id="emergencyContactPhone" label="Contact Phone" value={formData.emergencyContactPhone} onChange={(e) => setFormData({ ...formData, emergencyContactPhone: e.target.value })} />
+              <Input
+                id="emergencyContact"
+                label="Contact Name"
+                value={formData.emergencyContact}
+                onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
+              />
+              <Input
+                id="emergencyContactPhone"
+                label="Contact Phone"
+                value={formData.emergencyContactPhone}
+                onChange={(e) =>
+                  setFormData({ ...formData, emergencyContactPhone: e.target.value })
+                }
+              />
             </div>
           </Card>
 
           <div className="flex justify-end gap-3">
-            <Button variant="outline" type="button" onClick={() => router.back()}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
+            <Button variant="outline" type="button" onClick={() => router.back()}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? "Saving..." : "Save Changes"}
+            </Button>
           </div>
         </form>
       )}
@@ -502,27 +697,90 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
       {activeTab === "employment" && (
         <form onSubmit={handleSubmit} className="space-y-6">
           <Card>
-            <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Employment Details</h2>
+            <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">
+              Employment Details
+            </h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Select id="employmentType" label="Employment Type" options={employmentOptions} value={formData.employmentType} onChange={(e) => setFormData({ ...formData, employmentType: e.target.value as EmploymentType })} />
-              <Input id="designation" label="Designation" value={formData.designation} onChange={(e) => setFormData({ ...formData, designation: e.target.value })} />
-              <Input id="joiningDate" type="date" label="Joining Date" value={formData.joiningDate} onChange={(e) => setFormData({ ...formData, joiningDate: e.target.value })} />
+              <Select
+                id="employmentType"
+                label="Employment Type"
+                options={employmentOptions}
+                value={formData.employmentType}
+                onChange={(e) =>
+                  setFormData({ ...formData, employmentType: e.target.value as EmploymentType })
+                }
+              />
+              <Input
+                id="designation"
+                label="Designation"
+                value={formData.designation}
+                onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
+              />
+              <Input
+                id="joiningDate"
+                type="date"
+                label="Joining Date"
+                value={formData.joiningDate}
+                onChange={(e) => setFormData({ ...formData, joiningDate: e.target.value })}
+              />
             </div>
           </Card>
 
           <Card>
-            <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Organization</h2>
+            <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">
+              Organization
+            </h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Select id="branch" label="Branch" options={[{ value: "", label: "Select Branch" }, ...branches.map(b => ({ value: b.id, label: b.name }))]} value={formData.branchId} onChange={(e) => setFormData({ ...formData, branchId: e.target.value })} />
-              <Select id="department" label="Department" options={[{ value: "", label: "Select Department" }, ...departments.map(d => ({ value: d.id, label: d.name }))]} value={formData.departmentId} onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })} />
-              <Select id="team" label="Team" options={[{ value: "", label: "Select Team" }, ...teams.map(t => ({ value: t.id, label: t.name }))]} value={formData.teamId} onChange={(e) => setFormData({ ...formData, teamId: e.target.value })} />
-              <Select id="manager" label="Reporting Manager" options={[{ value: "", label: "Select Manager" }, ...managers.map(m => ({ value: m.id, label: `${m.firstName} ${m.lastName}` }))]} value={formData.managerId} onChange={(e) => setFormData({ ...formData, managerId: e.target.value })} />
+              <Select
+                id="branch"
+                label="Branch"
+                options={[
+                  { value: "", label: "Select Branch" },
+                  ...branches.map((b) => ({ value: b.id, label: b.name })),
+                ]}
+                value={formData.branchId}
+                onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
+              />
+              <Select
+                id="department"
+                label="Department"
+                options={[
+                  { value: "", label: "Select Department" },
+                  ...departments.map((d) => ({ value: d.id, label: d.name })),
+                ]}
+                value={formData.departmentId}
+                onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })}
+              />
+              <Select
+                id="team"
+                label="Team"
+                options={[
+                  { value: "", label: "Select Team" },
+                  ...teams.map((t) => ({ value: t.id, label: t.name })),
+                ]}
+                value={formData.teamId}
+                onChange={(e) => setFormData({ ...formData, teamId: e.target.value })}
+              />
+              <Select
+                id="manager"
+                label="Reporting Manager"
+                options={[
+                  { value: "", label: "Select Manager" },
+                  ...managers.map((m) => ({ value: m.id, label: `${m.firstName} ${m.lastName}` })),
+                ]}
+                value={formData.managerId}
+                onChange={(e) => setFormData({ ...formData, managerId: e.target.value })}
+              />
             </div>
           </Card>
 
           <div className="flex justify-end gap-3">
-            <Button variant="outline" type="button" onClick={() => router.back()}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
+            <Button variant="outline" type="button" onClick={() => router.back()}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? "Saving..." : "Save Changes"}
+            </Button>
           </div>
         </form>
       )}
@@ -531,8 +789,12 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
         <Card>
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Leave Allocations</h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Manage leave balance for this employee</p>
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+                Leave Allocations
+              </h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Manage leave balance for this employee
+              </p>
             </div>
             <select
               value={selectedYear}
@@ -540,7 +802,9 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
               className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             >
               {yearOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
               ))}
             </select>
           </div>
@@ -549,12 +813,24 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
             <table className="w-full">
               <thead className="border-b border-gray-200 dark:border-gray-700">
                 <tr>
-                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Leave Type</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Allocated</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Used</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Adjust</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Balance</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Notes</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                    Leave Type
+                  </th>
+                  <th className="px-3 py-2 text-center text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                    Allocated
+                  </th>
+                  <th className="px-3 py-2 text-center text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                    Used
+                  </th>
+                  <th className="px-3 py-2 text-center text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                    Adjust
+                  </th>
+                  <th className="px-3 py-2 text-center text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                    Balance
+                  </th>
+                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                    Notes
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -562,8 +838,13 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                   <tr key={alloc.id}>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-2">
-                        <div className="h-3 w-1 rounded-full" style={{ backgroundColor: alloc.leaveType?.color || "#3B82F6" }} />
-                        <span className="text-sm text-gray-900 dark:text-white">{alloc.leaveType?.name}</span>
+                        <div
+                          className="h-3 w-1 rounded-full"
+                          style={{ backgroundColor: alloc.leaveType?.color || "#3B82F6" }}
+                        />
+                        <span className="text-sm text-gray-900 dark:text-white">
+                          {alloc.leaveType?.name}
+                        </span>
                       </div>
                     </td>
                     <td className="px-3 py-2 text-center">
@@ -572,24 +853,40 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                         min="0"
                         step="0.5"
                         value={alloc.allocated}
-                        onChange={(e) => handleUpdateAllocation(alloc.id, "allocated", parseFloat(e.target.value) || 0)}
+                        onChange={(e) =>
+                          handleUpdateAllocation(
+                            alloc.id,
+                            "allocated",
+                            parseFloat(e.target.value) || 0
+                          )
+                        }
                         disabled={savingAllocation === alloc.id}
                         className="w-16 rounded border border-gray-200 px-2 py-1 text-center text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                       />
                     </td>
-                    <td className="px-3 py-2 text-center text-sm text-gray-600 dark:text-gray-400">{alloc.used}</td>
+                    <td className="px-3 py-2 text-center text-sm text-gray-600 dark:text-gray-400">
+                      {alloc.used}
+                    </td>
                     <td className="px-3 py-2 text-center">
                       <input
                         type="number"
                         step="0.5"
                         value={alloc.adjusted}
-                        onChange={(e) => handleUpdateAllocation(alloc.id, "adjusted", parseFloat(e.target.value) || 0)}
+                        onChange={(e) =>
+                          handleUpdateAllocation(
+                            alloc.id,
+                            "adjusted",
+                            parseFloat(e.target.value) || 0
+                          )
+                        }
                         disabled={savingAllocation === alloc.id}
                         className="w-16 rounded border border-gray-200 px-2 py-1 text-center text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                       />
                     </td>
                     <td className="px-3 py-2 text-center">
-                      <span className={`text-sm font-medium ${alloc.balance >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                      <span
+                        className={`text-sm font-medium ${alloc.balance >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
+                      >
                         {alloc.balance}
                       </span>
                     </td>
@@ -609,7 +906,10 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                   <tr key={lt.id} className="bg-gray-50 dark:bg-gray-800/50">
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-2">
-                        <div className="h-3 w-1 rounded-full" style={{ backgroundColor: lt.color || "#3B82F6" }} />
+                        <div
+                          className="h-3 w-1 rounded-full"
+                          style={{ backgroundColor: lt.color || "#3B82F6" }}
+                        />
                         <span className="text-sm text-gray-500 dark:text-gray-400">{lt.name}</span>
                       </div>
                     </td>
@@ -631,7 +931,9 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                         size="sm"
                         disabled={savingAllocation === lt.id}
                         onClick={() => {
-                          const input = document.getElementById(`new-alloc-${lt.id}`) as HTMLInputElement;
+                          const input = document.getElementById(
+                            `new-alloc-${lt.id}`
+                          ) as HTMLInputElement;
                           handleCreateAllocation(lt.id, parseFloat(input.value) || lt.defaultDays);
                         }}
                       >
@@ -653,15 +955,24 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
         <Card>
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Assigned Assets</h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Company assets assigned to this employee</p>
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+                Assigned Assets
+              </h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Company assets assigned to this employee
+              </p>
             </div>
             <a
               href={`/dashboard/assets?unassigned=true`}
               className="inline-flex items-center gap-1 rounded border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                />
               </svg>
               Assign Asset
             </a>
@@ -669,8 +980,18 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
 
           {assets.length === 0 ? (
             <div className="rounded border border-dashed border-gray-200 p-8 text-center dark:border-gray-700">
-              <svg className="mx-auto h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              <svg
+                className="mx-auto h-10 w-10 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                />
               </svg>
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">No assets assigned</p>
             </div>
@@ -679,10 +1000,18 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
               <table className="w-full">
                 <thead className="border-b border-gray-200 dark:border-gray-700">
                   <tr>
-                    <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Asset</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Category</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Condition</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Assigned</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                      Asset
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                      Category
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                      Condition
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                      Assigned
+                    </th>
                     <th className="px-3 py-2 text-right text-xs font-medium uppercase text-gray-500 dark:text-gray-400"></th>
                   </tr>
                 </thead>
@@ -697,11 +1026,15 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                         {asset.category.replace(/_/g, " ")}
                       </td>
                       <td className="px-3 py-2">
-                        <span className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                          asset.condition === "NEW" ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400" :
-                          asset.condition === "EXCELLENT" || asset.condition === "GOOD" ? "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300" :
-                          "bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400"
-                        }`}>
+                        <span
+                          className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                            asset.condition === "NEW"
+                              ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400"
+                              : asset.condition === "EXCELLENT" || asset.condition === "GOOD"
+                                ? "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                                : "bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400"
+                          }`}
+                        >
                           {asset.condition}
                         </span>
                       </td>
@@ -709,7 +1042,10 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                         {asset.assignedAt ? new Date(asset.assignedAt).toLocaleDateString() : "-"}
                       </td>
                       <td className="px-3 py-2 text-right">
-                        <a href={`/dashboard/assets/${asset.id}`} className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                        <a
+                          href={`/dashboard/assets/${asset.id}`}
+                          className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                        >
                           View
                         </a>
                       </td>

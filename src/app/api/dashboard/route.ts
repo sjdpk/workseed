@@ -5,10 +5,7 @@ export async function GET() {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const isHROrAdmin = ["ADMIN", "HR"].includes(currentUser.role);
@@ -22,8 +19,8 @@ export async function GET() {
 
     // Get upcoming birthdays and work anniversaries (for all users)
     const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentDay = now.getDate();
+    const _currentMonth = now.getMonth() + 1;
+    const _currentDay = now.getDate();
 
     const allUsers = await prisma.user.findMany({
       where: { status: "ACTIVE" },
@@ -46,7 +43,9 @@ export async function GET() {
         if (thisYearBday < now) {
           thisYearBday.setFullYear(now.getFullYear() + 1);
         }
-        const daysUntil = Math.ceil((thisYearBday.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        const daysUntil = Math.ceil(
+          (thisYearBday.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+        );
         return {
           id: u.id,
           name: `${u.firstName} ${u.lastName}`,
@@ -69,7 +68,9 @@ export async function GET() {
           thisYearAnniv.setFullYear(now.getFullYear() + 1);
         }
         const years = thisYearAnniv.getFullYear() - jd.getFullYear();
-        const daysUntil = Math.ceil((thisYearAnniv.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        const daysUntil = Math.ceil(
+          (thisYearAnniv.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+        );
         return {
           id: u.id,
           name: `${u.firstName} ${u.lastName}`,
@@ -116,19 +117,14 @@ export async function GET() {
 
     if (isHROrAdmin) {
       // Get counts
-      const [
-        totalEmployees,
-        activeEmployees,
-        totalDepartments,
-        totalTeams,
-        pendingLeaves,
-      ] = await Promise.all([
-        prisma.user.count(),
-        prisma.user.count({ where: { status: "ACTIVE" } }),
-        prisma.department.count({ where: { isActive: true } }),
-        prisma.team.count({ where: { isActive: true } }),
-        prisma.leaveRequest.count({ where: { status: "PENDING" } }),
-      ]);
+      const [totalEmployees, activeEmployees, totalDepartments, totalTeams, pendingLeaves] =
+        await Promise.all([
+          prisma.user.count(),
+          prisma.user.count({ where: { status: "ACTIVE" } }),
+          prisma.department.count({ where: { isActive: true } }),
+          prisma.team.count({ where: { isActive: true } }),
+          prisma.leaveRequest.count({ where: { status: "PENDING" } }),
+        ]);
 
       // Employees by department
       const employeesByDepartment = await prisma.department.findMany({
@@ -283,9 +279,6 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Dashboard error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

@@ -1,36 +1,243 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# HRM System
 
-## Getting Started
+A comprehensive Human Resource Management system built with Next.js, React, and PostgreSQL.
 
-First, run the development server:
+## Features
+
+- **User Management**: Complete employee lifecycle management with roles and permissions
+- **Leave Management**: Leave types, allocations, requests, and approval workflows
+- **Attendance Tracking**: Check-in/check-out with device integration support
+- **Organization Structure**: Branches, departments, and teams hierarchy
+- **Asset Management**: Track and assign company assets to employees
+- **Self-Service Portal**: Employee requests and profile management
+- **Audit Logging**: Complete audit trail for compliance
+- **Email Notifications**: Automated notifications for leave requests and announcements
+
+## Technology Stack
+
+- **Framework**: Next.js 16.1.6 with App Router
+- **Frontend**: React 19, TypeScript, Tailwind CSS v4
+- **Database**: PostgreSQL with Prisma ORM
+- **Authentication**: JWT-based with HTTP-only cookies
+- **Validation**: Zod schema validation
+- **Email**: Nodemailer for SMTP integration
+
+## Prerequisites
+
+- Node.js 20.x or later
+- PostgreSQL 14.x or later
+- npm or yarn package manager
+
+## Installation
+
+1. Clone the repository:
+
+```bash
+git clone <repository-url>
+cd thesystem
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Set up environment variables:
+
+```bash
+cp .env.example .env
+```
+
+4. Configure your `.env` file with the required variables (see Environment Variables section).
+
+5. Generate Prisma client:
+
+```bash
+npm run db:generate
+```
+
+6. Run database migrations:
+
+```bash
+npm run db:migrate
+```
+
+7. Seed the database (optional):
+
+```bash
+npm run db:seed
+```
+
+8. Start the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The application will be available at `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Required
 
-## Learn More
+| Variable       | Description                                    |
+| -------------- | ---------------------------------------------- |
+| `DATABASE_URL` | PostgreSQL connection string                   |
+| `JWT_SECRET`   | Secret key for JWT signing (min 32 characters) |
 
-To learn more about Next.js, take a look at the following resources:
+### Optional - Email (SMTP)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Variable        | Description          | Default           |
+| --------------- | -------------------- | ----------------- |
+| `SMTP_HOST`     | SMTP server hostname | smtp.gmail.com    |
+| `SMTP_PORT`     | SMTP server port     | 587               |
+| `SMTP_SECURE`   | Use TLS              | false             |
+| `SMTP_USER`     | SMTP username        | -                 |
+| `SMTP_PASSWORD` | SMTP password        | -                 |
+| `SMTP_FROM`     | From email address   | noreply@hrm.local |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Optional - Application
 
-## Deploy on Vercel
+| Variable              | Description                                  | Default                   |
+| --------------------- | -------------------------------------------- | ------------------------- |
+| `APP_NAME`            | Application name for emails                  | HRM System                |
+| `NEXT_PUBLIC_APP_URL` | Public application URL                       | http://localhost:3000     |
+| `LOG_LEVEL`           | Minimum log level (DEBUG, INFO, WARN, ERROR) | DEBUG (dev) / INFO (prod) |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Available Scripts
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Command                | Description               |
+| ---------------------- | ------------------------- |
+| `npm run dev`          | Start development server  |
+| `npm run build`        | Build for production      |
+| `npm run start`        | Start production server   |
+| `npm run lint`         | Run ESLint                |
+| `npm run lint:fix`     | Fix ESLint errors         |
+| `npm run format`       | Format code with Prettier |
+| `npm run format:check` | Check code formatting     |
+| `npm run db:generate`  | Generate Prisma client    |
+| `npm run db:migrate`   | Run database migrations   |
+| `npm run db:push`      | Push schema to database   |
+| `npm run db:seed`      | Seed the database         |
+| `npm run db:studio`    | Open Prisma Studio        |
+
+## Project Structure
+
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── api/               # API routes
+│   │   ├── auth/          # Authentication endpoints
+│   │   ├── users/         # User management
+│   │   ├── attendance/    # Attendance tracking
+│   │   ├── leave-*/       # Leave management
+│   │   ├── assets/        # Asset management
+│   │   └── ...            # Other API routes
+│   ├── (auth)/            # Auth pages (login)
+│   └── (dashboard)/       # Dashboard pages
+├── components/            # React components
+├── lib/                   # Core utilities
+│   ├── auth.ts           # Authentication helpers
+│   ├── permissions.ts    # Role-based access control
+│   ├── prisma.ts         # Database connection
+│   ├── audit.ts          # Audit logging
+│   ├── email.ts          # Email service
+│   ├── logger.ts         # Structured logging
+│   ├── validation.ts     # Zod schemas
+│   └── api-response.ts   # Response utilities
+├── types/                 # TypeScript definitions
+├── hooks/                 # Custom React hooks
+├── services/              # API client services
+└── utils/                 # Utility functions
+```
+
+## Role Hierarchy
+
+The system uses a hierarchical role-based access control:
+
+| Role      | Level | Description                |
+| --------- | ----- | -------------------------- |
+| ADMIN     | 4     | Full system access         |
+| HR        | 3     | Human resources management |
+| MANAGER   | 2     | Department/team management |
+| TEAM_LEAD | 1     | Team oversight             |
+| EMPLOYEE  | 0     | Basic employee access      |
+
+## API Overview
+
+All API endpoints are RESTful and follow consistent patterns:
+
+- Success responses: `{ success: true, data: { ... } }`
+- Error responses: `{ success: false, error: "message" }`
+- Authentication via `auth-token` HTTP-only cookie
+
+See `/docs/API.md` for complete endpoint documentation.
+
+## Database Setup
+
+### Development
+
+```bash
+# Create migrations
+npm run db:migrate
+
+# Apply schema changes without migration
+npm run db:push
+
+# Open database GUI
+npm run db:studio
+```
+
+### Production
+
+```bash
+# Deploy migrations
+npx prisma migrate deploy
+```
+
+## Production Deployment
+
+1. Build the application:
+
+```bash
+npm run build
+```
+
+2. Set production environment variables.
+
+3. Run database migrations:
+
+```bash
+npx prisma migrate deploy
+```
+
+4. Start the server:
+
+```bash
+npm run start
+```
+
+## Troubleshooting
+
+### Database Connection Issues
+
+- Verify `DATABASE_URL` is correctly formatted
+- Ensure PostgreSQL is running and accessible
+- Check firewall rules for database port
+
+### Authentication Issues
+
+- Ensure `JWT_SECRET` is set and consistent across restarts
+- Clear browser cookies and re-login
+- Check token expiration (24 hours default)
+
+### Email Not Sending
+
+- Verify SMTP credentials are correct
+- Check if SMTP_USER and SMTP_PASSWORD are set
+- Review email logs for detailed error messages
+
+## License
+
+Proprietary - All rights reserved

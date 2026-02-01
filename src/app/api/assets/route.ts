@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/permissions";
 import { createAuditLog, getRequestMeta } from "@/lib/audit";
-import { z } from "zod";
+import { getCurrentUser } from "@/lib/auth";
+import { logger } from "@/lib/logger";
+import { hasPermission } from "@/lib/permissions";
+import { prisma } from "@/lib/prisma";
+import { z } from "@/lib/validation";
 
 const assetCreateSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -30,9 +31,7 @@ const assetCreateSchema = z.object({
   purchaseDate: z.string().optional(),
   purchasePrice: z.number().optional(),
   warrantyExpiry: z.string().optional(),
-  condition: z
-    .enum(["NEW", "EXCELLENT", "GOOD", "FAIR", "POOR"])
-    .default("NEW"),
+  condition: z.enum(["NEW", "EXCELLENT", "GOOD", "FAIR", "POOR"]).default("NEW"),
   location: z.string().optional(),
   notes: z.string().optional(),
   specifications: z.record(z.string(), z.unknown()).optional(),
@@ -65,7 +64,7 @@ export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -82,12 +81,16 @@ export async function GET(request: NextRequest) {
     // For regular employees, check org permission setting
     if (!canViewAll) {
       const orgSettings = await prisma.organizationSettings.findFirst();
-      const showOwnAssets = (orgSettings?.permissions as Record<string, unknown>)?.showOwnAssetsToEmployee ?? true;
+      const showOwnAssets =
+        (orgSettings?.permissions as Record<string, unknown>)?.showOwnAssetsToEmployee ?? true;
 
       if (!showOwnAssets) {
         return NextResponse.json({
-          assets: [],
-          pagination: { page, limit, total: 0, totalPages: 0 },
+          success: true,
+          data: {
+            assets: [],
+            pagination: { page, limit, total: 0, totalPages: 0 },
+          },
         });
       }
     }
@@ -162,20 +165,20 @@ export async function GET(request: NextRequest) {
     ]);
 
     return NextResponse.json({
-      assets,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+      success: true,
+      data: {
+        assets,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
       },
     });
   } catch (error) {
-    console.error("Get assets error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch assets" },
-      { status: 500 }
-    );
+    logger.error("Get assets error", { error, endpoint: "GET /api/assets" });
+    return NextResponse.json({ success: false, error: "Failed to fetch assets" }, { status: 500 });
   }
 }
 
@@ -184,11 +187,11 @@ export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     if (!hasPermission(user.role, "ASSET_CREATE")) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
     const body = await request.json();
@@ -201,7 +204,7 @@ export async function POST(request: NextRequest) {
       });
       if (existingAsset) {
         return NextResponse.json(
-          { error: "An asset with this serial number already exists" },
+          { success: false, error: "An asset with this serial number already exists" },
           { status: 400 }
         );
       }
@@ -218,9 +221,7 @@ export async function POST(request: NextRequest) {
         model: validatedData.model,
         serialNumber: validatedData.serialNumber || null,
         description: validatedData.description,
-        purchaseDate: validatedData.purchaseDate
-          ? new Date(validatedData.purchaseDate)
-          : null,
+        purchaseDate: validatedData.purchaseDate ? new Date(validatedData.purchaseDate) : null,
         purchasePrice: validatedData.purchasePrice,
         warrantyExpiry: validatedData.warrantyExpiry
           ? new Date(validatedData.warrantyExpiry)
@@ -259,18 +260,15 @@ export async function POST(request: NextRequest) {
       userAgent,
     });
 
-    return NextResponse.json({ asset }, { status: 201 });
+    return NextResponse.json({ success: true, data: { asset } }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Validation failed", details: error.issues },
+        { success: false, error: "Validation failed", details: error.issues },
         { status: 400 }
       );
     }
-    console.error("Create asset error:", error);
-    return NextResponse.json(
-      { error: "Failed to create asset" },
-      { status: 500 }
-    );
+    logger.error("Create asset error", { error, endpoint: "POST /api/assets" });
+    return NextResponse.json({ success: false, error: "Failed to create asset" }, { status: 500 });
   }
 }

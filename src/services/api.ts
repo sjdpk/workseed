@@ -1,10 +1,7 @@
 import { API_ENDPOINTS } from "@/constants";
 import type { ApiResponse } from "@/types";
 
-async function request<T>(
-  endpoint: string,
-  options?: RequestInit
-): Promise<ApiResponse<T>> {
+async function request<T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
   const url = `${API_ENDPOINTS.BASE_URL}${endpoint}`;
 
   const response = await fetch(url, {

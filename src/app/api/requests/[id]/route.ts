@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth";
 import { sendRequestStatusUpdate } from "@/lib/email";
+import { prisma } from "@/lib/prisma";
 
 // PUT - Update request (approve/reject by Admin/HR, or cancel by owner)
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const token = request.cookies.get("auth-token")?.value;
     if (!token) {
@@ -41,10 +38,16 @@ export async function PUT(
         return NextResponse.json({ success: false, error: "Permission denied" }, { status: 403 });
       }
       if (status !== "CANCELLED") {
-        return NextResponse.json({ success: false, error: "You can only cancel your requests" }, { status: 403 });
+        return NextResponse.json(
+          { success: false, error: "You can only cancel your requests" },
+          { status: 403 }
+        );
       }
       if (existingRequest.status !== "PENDING") {
-        return NextResponse.json({ success: false, error: "Only pending requests can be cancelled" }, { status: 400 });
+        return NextResponse.json(
+          { success: false, error: "Only pending requests can be cancelled" },
+          { status: 400 }
+        );
       }
     }
 
@@ -94,7 +97,10 @@ export async function PUT(
     });
   } catch (error) {
     console.error("Error updating request:", error);
-    return NextResponse.json({ success: false, error: "Failed to update request" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to update request" },
+      { status: 500 }
+    );
   }
 }
 
@@ -132,7 +138,10 @@ export async function DELETE(
     }
 
     if (!isAdminOrHR && existingRequest.status !== "PENDING") {
-      return NextResponse.json({ success: false, error: "Only pending requests can be deleted" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "Only pending requests can be deleted" },
+        { status: 400 }
+      );
     }
 
     await prisma.employeeRequest.delete({
@@ -145,6 +154,9 @@ export async function DELETE(
     });
   } catch (error) {
     console.error("Error deleting request:", error);
-    return NextResponse.json({ success: false, error: "Failed to delete request" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to delete request" },
+      { status: 500 }
+    );
   }
 }

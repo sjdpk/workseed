@@ -5,10 +5,7 @@ export async function GET(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     // Check permissions from organization settings
@@ -65,7 +62,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Get user details for the logs
-    const userIds = [...new Set(logs.map((log:any) => log.userId))];
+    const userIds = [...new Set(logs.map((log) => log.userId))];
     const users = await prisma.user.findMany({
       where: { id: { in: userIds } },
       select: {
@@ -77,9 +74,9 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const usersMap = new Map(users.map((u:any) => [u.id, u]));
+    const usersMap = new Map(users.map((u) => [u.id, u]));
 
-    const logsWithUsers = logs.map((log:any) => ({
+    const logsWithUsers = logs.map((log) => ({
       ...log,
       user: usersMap.get(log.userId) || null,
     }));
@@ -98,9 +95,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Get audit logs error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

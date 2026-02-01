@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button, Card, Input, Select, useToast } from "@/components";
 
 interface Asset {
@@ -82,7 +82,7 @@ const CONDITION_COLORS: Record<string, string> = {
 };
 
 export default function AssetsPage() {
-  const router = useRouter();
+  const _router = useRouter();
   const toast = useToast();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
@@ -123,6 +123,7 @@ export default function AssetsPage() {
 
   useEffect(() => {
     fetchAssets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.page, category, status]);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -286,7 +287,9 @@ export default function AssetsPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-sm font-medium ${CONDITION_COLORS[asset.condition] || ""}`}>
+                      <span
+                        className={`text-sm font-medium ${CONDITION_COLORS[asset.condition] || ""}`}
+                      >
                         {asset.condition}
                       </span>
                     </td>

@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, getCurrentUser, isHROrAbove, hashPassword, createAuditLog, getRequestMeta } from "@/lib";
-import { z } from "zod/v4";
+import {
+  prisma,
+  getCurrentUser,
+  isHROrAbove,
+  hashPassword,
+  createAuditLog,
+  getRequestMeta,
+} from "@/lib";
+import { logger } from "@/lib/logger";
+import { z } from "@/lib/validation";
 
 const updateUserSchema = z.object({
   employeeId: z.string().min(1).optional(),
@@ -35,17 +43,11 @@ const updateUserSchema = z.object({
   password: z.string().min(8).optional(),
 });
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
@@ -93,17 +95,11 @@ export async function GET(
     });
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: "User not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
     }
 
     if (user.id !== currentUser.id && !isHROrAbove(currentUser.role)) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 403 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
     return NextResponse.json({
@@ -111,25 +107,16 @@ export async function GET(
       data: { user },
     });
   } catch (error) {
-    console.error("Get user error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    logger.error("Get user error", { error, endpoint: "GET /api/users/[id]" });
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
@@ -141,20 +128,14 @@ export async function PATCH(
     });
 
     if (!targetUser) {
-      return NextResponse.json(
-        { success: false, error: "User not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
     }
 
     const isSelf = currentUser.id === id;
     const isHRAdmin = isHROrAbove(currentUser.role);
 
     if (!isSelf && !isHRAdmin) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 403 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
     const updateData: Record<string, unknown> = {};
@@ -175,7 +156,8 @@ export async function PATCH(
     if (data.country !== undefined) updateData.country = data.country;
     if (data.postalCode !== undefined) updateData.postalCode = data.postalCode;
     if (data.emergencyContact !== undefined) updateData.emergencyContact = data.emergencyContact;
-    if (data.emergencyContactPhone !== undefined) updateData.emergencyContactPhone = data.emergencyContactPhone;
+    if (data.emergencyContactPhone !== undefined)
+      updateData.emergencyContactPhone = data.emergencyContactPhone;
 
     // HR/Admin only fields
     if (isHRAdmin) {
@@ -268,15 +250,9 @@ export async function PATCH(
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { success: false, error: error.issues[0].message },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: error.issues[0].message }, { status: 400 });
     }
-    console.error("Update user error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    logger.error("Update user error", { error, endpoint: "PATCH /api/users/[id]" });
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

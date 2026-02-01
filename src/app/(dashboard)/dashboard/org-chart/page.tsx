@@ -56,27 +56,35 @@ export default function OrgChartPage() {
   };
 
   const groupByDepartment = (users: User[]) => {
-    return users.reduce((acc, user) => {
-      const deptName = user.department?.name || "No Department";
-      if (!acc[deptName]) acc[deptName] = [];
-      acc[deptName].push(user);
-      return acc;
-    }, {} as Record<string, User[]>);
+    return users.reduce(
+      (acc, user) => {
+        const deptName = user.department?.name || "No Department";
+        if (!acc[deptName]) acc[deptName] = [];
+        acc[deptName].push(user);
+        return acc;
+      },
+      {} as Record<string, User[]>
+    );
   };
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case "ADMIN": return "bg-purple-500";
-      case "HR": return "bg-pink-500";
-      case "MANAGER": return "bg-gray-600";
-      case "TEAM_LEAD": return "bg-green-500";
-      default: return "bg-gray-500";
+      case "ADMIN":
+        return "bg-purple-500";
+      case "HR":
+        return "bg-pink-500";
+      case "MANAGER":
+        return "bg-gray-600";
+      case "TEAM_LEAD":
+        return "bg-green-500";
+      default:
+        return "bg-gray-500";
     }
   };
 
   const LinkedInIcon = () => (
     <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
-      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
     </svg>
   );
 
@@ -161,8 +169,12 @@ export default function OrgChartPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Organization Chart</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">View company structure and reporting lines</p>
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Organization Chart
+          </h1>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            View company structure and reporting lines
+          </p>
         </div>
 
         <div className="flex rounded border border-gray-200 bg-gray-50 p-1 dark:border-gray-700 dark:bg-gray-800">
@@ -192,8 +204,18 @@ export default function OrgChartPage() {
       {users.length === 0 ? (
         <Card>
           <div className="py-12 text-center">
-            <svg className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            <svg
+              className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+              />
             </svg>
             <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">No employees found</p>
           </div>
@@ -212,58 +234,75 @@ export default function OrgChartPage() {
         </Card>
       ) : (
         <div className="grid gap-6 lg:grid-cols-2">
-          {Object.entries(departments).sort(([a], [b]) => a.localeCompare(b)).map(([deptName, deptUsers]) => (
-            <Card key={deptName}>
-              <div className="mb-4 flex items-center gap-3 border-b border-gray-100 pb-3 dark:border-gray-700">
-                <div className="flex h-10 w-10 items-center justify-center rounded bg-gray-100 dark:bg-gray-800">
-                  <svg className="h-5 w-5 text-gray-900 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white">{deptName}</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{deptUsers.length} member{deptUsers.length !== 1 ? "s" : ""}</p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                {deptUsers.map((user) => {
-                  const roleColor = getRoleColor(user.role);
-                  return (
-                    <div key={user.id} className="flex items-center gap-3 rounded border border-gray-100 p-2.5 dark:border-gray-700/50">
-                      <Avatar
-                        src={user.profilePicture}
-                        name={`${user.firstName} ${user.lastName}`}
-                        size="sm"
-                        colorClass={roleColor}
+          {Object.entries(departments)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([deptName, deptUsers]) => (
+              <Card key={deptName}>
+                <div className="mb-4 flex items-center gap-3 border-b border-gray-100 pb-3 dark:border-gray-700">
+                  <div className="flex h-10 w-10 items-center justify-center rounded bg-gray-100 dark:bg-gray-800">
+                    <svg
+                      className="h-5 w-5 text-gray-900 dark:text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
                       />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                            {user.firstName} {user.lastName}
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">{deptName}</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {deptUsers.length} member{deptUsers.length !== 1 ? "s" : ""}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {deptUsers.map((user) => {
+                    const roleColor = getRoleColor(user.role);
+                    return (
+                      <div
+                        key={user.id}
+                        className="flex items-center gap-3 rounded border border-gray-100 p-2.5 dark:border-gray-700/50"
+                      >
+                        <Avatar
+                          src={user.profilePicture}
+                          name={`${user.firstName} ${user.lastName}`}
+                          size="sm"
+                          colorClass={roleColor}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                              {user.firstName} {user.lastName}
+                            </p>
+                            {user.linkedIn && (
+                              <a
+                                href={user.linkedIn}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300"
+                                title="LinkedIn Profile"
+                              >
+                                <LinkedInIcon />
+                              </a>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            {user.designation || user.role.replace("_", " ")}
                           </p>
-                          {user.linkedIn && (
-                            <a
-                              href={user.linkedIn}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300"
-                              title="LinkedIn Profile"
-                            >
-                              <LinkedInIcon />
-                            </a>
-                          )}
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                          {user.designation || user.role.replace("_", " ")}
-                        </p>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
-          ))}
+                    );
+                  })}
+                </div>
+              </Card>
+            ))}
         </div>
       )}
 

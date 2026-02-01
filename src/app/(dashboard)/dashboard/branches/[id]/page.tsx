@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState, use } from "react";
 import { Button, Card, Input, useToast } from "@/components";
 
 const ALLOWED_ROLES = ["ADMIN", "HR"];
@@ -124,7 +124,9 @@ export default function EditBranchPage({ params }: { params: Promise<{ id: strin
 
       <form onSubmit={handleSubmit}>
         <Card className="space-y-4">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white">Branch Information</h2>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+            Branch Information
+          </h2>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
@@ -204,13 +206,19 @@ export default function EditBranchPage({ params }: { params: Promise<{ id: strin
               />
               <div>
                 <span className="text-sm font-medium text-gray-900 dark:text-white">Active</span>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Inactive branches are hidden from selection</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Inactive branches are hidden from selection
+                </p>
               </div>
             </label>
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
-            <Button variant="outline" type="button" onClick={() => router.push("/dashboard/branches")}>
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => router.push("/dashboard/branches")}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
@@ -227,7 +235,11 @@ export default function EditBranchPage({ params }: { params: Promise<{ id: strin
           Permanently delete this branch. This action cannot be undone.
         </p>
         <div className="mt-4">
-          <Button variant="outline" onClick={handleDelete} className="border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20">
+          <Button
+            variant="outline"
+            onClick={handleDelete}
+            className="border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
+          >
             Delete Branch
           </Button>
         </div>

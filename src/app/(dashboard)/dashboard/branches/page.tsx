@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button, Card, Input } from "@/components";
 import type { Branch } from "@/types";
 
@@ -28,8 +28,8 @@ export default function BranchesPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/auth/me").then(r => r.json()),
-      fetch("/api/branches").then(r => r.json()),
+      fetch("/api/auth/me").then((r) => r.json()),
+      fetch("/api/branches").then((r) => r.json()),
     ]).then(([meData, branchesData]) => {
       if (meData.success) {
         setCurrentUser(meData.data.user);
@@ -55,8 +55,18 @@ export default function BranchesPage() {
   });
 
   const exportToCSV = () => {
-    const headers = ["Name", "Code", "Address", "City", "State", "Country", "Phone", "Email", "Status"];
-    const rows = filteredBranches.map(branch => [
+    const headers = [
+      "Name",
+      "Code",
+      "Address",
+      "City",
+      "State",
+      "Country",
+      "Phone",
+      "Email",
+      "Status",
+    ];
+    const rows = filteredBranches.map((branch) => [
       branch.name,
       branch.code,
       branch.address || "",
@@ -69,7 +79,7 @@ export default function BranchesPage() {
     ]);
 
     const csvContent = [headers, ...rows]
-      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
       .join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -101,7 +111,9 @@ export default function BranchesPage() {
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Manage company branches</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={exportToCSV}>Export CSV</Button>
+          <Button variant="outline" onClick={exportToCSV}>
+            Export CSV
+          </Button>
           {hasPermission("CREATE") && (
             <Button onClick={() => router.push("/dashboard/branches/new")}>Add Branch</Button>
           )}
@@ -127,11 +139,17 @@ export default function BranchesPage() {
             <Card key={branch.id}>
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{branch.name}</h3>
-                  <span className="mt-1 inline-flex rounded bg-gray-100 px-1 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">{branch.code}</span>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {branch.name}
+                  </h3>
+                  <span className="mt-1 inline-flex rounded bg-gray-100 px-1 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                    {branch.code}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${branch.isActive ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300" : "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300"}`}>
+                  <span
+                    className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${branch.isActive ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300" : "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300"}`}
+                  >
                     {branch.isActive ? "Active" : "Inactive"}
                   </span>
                   <Button
@@ -145,7 +163,9 @@ export default function BranchesPage() {
               </div>
               {(branch.address || branch.city) && (
                 <p className="mt-3 text-xs text-gray-600 dark:text-gray-400">
-                  {[branch.address, branch.city, branch.state, branch.country].filter(Boolean).join(", ")}
+                  {[branch.address, branch.city, branch.state, branch.country]
+                    .filter(Boolean)
+                    .join(", ")}
                 </p>
               )}
               {(branch.phone || branch.email) && (

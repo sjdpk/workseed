@@ -59,8 +59,15 @@ html {
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: var(--font-inter), Inter, system-ui, -apple-system, sans-serif;
-  font-feature-settings: 'liga' 1, 'calt' 1;
+  font-family:
+    var(--font-inter),
+    Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  font-feature-settings:
+    "liga" 1,
+    "calt" 1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -106,13 +113,15 @@ body {
   white-space: nowrap;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.15s ease, visibility 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    visibility 0.15s ease;
   z-index: 9999;
   box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
   pointer-events: none;
 }
 .nav-item .sidebar-tooltip::before {
-  content: '';
+  content: "";
   position: absolute;
   left: -6px;
   top: 50%;

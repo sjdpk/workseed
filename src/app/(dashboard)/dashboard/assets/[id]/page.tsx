@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState, use } from "react";
 import { Button, Card, Input, Select, useToast } from "@/components";
 
 interface User {
@@ -352,9 +352,7 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
           <Button variant="outline" onClick={() => router.back()}>
             Back
           </Button>
-          {!editMode && (
-            <Button onClick={() => setEditMode(true)}>Edit</Button>
-          )}
+          {!editMode && <Button onClick={() => setEditMode(true)}>Edit</Button>}
         </div>
       </div>
 
@@ -381,9 +379,7 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
                 )}
               </div>
             </div>
-            <Button onClick={() => setShowReturnModal(true)}>
-              Return Asset
-            </Button>
+            <Button onClick={() => setShowReturnModal(true)}>Return Asset</Button>
           </div>
         </Card>
       )}
@@ -521,11 +517,7 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
               Delete Asset
             </Button>
             <div className="flex gap-3">
-              <Button
-                variant="outline"
-                type="button"
-                onClick={() => setEditMode(false)}
-              >
+              <Button variant="outline" type="button" onClick={() => setEditMode(false)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={saving}>
@@ -619,9 +611,7 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
               Assignment History
             </h2>
             {asset.assignments.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                No assignment history yet.
-              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">No assignment history yet.</p>
             ) : (
               <div className="space-y-4">
                 {asset.assignments.map((assignment) => (
@@ -644,9 +634,7 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
                         Condition: {assignment.condition}
-                        {assignment.returnCondition && (
-                          <> → {assignment.returnCondition}</>
-                        )}
+                        {assignment.returnCondition && <> → {assignment.returnCondition}</>}
                       </p>
                       {assignment.notes && (
                         <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
@@ -672,9 +660,7 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
       )}
 
       {/* Assign Sidebar */}
-      <div
-        className={`fixed inset-0 z-50 ${showAssignModal ? "visible" : "invisible"}`}
-      >
+      <div className={`fixed inset-0 z-50 ${showAssignModal ? "visible" : "invisible"}`}>
         {/* Backdrop */}
         <div
           className={`absolute inset-0 bg-black/50 transition-opacity duration-300 ${
@@ -704,7 +690,12 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
                 className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -748,7 +739,9 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
                     <dl className="space-y-1 text-sm">
                       <div className="flex justify-between">
                         <dt className="text-gray-500 dark:text-gray-400">Category</dt>
-                        <dd className="text-gray-900 dark:text-white">{asset?.category.replace(/_/g, " ")}</dd>
+                        <dd className="text-gray-900 dark:text-white">
+                          {asset?.category.replace(/_/g, " ")}
+                        </dd>
                       </div>
                       <div className="flex justify-between">
                         <dt className="text-gray-500 dark:text-gray-400">Condition</dt>
@@ -787,9 +780,7 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
       </div>
 
       {/* Return Sidebar */}
-      <div
-        className={`fixed inset-0 z-50 ${showReturnModal ? "visible" : "invisible"}`}
-      >
+      <div className={`fixed inset-0 z-50 ${showReturnModal ? "visible" : "invisible"}`}>
         {/* Backdrop */}
         <div
           className={`absolute inset-0 bg-black/50 transition-opacity duration-300 ${
@@ -819,7 +810,12 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
                 className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -867,7 +863,9 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
                     <textarea
                       rows={4}
                       value={returnData.returnNotes}
-                      onChange={(e) => setReturnData({ ...returnData, returnNotes: e.target.value })}
+                      onChange={(e) =>
+                        setReturnData({ ...returnData, returnNotes: e.target.value })
+                      }
                       placeholder="Any notes about the condition or return..."
                       className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:focus:border-gray-100"
                     />
@@ -879,11 +877,26 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
                       Condition Guide
                     </h3>
                     <ul className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
-                      <li><span className="font-medium text-green-600">New:</span> Unused, original packaging</li>
-                      <li><span className="font-medium text-gray-600">Excellent:</span> Like new, no visible wear</li>
-                      <li><span className="font-medium text-cyan-600">Good:</span> Minor wear, fully functional</li>
-                      <li><span className="font-medium text-yellow-600">Fair:</span> Visible wear, functional</li>
-                      <li><span className="font-medium text-red-600">Poor:</span> Heavy wear, may need repair</li>
+                      <li>
+                        <span className="font-medium text-green-600">New:</span> Unused, original
+                        packaging
+                      </li>
+                      <li>
+                        <span className="font-medium text-gray-600">Excellent:</span> Like new, no
+                        visible wear
+                      </li>
+                      <li>
+                        <span className="font-medium text-cyan-600">Good:</span> Minor wear, fully
+                        functional
+                      </li>
+                      <li>
+                        <span className="font-medium text-yellow-600">Fair:</span> Visible wear,
+                        functional
+                      </li>
+                      <li>
+                        <span className="font-medium text-red-600">Poor:</span> Heavy wear, may need
+                        repair
+                      </li>
                     </ul>
                   </div>
                 </div>

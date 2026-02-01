@@ -1,5 +1,5 @@
-import { cn } from "@/utils";
 import { InputHTMLAttributes, forwardRef } from "react";
+import { cn } from "@/utils";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -32,9 +32,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
           {...props}
         />
-        {error && (
-          <p className="mt-1.5 text-sm text-red-500 dark:text-red-400">{error}</p>
-        )}
+        {error && <p className="mt-1.5 text-sm text-red-500 dark:text-red-400">{error}</p>}
       </div>
     );
   }

@@ -1,8 +1,9 @@
+/* eslint-disable no-console -- CLI seed script uses console for output */
 import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import pg from "pg";
+import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import pg from "pg";
 
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,

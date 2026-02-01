@@ -1,6 +1,6 @@
+import { randomBytes } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, getCurrentUser } from "@/lib";
-import { randomBytes } from "crypto";
 
 const ALLOWED_ROLES = ["ADMIN", "HR"];
 
@@ -8,17 +8,11 @@ export async function GET() {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     if (!ALLOWED_ROLES.includes(currentUser.role)) {
-      return NextResponse.json(
-        { success: false, error: "Forbidden" },
-        { status: 403 }
-      );
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
     const devices = await prisma.attendanceDevice.findMany({
@@ -42,10 +36,7 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Get devices error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -53,17 +44,11 @@ export async function POST(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     if (!ALLOWED_ROLES.includes(currentUser.role)) {
-      return NextResponse.json(
-        { success: false, error: "Forbidden" },
-        { status: 403 }
-      );
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
     const body = await request.json();
@@ -117,9 +102,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Create device error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

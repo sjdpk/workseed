@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import { useRouter, useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button, Card, Input } from "@/components";
 
 interface Notice {
@@ -95,10 +95,14 @@ export default function EditNoticePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Edit Notice</h1>
-          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Update announcement details</p>
+          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+            Update announcement details
+          </p>
         </div>
         <Link href="/dashboard/notices">
-          <Button variant="outline" size="sm">Cancel</Button>
+          <Button variant="outline" size="sm">
+            Cancel
+          </Button>
         </Link>
       </div>
 
@@ -120,7 +124,10 @@ export default function EditNoticePage() {
           />
 
           <div>
-            <label htmlFor="content" className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="content"
+              className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               Content *
             </label>
             <textarea
@@ -136,10 +143,14 @@ export default function EditNoticePage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Type</label>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Type
+              </label>
               <select
                 value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value as typeof formData.type })}
+                onChange={(e) =>
+                  setFormData({ ...formData, type: e.target.value as typeof formData.type })
+                }
                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               >
                 <option value="GENERAL">General</option>
@@ -161,7 +172,9 @@ export default function EditNoticePage() {
               {saving ? "Saving..." : "Save Changes"}
             </Button>
             <Link href="/dashboard/notices">
-              <Button type="button" variant="outline">Cancel</Button>
+              <Button type="button" variant="outline">
+                Cancel
+              </Button>
             </Link>
           </div>
         </form>

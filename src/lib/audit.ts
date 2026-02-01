@@ -1,3 +1,4 @@
+import { logger } from "./logger";
 import { prisma } from "./prisma";
 
 export type AuditAction =
@@ -54,14 +55,15 @@ export async function createAuditLog(input: AuditLogInput) {
     });
   } catch (error) {
     // Don't throw error for audit log failures - just log it
-    console.error("Audit log error:", error);
+    logger.error("Audit log error", { error, input });
   }
 }
 
 // Helper to extract IP and User Agent from request headers
 export function getRequestMeta(headers: Headers) {
   return {
-    ipAddress: headers.get("x-forwarded-for")?.split(",")[0] || headers.get("x-real-ip") || "unknown",
+    ipAddress:
+      headers.get("x-forwarded-for")?.split(",")[0] || headers.get("x-real-ip") || "unknown",
     userAgent: headers.get("user-agent") || "unknown",
   };
 }

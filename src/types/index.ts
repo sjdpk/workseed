@@ -1,10 +1,79 @@
 // Common types used across the application
 
+// Generic API response wrapper
 export interface ApiResponse<T> {
   data?: T;
   success: boolean;
   message?: string;
   error?: string;
+}
+
+// Successful API response type
+export interface SuccessApiResponse<T> {
+  success: true;
+  data: T;
+}
+
+// Error API response type
+export interface ErrorApiResponse {
+  success: false;
+  error: string;
+  details?: unknown;
+}
+
+// Pagination metadata
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+// Paginated response wrapper
+export interface PaginatedResponse<T> {
+  success: true;
+  data: {
+    items: T[];
+    pagination: PaginationMeta;
+  };
+}
+
+// Organization-level permission settings
+export interface OrganizationPermissions {
+  showOwnAssetsToEmployee?: boolean;
+  employeesCanViewTeamLeaves?: boolean;
+  employeesCanViewDepartmentLeaves?: boolean;
+  teamLeadCanApproveLeaves?: boolean;
+  managerCanApproveLeaves?: boolean;
+  hrCanApproveLeaves?: boolean;
+  roleAccess?: Record<string, string[]>;
+  theme?: {
+    accentColor?: "gray" | "blue" | "green" | "purple" | "orange" | "red";
+    darkMode?: "system" | "light" | "dark";
+  };
+}
+
+// Leave policy settings
+export interface LeavePolicy {
+  maxConsecutiveDays?: number;
+  minDaysNotice?: number;
+  allowHalfDay?: boolean;
+  allowBackdatedRequests?: boolean;
+  backdatedDaysLimit?: number;
+}
+
+// Typed settings interface for organization
+export interface OrganizationSettings {
+  id: string;
+  name: string;
+  logoUrl?: string | null;
+  fiscalYearStart: number;
+  workingDaysPerWeek: number;
+  permissions?: OrganizationPermissions;
+  defaultLeaveAllocation?: Record<string, unknown>;
+  leavePolicy?: LeavePolicy;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export type Role = "ADMIN" | "HR" | "MANAGER" | "TEAM_LEAD" | "EMPLOYEE";
@@ -13,7 +82,13 @@ export type Gender = "MALE" | "FEMALE" | "OTHER";
 export type MaritalStatus = "SINGLE" | "MARRIED" | "DIVORCED" | "WIDOWED";
 export type EmploymentType = "FULL_TIME" | "PART_TIME" | "CONTRACT" | "INTERN";
 export type LeaveStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
-export type DocumentType = "ID_PROOF" | "ADDRESS_PROOF" | "EDUCATION" | "EXPERIENCE" | "CONTRACT" | "OTHER";
+export type DocumentType =
+  | "ID_PROOF"
+  | "ADDRESS_PROOF"
+  | "EDUCATION"
+  | "EXPERIENCE"
+  | "CONTRACT"
+  | "OTHER";
 
 export interface Branch {
   id: string;

@@ -7,9 +7,11 @@ export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- Intentional: SSR hydration pattern */
   useEffect(() => {
     setMounted(true);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (!mounted) {
     return <div className="h-8 w-24" />;

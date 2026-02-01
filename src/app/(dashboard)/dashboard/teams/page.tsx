@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button, Card, Input } from "@/components";
 
 interface Team {
@@ -37,8 +37,8 @@ export default function TeamsPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/auth/me").then(r => r.json()),
-      fetch("/api/teams").then(r => r.json()),
+      fetch("/api/auth/me").then((r) => r.json()),
+      fetch("/api/teams").then((r) => r.json()),
     ]).then(([meData, teamsData]) => {
       if (meData.success) {
         setCurrentUser(meData.data.user);
@@ -65,7 +65,7 @@ export default function TeamsPage() {
 
   const exportToCSV = () => {
     const headers = ["Name", "Code", "Description", "Department", "Lead", "Members"];
-    const rows = filteredTeams.map(team => [
+    const rows = filteredTeams.map((team) => [
       team.name,
       team.code,
       team.description || "",
@@ -75,7 +75,7 @@ export default function TeamsPage() {
     ]);
 
     const csvContent = [headers, ...rows]
-      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
       .join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -107,7 +107,9 @@ export default function TeamsPage() {
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Manage organization teams</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={exportToCSV}>Export CSV</Button>
+          <Button variant="outline" onClick={exportToCSV}>
+            Export CSV
+          </Button>
           {hasPermission("CREATE") && (
             <Button onClick={() => router.push("/dashboard/teams/new")}>Add Team</Button>
           )}
@@ -133,7 +135,9 @@ export default function TeamsPage() {
             <Card key={team.id}>
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{team.name}</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {team.name}
+                  </h3>
                   <span className="text-xs text-gray-500 dark:text-gray-400">{team.code}</span>
                 </div>
                 <Button
@@ -144,9 +148,13 @@ export default function TeamsPage() {
                   Edit
                 </Button>
               </div>
-              {team.description && <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{team.description}</p>}
+              {team.description && (
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{team.description}</p>
+              )}
               <div className="mt-3 flex items-center justify-between text-xs">
-                <span className="text-gray-600 dark:text-gray-400">{team._count.users} members</span>
+                <span className="text-gray-600 dark:text-gray-400">
+                  {team._count.users} members
+                </span>
                 {team.lead ? (
                   <span className="rounded bg-green-100 px-2 py-0.5 text-green-700 dark:bg-green-900/30 dark:text-green-400">
                     Lead: {team.lead.firstName} {team.lead.lastName}
@@ -157,7 +165,11 @@ export default function TeamsPage() {
                   </span>
                 )}
               </div>
-              {team.department && <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Department: {team.department.name}</p>}
+              {team.department && (
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  Department: {team.department.name}
+                </p>
+              )}
             </Card>
           ))}
         </div>

@@ -37,7 +37,13 @@ function parseCSV(csvText: string): AllocationImportRow[] {
 
     rows.push({
       employeeId: row.employeeid || row["employee id"] || row.employee_id || row.empid || "",
-      leaveTypeCode: row.leavetypecode || row["leave type code"] || row.leavetype || row["leave type"] || row.type || "",
+      leaveTypeCode:
+        row.leavetypecode ||
+        row["leave type code"] ||
+        row.leavetype ||
+        row["leave type"] ||
+        row.type ||
+        "",
       year: row.year || new Date().getFullYear().toString(),
       allocated: row.allocated || row.days || row.balance || "0",
       carriedOver: row.carriedover || row["carried over"] || row.carried || "0",
@@ -73,20 +79,14 @@ export async function POST(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser || !isHROrAbove(currentUser.role)) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 403 }
-      );
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
     const body = await request.json();
     const { csvData, dryRun = false } = body;
 
     if (!csvData) {
-      return NextResponse.json(
-        { success: false, error: "CSV data is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: "CSV data is required" }, { status: 400 });
     }
 
     const rows = parseCSV(csvData);
@@ -103,9 +103,21 @@ export async function POST(request: NextRequest) {
       prisma.leaveType.findMany({ select: { id: true, code: true, name: true } }),
     ]);
 
-    const userMap = new Map<string, string>(users.map((u: { id: string; employeeId: string }) => [u.employeeId.toLowerCase(), u.id]));
-    const leaveTypeMap = new Map<string, string>(leaveTypes.map((lt: { id: string; code: string; name: string }) => [lt.code.toLowerCase(), lt.id]));
-    const leaveTypeNameMap = new Map<string, string>(leaveTypes.map((lt: { id: string; code: string; name: string }) => [lt.name.toLowerCase(), lt.id]));
+    const userMap = new Map<string, string>(
+      users.map((u: { id: string; employeeId: string }) => [u.employeeId.toLowerCase(), u.id])
+    );
+    const leaveTypeMap = new Map<string, string>(
+      leaveTypes.map((lt: { id: string; code: string; name: string }) => [
+        lt.code.toLowerCase(),
+        lt.id,
+      ])
+    );
+    const leaveTypeNameMap = new Map<string, string>(
+      leaveTypes.map((lt: { id: string; code: string; name: string }) => [
+        lt.name.toLowerCase(),
+        lt.id,
+      ])
+    );
 
     const results: ImportResult[] = [];
     const allocationsToCreate: Array<{
@@ -133,51 +145,90 @@ export async function POST(request: NextRequest) {
       }
 
       if (!row.leaveTypeCode) {
-        results.push({ success: false, row: rowNum, employeeId: row.employeeId, error: "Leave type is required" });
+        results.push({
+          success: false,
+          row: rowNum,
+          employeeId: row.employeeId,
+          error: "Leave type is required",
+        });
         continue;
       }
 
       // Lookup user
       const userId = userMap.get(row.employeeId.toLowerCase());
       if (!userId) {
-        results.push({ success: false, row: rowNum, employeeId: row.employeeId, error: `Employee not found: ${row.employeeId}` });
+        results.push({
+          success: false,
+          row: rowNum,
+          employeeId: row.employeeId,
+          error: `Employee not found: ${row.employeeId}`,
+        });
         continue;
       }
 
       // Lookup leave type
-      const leaveTypeId = leaveTypeMap.get(row.leaveTypeCode.toLowerCase()) || leaveTypeNameMap.get(row.leaveTypeCode.toLowerCase());
+      const leaveTypeId =
+        leaveTypeMap.get(row.leaveTypeCode.toLowerCase()) ||
+        leaveTypeNameMap.get(row.leaveTypeCode.toLowerCase());
       if (!leaveTypeId) {
-        results.push({ success: false, row: rowNum, employeeId: row.employeeId, error: `Leave type not found: ${row.leaveTypeCode}` });
+        results.push({
+          success: false,
+          row: rowNum,
+          employeeId: row.employeeId,
+          error: `Leave type not found: ${row.leaveTypeCode}`,
+        });
         continue;
       }
 
       // Validate year
       const year = parseInt(row.year);
       if (isNaN(year) || year < 2000 || year > 2100) {
-        results.push({ success: false, row: rowNum, employeeId: row.employeeId, error: `Invalid year: ${row.year}` });
+        results.push({
+          success: false,
+          row: rowNum,
+          employeeId: row.employeeId,
+          error: `Invalid year: ${row.year}`,
+        });
         continue;
       }
 
       // Validate numbers
       const allocated = parseFloat(row.allocated);
       if (isNaN(allocated) || allocated < 0) {
-        results.push({ success: false, row: rowNum, employeeId: row.employeeId, error: `Invalid allocated days: ${row.allocated}` });
+        results.push({
+          success: false,
+          row: rowNum,
+          employeeId: row.employeeId,
+          error: `Invalid allocated days: ${row.allocated}`,
+        });
         continue;
       }
 
       const carriedOver = parseFloat(row.carriedOver || "0");
       if (isNaN(carriedOver) || carriedOver < 0) {
-        results.push({ success: false, row: rowNum, employeeId: row.employeeId, error: `Invalid carried over days: ${row.carriedOver}` });
+        results.push({
+          success: false,
+          row: rowNum,
+          employeeId: row.employeeId,
+          error: `Invalid carried over days: ${row.carriedOver}`,
+        });
         continue;
       }
 
       const adjusted = parseFloat(row.adjusted || "0");
       if (isNaN(adjusted)) {
-        results.push({ success: false, row: rowNum, employeeId: row.employeeId, error: `Invalid adjusted days: ${row.adjusted}` });
+        results.push({
+          success: false,
+          row: rowNum,
+          employeeId: row.employeeId,
+          error: `Invalid adjusted days: ${row.adjusted}`,
+        });
         continue;
       }
 
-      const leaveType = leaveTypes.find((lt: { id: string; code: string; name: string }) => lt.id === leaveTypeId);
+      const leaveType = leaveTypes.find(
+        (lt: { id: string; code: string; name: string }) => lt.id === leaveTypeId
+      );
 
       allocationsToCreate.push({
         row: rowNum,
@@ -301,9 +352,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Import leave allocations error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }
