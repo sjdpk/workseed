@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib";
 import { logger } from "@/lib/logger";
 import { z } from "@/lib/validation";
-import { sendNotification } from "@/lib/notifications";
+import { EmailService } from "@/lib/email-service";
 import crypto from "crypto";
 
 const forgotPasswordSchema = z.object({
@@ -65,25 +65,8 @@ export async function POST(request: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const resetLink = `${appUrl}/reset-password?token=${token}`;
 
-    // Log reset link in development for testing
-    if (process.env.NODE_ENV !== "production") {
-      logger.info("Password reset link (DEV ONLY)", { resetLink, email: user.email });
-      console.log("\n========================================");
-      console.log("PASSWORD RESET LINK (DEV ONLY):");
-      console.log(resetLink);
-      console.log("========================================\n");
-    }
-
-    // Send email using notification system
-    await sendNotification("PASSWORD_RESET", {
-      subjectId: user.id,
-      subjectEmail: user.email,
-      subjectName: user.firstName,
-      variables: {
-        resetLink,
-        recipientName: user.firstName,
-      },
-    });
+    // Send email using EmailService (uses Ethereal in dev with preview URLs)
+    await EmailService.sendPasswordResetEmail(user.email, user.firstName, resetLink);
 
     logger.info("Password reset email queued", { email, userId: user.id });
 

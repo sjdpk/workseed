@@ -74,6 +74,9 @@ export type {
 export { logger } from "./logger";
 export type { LogLevel, LogContext } from "./logger";
 
+// Email Service
+export { EmailService } from "./email-service";
+
 // Validation
 export { z } from "./validation";
 export {
