@@ -1,10 +1,26 @@
 # Workseed
 
-Human Resource Management System built with Next.js and PostgreSQL.
+HRM for startups to all-size companies to manage resources and operations perfectly. A self-hosted solution featuring only what a company needs—no unnecessary extras.
 
 ## Demo
 
-![Workseed Demo](./docs/workseed-demo.mp4)
+<div align="center">
+  <video src="docs/workseed-demo.mp4" width="100%" controls autoplay muted loop>
+    <p>Your browser does not support the video tag.</p>
+  </video>
+</div>
+
+## Key Features
+
+- **Employee Management**: Comprehensive directory and profile management.
+- **Attendance System**: Real-time check-in/out with history tracking and status monitoring.
+- **Leave Management**: Automated leave requests, approvals, and allocations.
+- **Organization Structure**: Manage branches, departments, and teams with ease.
+- **Asset Tracking**: Keep track of company assets and their assignments.
+- **Announcements & Notices**: Keep your team updated with company-wide notifications.
+- **Reports & Analytics**: Generate detailed reports for attendance and resource distribution.
+- **Audit Logs**: Complete tracking of system activities for security and compliance.
+- **Self-Hosted**: Full control over your data with a simple, focused feature set.
 
 ## Quick Start
 
@@ -78,9 +94,12 @@ Open [http://localhost:3000](http://localhost:3000)
 | -------------------- | -------------------------- |
 | `npm run dev`        | Start development server   |
 | `npm run build`      | Build for production       |
+| `npm run start`      | Start production server    |
 | `npm run db:seed`    | Create admin user (basic)  |
 | `npm run db:seed-demo` | Add demo data            |
 | `npm run db:studio`  | Open Prisma Studio         |
+| `npm run lint`       | Run linting checks         |
+| `npm run format`     | Format code with Prettier  |
 
 ## Environment Variables
 
