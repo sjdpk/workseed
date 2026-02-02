@@ -29,6 +29,7 @@ export default function NoticesPage() {
   const [loading, setLoading] = useState(true);
 
   // Filter states
+  const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive" | "expired">("all");
   const [typeFilter, setTypeFilter] = useState<"all" | "GENERAL" | "IMPORTANT" | "URGENT">("all");
   const [dateFrom, setDateFrom] = useState("");
@@ -88,6 +89,16 @@ export default function NoticesPage() {
 
   // Filter notices
   const filteredNotices = notices.filter((notice) => {
+    // Search filter
+    if (search) {
+      const searchLower = search.toLowerCase();
+      const matchesSearch =
+        notice.title.toLowerCase().includes(searchLower) ||
+        notice.content.toLowerCase().includes(searchLower) ||
+        `${notice.createdBy.firstName} ${notice.createdBy.lastName}`.toLowerCase().includes(searchLower);
+      if (!matchesSearch) return false;
+    }
+
     // Status filter
     if (statusFilter === "active" && (!notice.isActive || isExpired(notice))) return false;
     if (statusFilter === "inactive" && notice.isActive) return false;
@@ -113,13 +124,14 @@ export default function NoticesPage() {
 
   // Clear all filters
   const clearFilters = () => {
+    setSearch("");
     setStatusFilter("all");
     setTypeFilter("all");
     setDateFrom("");
     setDateTo("");
   };
 
-  const hasActiveFilters = statusFilter !== "all" || typeFilter !== "all" || dateFrom || dateTo;
+  const hasActiveFilters = search || statusFilter !== "all" || typeFilter !== "all" || dateFrom || dateTo;
 
   if (loading) {
     return (
@@ -157,6 +169,29 @@ export default function NoticesPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
+        <div className="relative">
+          <svg
+            className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search notices..."
+            className="w-48 rounded border border-gray-200 bg-white py-1.5 pl-8 pr-3 text-sm focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+          />
+        </div>
+
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
@@ -183,7 +218,6 @@ export default function NoticesPage() {
           type="date"
           value={dateFrom}
           onChange={(e) => setDateFrom(e.target.value)}
-          placeholder="From"
           className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
         />
 
@@ -193,7 +227,6 @@ export default function NoticesPage() {
           type="date"
           value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
-          placeholder="To"
           className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
         />
 

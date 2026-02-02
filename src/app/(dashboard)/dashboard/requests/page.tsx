@@ -39,6 +39,7 @@ export default function RequestsPage() {
   const [selectedRequest, setSelectedRequest] = useState<EmployeeRequest | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("");
   const [filterType, setFilterType] = useState<string>("");
+  const [search, setSearch] = useState("");
   const [form, setForm] = useState({
     type: "GENERAL",
     subject: "",
@@ -148,6 +149,19 @@ export default function RequestsPage() {
     }
   };
 
+  // Filter requests by search (client-side)
+  const filteredRequests = requests.filter((req) => {
+    if (!search) return true;
+    const searchLower = search.toLowerCase();
+    return (
+      req.subject.toLowerCase().includes(searchLower) ||
+      req.description.toLowerCase().includes(searchLower) ||
+      `${req.user.firstName} ${req.user.lastName}`.toLowerCase().includes(searchLower) ||
+      req.user.employeeId.toLowerCase().includes(searchLower) ||
+      req.type.toLowerCase().includes(searchLower)
+    );
+  });
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -168,7 +182,29 @@ export default function RequestsPage() {
       </div>
 
       {/* Filters */}
-      <div className="mb-4 flex gap-3">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div className="relative flex-1">
+          <svg
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search requests..."
+            className="w-full rounded-md border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-700 focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+          />
+        </div>
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
@@ -190,25 +226,41 @@ export default function RequestsPage() {
           <option value="DOCUMENT">Document Request</option>
           <option value="GENERAL">General Request</option>
         </select>
+        {(search || filterStatus || filterType) && (
+          <button
+            onClick={() => {
+              setSearch("");
+              setFilterStatus("");
+              setFilterType("");
+            }}
+            className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+          >
+            Clear
+          </button>
+        )}
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
         </div>
-      ) : requests.length === 0 ? (
+      ) : filteredRequests.length === 0 ? (
         <div className="py-16 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
             <InboxIcon className="h-6 w-6 text-gray-400" />
           </div>
-          <p className="mt-3 text-sm font-medium text-gray-900 dark:text-white">No requests yet</p>
+          <p className="mt-3 text-sm font-medium text-gray-900 dark:text-white">
+            {requests.length === 0 ? "No requests yet" : "No requests match your filters"}
+          </p>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Click &quot;New Request&quot; to submit your first request
+            {requests.length === 0
+              ? 'Click "New Request" to submit your first request'
+              : "Try adjusting your search or filters"}
           </p>
         </div>
       ) : (
         <div className="space-y-2">
-          {requests.map((req) => (
+          {filteredRequests.map((req) => (
             <button
               key={req.id}
               onClick={() => setSelectedRequest(req)}

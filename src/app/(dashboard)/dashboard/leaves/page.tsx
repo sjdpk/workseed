@@ -16,6 +16,12 @@ export default function MyLeavesPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>("all");
 
+  // Filter states
+  const [search, setSearch] = useState("");
+  const [leaveTypeFilter, setLeaveTypeFilter] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
   const fetchData = async () => {
     const [allocRes, reqRes] = await Promise.all([
       fetch("/api/leave-allocations").then((r) => r.json()),
@@ -63,8 +69,45 @@ export default function MyLeavesPage() {
   };
 
   const getFilteredRequests = () => {
-    if (activeTab === "all") return requests;
-    return requests.filter((req) => req.status.toLowerCase() === activeTab);
+    return requests.filter((req) => {
+      // Tab filter
+      if (activeTab !== "all" && req.status.toLowerCase() !== activeTab) return false;
+
+      // Search filter
+      if (search) {
+        const searchLower = search.toLowerCase();
+        const matchesSearch =
+          req.leaveType?.name.toLowerCase().includes(searchLower) ||
+          req.reason?.toLowerCase().includes(searchLower);
+        if (!matchesSearch) return false;
+      }
+
+      // Leave type filter
+      if (leaveTypeFilter && req.leaveType?.id !== leaveTypeFilter) return false;
+
+      // Date range filter
+      if (dateFrom) {
+        const fromDate = new Date(dateFrom);
+        fromDate.setHours(0, 0, 0, 0);
+        if (new Date(req.startDate) < fromDate) return false;
+      }
+      if (dateTo) {
+        const toDate = new Date(dateTo);
+        toDate.setHours(23, 59, 59, 999);
+        if (new Date(req.endDate) > toDate) return false;
+      }
+
+      return true;
+    });
+  };
+
+  const hasActiveFilters = search || leaveTypeFilter || dateFrom || dateTo;
+
+  const clearFilters = () => {
+    setSearch("");
+    setLeaveTypeFilter("");
+    setDateFrom("");
+    setDateTo("");
   };
 
   const getTabCount = (tab: TabType) => {
@@ -202,6 +245,70 @@ export default function MyLeavesPage() {
           })}
         </div>
 
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-3 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
+          <div className="relative flex-1">
+            <svg
+              className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by leave type or reason..."
+              className="w-full rounded border border-gray-200 bg-white py-1.5 pl-9 pr-3 text-sm focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+
+          <select
+            value={leaveTypeFilter}
+            onChange={(e) => setLeaveTypeFilter(e.target.value)}
+            className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+          >
+            <option value="">All Types</option>
+            {allocations.map((alloc) => (
+              <option key={alloc.leaveType?.id} value={alloc.leaveType?.id}>
+                {alloc.leaveType?.name}
+              </option>
+            ))}
+          </select>
+
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+          />
+
+          <span className="text-gray-400">to</span>
+
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+          />
+
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
         {/* Tab Content */}
         <div className="p-4">
           {getFilteredRequests().length === 0 ? (
@@ -220,8 +327,20 @@ export default function MyLeavesPage() {
                 />
               </svg>
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                {activeTab === "all" ? "No leave requests yet" : `No ${activeTab} requests`}
+                {hasActiveFilters
+                  ? "No requests match your filters"
+                  : activeTab === "all"
+                    ? "No leave requests yet"
+                    : `No ${activeTab} requests`}
               </p>
+              {hasActiveFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="mt-2 text-sm text-blue-600 hover:underline dark:text-blue-400"
+                >
+                  Clear filters
+                </button>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
