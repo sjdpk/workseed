@@ -6,6 +6,7 @@ HRM for startups to all-size companies to manage resources and operations perfec
 
 <div align="center">
   <img src="docs/workseed-demo.gif" alt="Workseed Demo" width="100%">
+  <p>You can download the demo video from <a href="docs/workseed-demo.mp4">here</a>.</p>
 </div>
 
 ## Key Features
