@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, Input, Select, useToast } from "@/components";
+import { Button, Card, useToast } from "@/components";
 
 interface Asset {
   id: string;
@@ -152,65 +152,93 @@ export default function AssetsPage() {
       </div>
 
       {/* Filters */}
-      <Card>
-        <form onSubmit={handleSearch} className="flex flex-col gap-4 sm:flex-row sm:items-end">
-          <div className="flex-1">
-            <Input
-              id="search"
-              label="Search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Asset tag, name, serial number..."
+      <form onSubmit={handleSearch} className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px]">
+          <svg
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
             />
-          </div>
-          <div className="w-full sm:w-48">
-            <Select
-              id="category"
-              label="Category"
-              options={CATEGORY_OPTIONS}
-              value={category}
-              onChange={(e) => {
-                setCategory(e.target.value);
-                setPagination((prev) => ({ ...prev, page: 1 }));
-              }}
-            />
-          </div>
-          <div className="w-full sm:w-40">
-            <Select
-              id="status"
-              label="Status"
-              options={STATUS_OPTIONS}
-              value={status}
-              onChange={(e) => {
-                setStatus(e.target.value);
-                setPagination((prev) => ({ ...prev, page: 1 }));
-              }}
-            />
-          </div>
-          <Button type="submit">Search</Button>
-        </form>
-      </Card>
+          </svg>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search assets..."
+            className="w-full rounded border border-gray-200 bg-white py-1.5 pl-9 pr-3 text-sm focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+          />
+        </div>
+        <select
+          value={category}
+          onChange={(e) => {
+            setCategory(e.target.value);
+            setPagination((prev) => ({ ...prev, page: 1 }));
+          }}
+          className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+        >
+          {CATEGORY_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <select
+          value={status}
+          onChange={(e) => {
+            setStatus(e.target.value);
+            setPagination((prev) => ({ ...prev, page: 1 }));
+          }}
+          className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+        >
+          {STATUS_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        {(search || category || status) && (
+          <button
+            type="button"
+            onClick={() => {
+              setSearch("");
+              setCategory("");
+              setStatus("");
+              setPagination((prev) => ({ ...prev, page: 1 }));
+            }}
+            className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+          >
+            Clear
+          </button>
+        )}
+      </form>
 
       {/* Stats */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="text-center p-3">
-          <p className="text-lg font-semibold text-gray-900 dark:text-white">{pagination.total}</p>
+          <p className="text-base font-semibold text-gray-900 dark:text-white">{pagination.total}</p>
           <p className="text-xs text-gray-500 dark:text-gray-400">Total Assets</p>
         </Card>
         <Card className="text-center p-3">
-          <p className="text-lg font-semibold text-green-600 dark:text-green-400">
+          <p className="text-base font-semibold text-green-600 dark:text-green-400">
             {assets.filter((a) => a.status === "AVAILABLE").length}
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-400">Available</p>
         </Card>
         <Card className="text-center p-3">
-          <p className="text-lg font-semibold text-gray-600 dark:text-gray-400">
+          <p className="text-base font-semibold text-gray-600 dark:text-gray-400">
             {assets.filter((a) => a.status === "ASSIGNED").length}
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-400">Assigned</p>
         </Card>
         <Card className="text-center p-3">
-          <p className="text-lg font-semibold text-yellow-600 dark:text-yellow-400">
+          <p className="text-base font-semibold text-yellow-600 dark:text-yellow-400">
             {assets.filter((a) => a.status === "MAINTENANCE").length}
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-400">Maintenance</p>
@@ -260,7 +288,7 @@ export default function AssetsPage() {
                   <tr key={asset.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                     <td className="px-4 py-3">
                       <div>
-                        <p className="font-medium text-gray-900 dark:text-white">{asset.name}</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{asset.name}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           {asset.assetTag}
                           {asset.serialNumber && ` • S/N: ${asset.serialNumber}`}

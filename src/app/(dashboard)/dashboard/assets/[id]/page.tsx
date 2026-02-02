@@ -132,8 +132,8 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
       fetch(`/api/assets/${id}`).then((r) => r.json()),
       fetch("/api/users?limit=200").then((r) => r.json()),
     ]).then(([assetData, usersData]) => {
-      if (assetData.asset) {
-        const a = assetData.asset;
+      if (assetData.success && assetData.data?.asset) {
+        const a = assetData.data.asset;
         setAsset(a);
         setFormData({
           name: a.name || "",
@@ -192,7 +192,7 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
         return;
       }
 
-      setAsset(data.asset);
+      setAsset(data.data.asset);
       setEditMode(false);
       toast.success("Asset updated successfully");
     } catch {
@@ -227,9 +227,9 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
       // Refresh asset data
       const assetRes = await fetch(`/api/assets/${id}`);
       const assetData = await assetRes.json();
-      if (assetData.asset) {
-        setAsset(assetData.asset);
-        setFormData((prev) => ({ ...prev, status: assetData.asset.status }));
+      if (assetData.success && assetData.data?.asset) {
+        setAsset(assetData.data.asset);
+        setFormData((prev) => ({ ...prev, status: assetData.data.asset.status }));
       }
 
       setShowAssignModal(false);
@@ -267,12 +267,12 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
       // Refresh asset data
       const assetRes = await fetch(`/api/assets/${id}`);
       const assetData = await assetRes.json();
-      if (assetData.asset) {
-        setAsset(assetData.asset);
+      if (assetData.success && assetData.data?.asset) {
+        setAsset(assetData.data.asset);
         setFormData((prev) => ({
           ...prev,
-          status: assetData.asset.status,
-          condition: assetData.asset.condition,
+          status: assetData.data.asset.status,
+          condition: assetData.data.asset.condition,
         }));
       }
 
