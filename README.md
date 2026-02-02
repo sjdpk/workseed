@@ -5,7 +5,7 @@ HRM for startups to all-size companies to manage resources and operations perfec
 ## Demo
 
 <div align="center">
-  <video src="docs/workseed-demo.mp4" width="100%" controls autoplay muted loop>
+  <video src="https://github.com/sjdpk/workseed/raw/main/docs/workseed-demo.mp4" width="100%" controls autoplay muted loop>
     <p>Your browser does not support the video tag.</p>
   </video>
 </div>
