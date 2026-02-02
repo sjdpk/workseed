@@ -21,6 +21,23 @@ HRM for startups to all-size companies to manage resources and operations perfec
 - **Audit Logs**: Complete tracking of system activities for security and compliance.
 - **Self-Hosted**: Full control over your data with a simple, focused feature set.
 
+## Role-Based Access Control (RBAC)
+
+- **Employee**: Self-service focus. Manage personal profile, submit leave requests, track own attendance history, and view assigned assets.
+- **Team Lead & Manager**: Team synchronization. View team member directory, monitor team-specific attendance dashboards, and approve or reject leave requests for their team.
+- **HR**: Organizational management. Manage all users, branches, departments, and teams. Handle leave types, company-wide leave requests, asset assignments, and access full analytics.
+- **Admin**: System control. Full administrative access including global system settings, data deletion permissions, and oversight of system-wide audit logs and notification queues.
+
+## Granular Permission Control
+
+Workseed provides a powerful **Permissions Management** panel for Admins to fine-tune exactly what each role and team can see and do:
+
+- **Visibility Management**: Control if employees can view all company members, only their department, or just their immediate team.
+- **Feature Toggles**: Enable or disable self-service features like profile editing, document viewing, and asset visibility.
+- **Approval Workflows**: Configure who has the authority to approve leaves—ranging from Team Leads and Managers to HR.
+- **Attendance Scope**: Set the boundaries for online attendance tracking (company-wide, department-specific, or team-level).
+- **Module Control**: Toggle access to specific sections of the dashboard based on organizational needs.
+
 ## Quick Start
 
 ### Prerequisites
