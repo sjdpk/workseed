@@ -68,6 +68,7 @@ export default function AttendanceManagePage() {
   const [userRole, setUserRole] = useState<string>("");
 
   // Filters
+  const [search, setSearch] = useState("");
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [selectedDepartment, setSelectedDepartment] = useState("");
   const [selectedTeam, setSelectedTeam] = useState("");
@@ -153,6 +154,18 @@ export default function AttendanceManagePage() {
     };
     return colors[source] || colors.MANUAL;
   };
+
+  // Filter records by search (client-side)
+  const filteredRecords = records.filter((record) => {
+    if (!search) return true;
+    const searchLower = search.toLowerCase();
+    return (
+      record.userName.toLowerCase().includes(searchLower) ||
+      record.employeeId.toLowerCase().includes(searchLower) ||
+      record.department?.toLowerCase().includes(searchLower) ||
+      record.team?.toLowerCase().includes(searchLower)
+    );
+  });
 
   // Export attendance to CSV
   const exportCSV = () => {
@@ -285,58 +298,79 @@ export default function AttendanceManagePage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px]">
+          <svg
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
           <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            max={new Date().toISOString().split("T")[0]}
-            className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search employee..."
+            className="w-full rounded border border-gray-200 bg-white py-1.5 pl-9 pr-3 text-sm focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
           />
+        </div>
 
-          {(userRole === "ADMIN" || userRole === "HR") && (
-            <select
-              value={selectedDepartment}
-              onChange={(e) => setSelectedDepartment(e.target.value)}
-              className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-            >
-              <option value="">All Departments</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          )}
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          max={new Date().toISOString().split("T")[0]}
+          className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+        />
 
-          {(userRole === "ADMIN" || userRole === "HR" || userRole === "MANAGER") && (
-            <select
-              value={selectedTeam}
-              onChange={(e) => setSelectedTeam(e.target.value)}
-              className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-            >
-              <option value="">All Teams</option>
-              {teams.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-          )}
-
+        {(userRole === "ADMIN" || userRole === "HR") && (
           <select
-            value={selectedSource}
-            onChange={(e) => setSelectedSource(e.target.value)}
+            value={selectedDepartment}
+            onChange={(e) => setSelectedDepartment(e.target.value)}
             className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
           >
-            {SOURCES.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
+            <option value="">All Departments</option>
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
               </option>
             ))}
           </select>
-        </div>
+        )}
+
+        {(userRole === "ADMIN" || userRole === "HR" || userRole === "MANAGER") && (
+          <select
+            value={selectedTeam}
+            onChange={(e) => setSelectedTeam(e.target.value)}
+            className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+          >
+            <option value="">All Teams</option>
+            {teams.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        )}
+
+        <select
+          value={selectedSource}
+          onChange={(e) => setSelectedSource(e.target.value)}
+          className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+        >
+          {SOURCES.map((s) => (
+            <option key={s.value} value={s.value}>
+              {s.label}
+            </option>
+          ))}
+        </select>
 
         {records.length > 0 && (
           <button
@@ -376,7 +410,7 @@ export default function AttendanceManagePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {records.map((record) => (
+              {filteredRecords.map((record) => (
                 <tr key={record.id}>
                   <td className="px-3 py-2">
                     <div>
@@ -408,13 +442,13 @@ export default function AttendanceManagePage() {
                   </td>
                 </tr>
               ))}
-              {records.length === 0 && (
+              {filteredRecords.length === 0 && (
                 <tr>
                   <td
                     colSpan={6}
                     className="px-3 py-8 text-center text-sm text-gray-500 dark:text-gray-400"
                   >
-                    No attendance records for this date
+                    {search ? "No employees match your search" : "No attendance records for this date"}
                   </td>
                 </tr>
               )}
