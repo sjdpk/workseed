@@ -28,6 +28,12 @@ export default function NoticesPage() {
   const [_currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Filter states
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive" | "expired">("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | "GENERAL" | "IMPORTANT" | "URGENT">("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
   const fetchNotices = () => {
     fetch("/api/notices")
       .then((r) => r.json())
@@ -74,6 +80,47 @@ export default function NoticesPage() {
     URGENT: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
   };
 
+  // Helper to check if notice is expired
+  const isExpired = (notice: Notice) => {
+    if (!notice.expiresAt) return false;
+    return new Date(notice.expiresAt) < new Date();
+  };
+
+  // Filter notices
+  const filteredNotices = notices.filter((notice) => {
+    // Status filter
+    if (statusFilter === "active" && (!notice.isActive || isExpired(notice))) return false;
+    if (statusFilter === "inactive" && notice.isActive) return false;
+    if (statusFilter === "expired" && !isExpired(notice)) return false;
+
+    // Type filter
+    if (typeFilter !== "all" && notice.type !== typeFilter) return false;
+
+    // Date range filter (based on publishedAt)
+    if (dateFrom) {
+      const fromDate = new Date(dateFrom);
+      fromDate.setHours(0, 0, 0, 0);
+      if (new Date(notice.publishedAt) < fromDate) return false;
+    }
+    if (dateTo) {
+      const toDate = new Date(dateTo);
+      toDate.setHours(23, 59, 59, 999);
+      if (new Date(notice.publishedAt) > toDate) return false;
+    }
+
+    return true;
+  });
+
+  // Clear all filters
+  const clearFilters = () => {
+    setStatusFilter("all");
+    setTypeFilter("all");
+    setDateFrom("");
+    setDateTo("");
+  };
+
+  const hasActiveFilters = statusFilter !== "all" || typeFilter !== "all" || dateFrom || dateTo;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -108,7 +155,63 @@ export default function NoticesPage() {
         </Link>
       </div>
 
-      {notices.length === 0 ? (
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+          className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+        >
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="expired">Expired</option>
+        </select>
+
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)}
+          className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+        >
+          <option value="all">All Types</option>
+          <option value="GENERAL">General</option>
+          <option value="IMPORTANT">Important</option>
+          <option value="URGENT">Urgent</option>
+        </select>
+
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          placeholder="From"
+          className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+        />
+
+        <span className="text-gray-400">to</span>
+
+        <input
+          type="date"
+          value={dateTo}
+          onChange={(e) => setDateTo(e.target.value)}
+          placeholder="To"
+          className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+        />
+
+        {hasActiveFilters && (
+          <button
+            onClick={clearFilters}
+            className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+          >
+            Clear
+          </button>
+        )}
+
+        <span className="ml-auto text-sm text-gray-500 dark:text-gray-400">
+          {filteredNotices.length} of {notices.length}
+        </span>
+      </div>
+
+      {filteredNotices.length === 0 ? (
         <Card>
           <div className="py-8 text-center">
             <svg
@@ -124,13 +227,23 @@ export default function NoticesPage() {
                 d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"
               />
             </svg>
-            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">No notices yet</p>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              {hasActiveFilters ? "No notices match your filters" : "No notices yet"}
+            </p>
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="mt-2 text-sm text-blue-600 hover:underline dark:text-blue-400"
+              >
+                Clear filters
+              </button>
+            )}
           </div>
         </Card>
       ) : (
         <div className="space-y-4">
-          {notices.map((notice) => (
-            <Card key={notice.id} className={`${!notice.isActive ? "opacity-50" : ""}`}>
+          {filteredNotices.map((notice) => (
+            <Card key={notice.id} className={`${!notice.isActive || isExpired(notice) ? "opacity-60" : ""}`}>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
@@ -143,6 +256,11 @@ export default function NoticesPage() {
                     {!notice.isActive && (
                       <span className="rounded bg-gray-200 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-400">
                         Inactive
+                      </span>
+                    )}
+                    {isExpired(notice) && (
+                      <span className="rounded bg-orange-100 px-2 py-0.5 text-xs text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
+                        Expired
                       </span>
                     )}
                   </div>
