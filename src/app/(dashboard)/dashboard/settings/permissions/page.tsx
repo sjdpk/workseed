@@ -116,14 +116,59 @@ export default function PermissionsPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [showSelector, setShowSelector] = useState(false);
 
+  // Search state for departments and teams (client-side filtering)
+  const [deptSearch, setDeptSearch] = useState("");
+  const [teamSearch, setTeamSearch] = useState("");
+
+  // Pagination & search state for users
+  const [userSearch, setUserSearch] = useState("");
+  const [userPage, setUserPage] = useState(1);
+  const [userTotal, setUserTotal] = useState(0);
+  const [userTotalPages, setUserTotalPages] = useState(0);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+
+  // Filtered departments and teams based on search
+  const filteredDepartments = departments.filter((dept) =>
+    dept.name.toLowerCase().includes(deptSearch.toLowerCase())
+  );
+  const filteredTeams = teams.filter(
+    (team) =>
+      team.name.toLowerCase().includes(teamSearch.toLowerCase()) ||
+      team.department?.name.toLowerCase().includes(teamSearch.toLowerCase())
+  );
+
+  // Fetch users with pagination and search
+  const fetchUsers = async (search: string, page: number) => {
+    setLoadingUsers(true);
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: "20",
+      });
+      if (search) {
+        params.set("search", search);
+      }
+      const res = await fetch(`/api/users?${params.toString()}`);
+      const data = await res.json();
+      if (data.success) {
+        setUsers(data.data.users || []);
+        setUserTotal(data.data.pagination.total);
+        setUserTotalPages(data.data.pagination.totalPages);
+      }
+    } catch {
+      // Handle error silently
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
   useEffect(() => {
     Promise.all([
       fetch("/api/auth/me").then((r) => r.json()),
       fetch("/api/organization").then((r) => r.json()),
       fetch("/api/departments").then((r) => r.json()),
       fetch("/api/teams").then((r) => r.json()),
-      fetch("/api/users").then((r) => r.json()),
-    ]).then(([meData, orgData, deptData, teamData, userData]) => {
+    ]).then(([meData, orgData, deptData, teamData]) => {
       if (meData.success && !ALLOWED_ROLES.includes(meData.data.user.role)) {
         router.replace("/dashboard");
         return;
@@ -131,13 +176,33 @@ export default function PermissionsPage() {
 
       if (deptData.success) setDepartments(deptData.data.departments || []);
       if (teamData.success) setTeams(teamData.data.teams || []);
-      if (userData.success) setUsers(userData.data.users || []);
       if (orgData.success && orgData.data.settings.permissions) {
         setPermissions({ ...defaultPermissions, ...orgData.data.settings.permissions });
       }
       setLoading(false);
     });
   }, [router]);
+
+  // Fetch users when selector opens for employees or when search/page changes
+  useEffect(() => {
+    if (showSelector && permissions.onlineAttendance.scope === "specific") {
+      fetchUsers(userSearch, userPage);
+    }
+  }, [showSelector, permissions.onlineAttendance.scope, userSearch, userPage]);
+
+  // Reset pagination when search changes
+  useEffect(() => {
+    setUserPage(1);
+  }, [userSearch]);
+
+  // Reset search and page when selector closes
+  const handleCloseSelector = () => {
+    setShowSelector(false);
+    setDeptSearch("");
+    setTeamSearch("");
+    setUserSearch("");
+    setUserPage(1);
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -656,7 +721,7 @@ export default function PermissionsPage() {
       {/* Selection Sidebar */}
       {showSelector && (
         <div className="fixed inset-0 z-50 overflow-hidden">
-          <div className="absolute inset-0 bg-black/20" onClick={() => setShowSelector(false)} />
+          <div className="absolute inset-0 bg-black/20" onClick={handleCloseSelector} />
           <div className="absolute right-0 top-0 h-full w-full max-w-sm bg-white shadow-xl dark:bg-gray-900">
             <div className="flex h-full flex-col">
               <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
@@ -669,7 +734,7 @@ export default function PermissionsPage() {
                       : "Employees"}
                 </h2>
                 <button
-                  onClick={() => setShowSelector(false)}
+                  onClick={handleCloseSelector}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -686,123 +751,227 @@ export default function PermissionsPage() {
               <div className="flex-1 overflow-y-auto p-4">
                 {/* Department List */}
                 {permissions.onlineAttendance.scope === "department" && (
-                  <div className="space-y-1">
-                    {departments.map((dept) => (
-                      <label
-                        key={dept.id}
-                        className="flex items-center gap-3 rounded px-2 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={permissions.onlineAttendance.departmentIds.includes(dept.id)}
-                          onChange={(e) => {
-                            const ids = e.target.checked
-                              ? [...permissions.onlineAttendance.departmentIds, dept.id]
-                              : permissions.onlineAttendance.departmentIds.filter(
-                                  (id) => id !== dept.id
-                                );
-                            setPermissions({
-                              ...permissions,
-                              onlineAttendance: {
-                                ...permissions.onlineAttendance,
-                                departmentIds: ids,
-                              },
-                            });
-                          }}
-                          className="rounded border-gray-300 dark:border-gray-600"
-                        />
-                        <span className="text-sm text-gray-900 dark:text-white">{dept.name}</span>
-                      </label>
-                    ))}
-                    {departments.length === 0 && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
-                        No departments found
-                      </p>
-                    )}
+                  <div className="space-y-3">
+                    {/* Search Input */}
+                    <div className="sticky top-0 bg-white dark:bg-gray-900 pb-2">
+                      <input
+                        type="text"
+                        placeholder="Search departments..."
+                        value={deptSearch}
+                        onChange={(e) => setDeptSearch(e.target.value)}
+                        className="w-full rounded border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:border-gray-500"
+                      />
+                      {departments.length > 0 && (
+                        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                          Showing {filteredDepartments.length} of {departments.length} departments
+                          {permissions.onlineAttendance.departmentIds.length > 0 && (
+                            <span className="ml-1">
+                              ({permissions.onlineAttendance.departmentIds.length} selected)
+                            </span>
+                          )}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-1">
+                      {filteredDepartments.map((dept) => (
+                        <label
+                          key={dept.id}
+                          className="flex items-center gap-3 rounded px-2 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={permissions.onlineAttendance.departmentIds.includes(dept.id)}
+                            onChange={(e) => {
+                              const ids = e.target.checked
+                                ? [...permissions.onlineAttendance.departmentIds, dept.id]
+                                : permissions.onlineAttendance.departmentIds.filter(
+                                    (id) => id !== dept.id
+                                  );
+                              setPermissions({
+                                ...permissions,
+                                onlineAttendance: {
+                                  ...permissions.onlineAttendance,
+                                  departmentIds: ids,
+                                },
+                              });
+                            }}
+                            className="rounded border-gray-300 dark:border-gray-600"
+                          />
+                          <span className="text-sm text-gray-900 dark:text-white">{dept.name}</span>
+                        </label>
+                      ))}
+                      {filteredDepartments.length === 0 && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
+                          {deptSearch ? "No departments match your search" : "No departments found"}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 )}
 
                 {/* Team List */}
                 {permissions.onlineAttendance.scope === "team" && (
-                  <div className="space-y-1">
-                    {teams.map((team) => (
-                      <label
-                        key={team.id}
-                        className="flex items-center gap-3 rounded px-2 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={permissions.onlineAttendance.teamIds.includes(team.id)}
-                          onChange={(e) => {
-                            const ids = e.target.checked
-                              ? [...permissions.onlineAttendance.teamIds, team.id]
-                              : permissions.onlineAttendance.teamIds.filter((id) => id !== team.id);
-                            setPermissions({
-                              ...permissions,
-                              onlineAttendance: { ...permissions.onlineAttendance, teamIds: ids },
-                            });
-                          }}
-                          className="rounded border-gray-300 dark:border-gray-600"
-                        />
-                        <div>
-                          <span className="text-sm text-gray-900 dark:text-white">{team.name}</span>
-                          {team.department && (
-                            <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
-                              ({team.department.name})
+                  <div className="space-y-3">
+                    {/* Search Input */}
+                    <div className="sticky top-0 bg-white dark:bg-gray-900 pb-2">
+                      <input
+                        type="text"
+                        placeholder="Search teams..."
+                        value={teamSearch}
+                        onChange={(e) => setTeamSearch(e.target.value)}
+                        className="w-full rounded border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:border-gray-500"
+                      />
+                      {teams.length > 0 && (
+                        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                          Showing {filteredTeams.length} of {teams.length} teams
+                          {permissions.onlineAttendance.teamIds.length > 0 && (
+                            <span className="ml-1">
+                              ({permissions.onlineAttendance.teamIds.length} selected)
                             </span>
                           )}
-                        </div>
-                      </label>
-                    ))}
-                    {teams.length === 0 && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
-                        No teams found
-                      </p>
-                    )}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-1">
+                      {filteredTeams.map((team) => (
+                        <label
+                          key={team.id}
+                          className="flex items-center gap-3 rounded px-2 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={permissions.onlineAttendance.teamIds.includes(team.id)}
+                            onChange={(e) => {
+                              const ids = e.target.checked
+                                ? [...permissions.onlineAttendance.teamIds, team.id]
+                                : permissions.onlineAttendance.teamIds.filter((id) => id !== team.id);
+                              setPermissions({
+                                ...permissions,
+                                onlineAttendance: { ...permissions.onlineAttendance, teamIds: ids },
+                              });
+                            }}
+                            className="rounded border-gray-300 dark:border-gray-600"
+                          />
+                          <div>
+                            <span className="text-sm text-gray-900 dark:text-white">{team.name}</span>
+                            {team.department && (
+                              <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                                ({team.department.name})
+                              </span>
+                            )}
+                          </div>
+                        </label>
+                      ))}
+                      {filteredTeams.length === 0 && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
+                          {teamSearch ? "No teams match your search" : "No teams found"}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 )}
 
                 {/* Employee List */}
                 {permissions.onlineAttendance.scope === "specific" && (
-                  <div className="space-y-1">
-                    {users.map((user) => (
-                      <label
-                        key={user.id}
-                        className="flex items-center gap-3 rounded px-2 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={permissions.onlineAttendance.userIds.includes(user.id)}
-                          onChange={(e) => {
-                            const ids = e.target.checked
-                              ? [...permissions.onlineAttendance.userIds, user.id]
-                              : permissions.onlineAttendance.userIds.filter((id) => id !== user.id);
-                            setPermissions({
-                              ...permissions,
-                              onlineAttendance: { ...permissions.onlineAttendance, userIds: ids },
-                            });
-                          }}
-                          className="rounded border-gray-300 dark:border-gray-600"
-                        />
-                        <span className="text-sm text-gray-900 dark:text-white">
-                          {user.firstName} {user.lastName}
-                          <span className="text-gray-400 dark:text-gray-500 ml-1">
-                            ({user.employeeId})
-                          </span>
-                        </span>
-                      </label>
-                    ))}
-                    {users.length === 0 && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
-                        No employees found
-                      </p>
+                  <div className="space-y-3">
+                    {/* Search Input */}
+                    <div className="sticky top-0 bg-white dark:bg-gray-900 pb-2">
+                      <input
+                        type="text"
+                        placeholder="Search employees..."
+                        value={userSearch}
+                        onChange={(e) => setUserSearch(e.target.value)}
+                        className="w-full rounded border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:border-gray-500"
+                      />
+                      {userTotal > 0 && (
+                        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                          Showing {users.length} of {userTotal} employees
+                          {permissions.onlineAttendance.userIds.length > 0 && (
+                            <span className="ml-1">
+                              ({permissions.onlineAttendance.userIds.length} selected)
+                            </span>
+                          )}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Loading State */}
+                    {loadingUsers ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
+                      </div>
+                    ) : (
+                      <>
+                        {/* User List */}
+                        <div className="space-y-1">
+                          {users.map((user) => (
+                            <label
+                              key={user.id}
+                              className="flex items-center gap-3 rounded px-2 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={permissions.onlineAttendance.userIds.includes(user.id)}
+                                onChange={(e) => {
+                                  const ids = e.target.checked
+                                    ? [...permissions.onlineAttendance.userIds, user.id]
+                                    : permissions.onlineAttendance.userIds.filter((id) => id !== user.id);
+                                  setPermissions({
+                                    ...permissions,
+                                    onlineAttendance: { ...permissions.onlineAttendance, userIds: ids },
+                                  });
+                                }}
+                                className="rounded border-gray-300 dark:border-gray-600"
+                              />
+                              <span className="text-sm text-gray-900 dark:text-white">
+                                {user.firstName} {user.lastName}
+                                <span className="text-gray-400 dark:text-gray-500 ml-1">
+                                  ({user.employeeId})
+                                </span>
+                              </span>
+                            </label>
+                          ))}
+                          {users.length === 0 && (
+                            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
+                              {userSearch ? "No employees match your search" : "No employees found"}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Pagination Controls */}
+                        {userTotalPages > 1 && (
+                          <div className="flex items-center justify-between border-t border-gray-200 pt-3 dark:border-gray-700">
+                            <button
+                              type="button"
+                              onClick={() => setUserPage((p) => Math.max(1, p - 1))}
+                              disabled={userPage === 1}
+                              className="rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed dark:text-gray-400 dark:hover:bg-gray-800"
+                            >
+                              Previous
+                            </button>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              Page {userPage} of {userTotalPages}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setUserPage((p) => Math.min(userTotalPages, p + 1))}
+                              disabled={userPage === userTotalPages}
+                              className="rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed dark:text-gray-400 dark:hover:bg-gray-800"
+                            >
+                              Next
+                            </button>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 )}
               </div>
 
               <div className="border-t border-gray-200 p-4 dark:border-gray-700">
-                <Button onClick={() => setShowSelector(false)} className="w-full">
+                <Button onClick={handleCloseSelector} className="w-full">
                   Done
                 </Button>
               </div>
