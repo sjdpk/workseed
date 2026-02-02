@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Button, Card, Select, useToast } from "@/components";
+import { Button, Card, useToast } from "@/components";
 
 interface EmailTemplate {
   id: string;
@@ -41,6 +41,7 @@ export default function TemplatesPage() {
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState("");
+  const [search, setSearch] = useState("");
 
   const fetchTemplates = async () => {
     setLoading(true);
@@ -119,6 +120,20 @@ export default function TemplatesPage() {
     return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
   };
 
+  // Filter templates by search (client-side)
+  const filteredTemplates = templates.filter((template) => {
+    if (!search) return true;
+    const searchLower = search.toLowerCase();
+    return (
+      template.displayName.toLowerCase().includes(searchLower) ||
+      template.name.toLowerCase().includes(searchLower) ||
+      template.subject.toLowerCase().includes(searchLower) ||
+      template.type.toLowerCase().includes(searchLower)
+    );
+  });
+
+  const hasActiveFilters = search || typeFilter;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -134,17 +149,54 @@ export default function TemplatesPage() {
       </div>
 
       {/* Filters */}
-      <Card className="flex items-end gap-4 p-4">
-        <div className="w-64">
-          <Select
-            id="typeFilter"
-            label="Filter by Type"
-            options={TYPE_OPTIONS}
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px]">
+          <svg
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search templates..."
+            className="w-full rounded border border-gray-200 bg-white py-1.5 pl-9 pr-3 text-sm focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
           />
         </div>
-      </Card>
+
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+        >
+          {TYPE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+
+        {hasActiveFilters && (
+          <button
+            onClick={() => {
+              setSearch("");
+              setTypeFilter("");
+            }}
+            className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+          >
+            Clear
+          </button>
+        )}
+      </div>
 
       {/* Templates Table */}
       <Card>
@@ -152,9 +204,11 @@ export default function TemplatesPage() {
           <div className="flex items-center justify-center py-8">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
           </div>
-        ) : templates.length === 0 ? (
+        ) : filteredTemplates.length === 0 ? (
           <div className="py-8 text-center text-gray-500 dark:text-gray-400">
-            No templates found. Create your first template or run the seed to create default templates.
+            {hasActiveFilters
+              ? "No templates match your filters"
+              : "No templates found. Create your first template or run the seed to create default templates."}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -179,7 +233,7 @@ export default function TemplatesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {templates.map((template) => (
+                {filteredTemplates.map((template) => (
                   <tr key={template.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                     <td className="px-4 py-3">
                       <div>
