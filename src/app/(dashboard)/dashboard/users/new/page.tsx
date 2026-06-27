@@ -34,6 +34,7 @@ export default function NewUserPage() {
     firstName: "",
     lastName: "",
     employeeId: "",
+    deviceUserId: "",
     phone: "",
     role: "EMPLOYEE" as Role,
     status: "ACTIVE",
@@ -94,6 +95,7 @@ export default function NewUserPage() {
       const payload = {
         ...formData,
         employeeId: formData.employeeId || undefined, // Auto-generate if empty
+        deviceUserId: formData.deviceUserId || undefined, // Optional biometric/RFID PIN
         status: formData.status,
         gender: formData.gender || undefined,
         maritalStatus: formData.maritalStatus || undefined,
@@ -343,6 +345,13 @@ export default function NewUserPage() {
               onChange={(e) =>
                 setFormData({ ...formData, employeeId: e.target.value.toUpperCase() })
               }
+            />
+            <Input
+              id="deviceUserId"
+              label="Device User ID"
+              placeholder="Biometric/RFID PIN (optional)"
+              value={formData.deviceUserId}
+              onChange={(e) => setFormData({ ...formData, deviceUserId: e.target.value })}
             />
             <Select
               id="role"

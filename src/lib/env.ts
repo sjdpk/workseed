@@ -69,7 +69,12 @@ const serverSchema = z.object({
 export type Env = z.infer<typeof serverSchema>;
 
 function loadEnv(): Env {
-  const raw = { ...process.env, DATABASE_URL: buildDatabaseUrl() };
+  // Treat empty env vars (KEY=) as unset, so optional fields fall back to their
+  // defaults instead of failing validation on an empty string.
+  const cleaned = Object.fromEntries(
+    Object.entries(process.env).map(([k, v]) => [k, v === "" ? undefined : v]),
+  );
+  const raw = { ...cleaned, DATABASE_URL: buildDatabaseUrl() };
 
   // Skip validation in the browser, and when explicitly opted out (e.g. a
   // container image build / CI step that has no secrets yet).

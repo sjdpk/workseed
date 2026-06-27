@@ -12,6 +12,7 @@ import { z } from "@/lib/validation";
 
 const updateUserSchema = z.object({
   employeeId: z.string().min(1).optional(),
+  deviceUserId: z.string().optional().nullable(),
   firstName: z.string().min(1).optional(),
   lastName: z.string().min(1).optional(),
   phone: z.string().optional().nullable(),
@@ -57,6 +58,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       select: {
         id: true,
         employeeId: true,
+        deviceUserId: true,
         email: true,
         firstName: true,
         lastName: true,
@@ -174,6 +176,22 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         }
         updateData.employeeId = data.employeeId;
       }
+
+      // Device PIN (biometric/RFID) — settable/clearable by HR/Admin
+      if (data.deviceUserId !== undefined && data.deviceUserId !== targetUser.deviceUserId) {
+        if (data.deviceUserId) {
+          const existingDeviceUser = await prisma.user.findFirst({
+            where: { deviceUserId: data.deviceUserId },
+          });
+          if (existingDeviceUser && existingDeviceUser.id !== id) {
+            return NextResponse.json(
+              { success: false, error: "Device User ID already exists" },
+              { status: 400 }
+            );
+          }
+        }
+        updateData.deviceUserId = data.deviceUserId || null;
+      }
     }
 
     // HR/Admin only fields (not for self)
@@ -215,6 +233,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       select: {
         id: true,
         employeeId: true,
+        deviceUserId: true,
         email: true,
         firstName: true,
         lastName: true,

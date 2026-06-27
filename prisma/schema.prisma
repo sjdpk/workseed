@@ -169,6 +169,7 @@ model Team {
 model User {
   id             String          @id @default(uuid()) @db.Uuid
   employeeId     String          @unique
+  deviceUserId   String?         @unique // Biometric/RFID device enrollment PIN (optional)
   email          String          @unique
   password       String
   firstName      String

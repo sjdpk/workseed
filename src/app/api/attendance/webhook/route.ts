@@ -37,11 +37,11 @@ export async function POST(request: NextRequest) {
     const device = devices[0];
 
     const body = await request.json();
-    const { employeeId, action, timestamp, location } = body;
+    const { employeeId, deviceUserId, action, timestamp, location } = body;
 
-    if (!employeeId) {
+    if (!employeeId && !deviceUserId) {
       return NextResponse.json(
-        { success: false, error: "Employee ID is required" },
+        { success: false, error: "employeeId or deviceUserId is required" },
         { status: 400 }
       );
     }
@@ -53,14 +53,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find employee by employeeId
-    const user = await prisma.user.findUnique({
-      where: { employeeId: employeeId.toUpperCase() },
-    });
+    // Resolve the employee. Prefer the device PIN (deviceUserId); fall back to
+    // employeeId. Also try matching a value sent in the employeeId field against
+    // deviceUserId, since some devices push the enrollment PIN there.
+    let user = null;
+    if (deviceUserId) {
+      user = await prisma.user.findUnique({ where: { deviceUserId: String(deviceUserId) } });
+    }
+    if (!user && employeeId) {
+      user =
+        (await prisma.user.findUnique({ where: { employeeId: String(employeeId).toUpperCase() } })) ??
+        (await prisma.user.findUnique({ where: { deviceUserId: String(employeeId) } }));
+    }
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: `Employee not found: ${employeeId}` },
+        { success: false, error: `Employee not found: ${deviceUserId ?? employeeId}` },
         { status: 404 }
       );
     }

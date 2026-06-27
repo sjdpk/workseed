@@ -19,6 +19,7 @@ const ALLOWED_ROLES = ["ADMIN", "HR"];
 interface UserData {
   id: string;
   employeeId: string;
+  deviceUserId?: string | null;
   email: string;
   firstName: string;
   lastName: string;
@@ -106,6 +107,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
 
   const [formData, setFormData] = useState({
     employeeId: "",
+    deviceUserId: "",
     firstName: "",
     lastName: "",
     phone: "",
@@ -180,6 +182,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
           setUser(u);
           setFormData({
             employeeId: u.employeeId || "",
+            deviceUserId: u.deviceUserId || "",
             firstName: u.firstName || "",
             lastName: u.lastName || "",
             phone: u.phone || "",
@@ -244,6 +247,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
     try {
       const payload: Record<string, unknown> = {
         employeeId: formData.employeeId,
+        deviceUserId: formData.deviceUserId || null,
         firstName: formData.firstName,
         lastName: formData.lastName,
         phone: formData.phone || null,
@@ -475,6 +479,13 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                   setFormData({ ...formData, employeeId: e.target.value.toUpperCase() })
                 }
                 required
+              />
+              <Input
+                id="deviceUserId"
+                label="Device User ID"
+                placeholder="Biometric/RFID PIN (optional)"
+                value={formData.deviceUserId}
+                onChange={(e) => setFormData({ ...formData, deviceUserId: e.target.value })}
               />
               <Input id="email" type="email" label="Email" value={user.email} disabled />
               <Input

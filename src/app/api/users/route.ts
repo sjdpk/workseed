@@ -16,6 +16,7 @@ const createUserSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   employeeId: z.string().min(1).optional(), // Optional - auto-generated if not provided
+  deviceUserId: z.string().min(1).optional(), // Optional - biometric/RFID device PIN
   phone: z.string().optional(),
   profilePicture: z.string().url().optional().or(z.literal("")),
   role: z.enum(["ADMIN", "HR", "MANAGER", "TEAM_LEAD", "EMPLOYEE"]),
@@ -209,11 +210,25 @@ export async function POST(request: NextRequest) {
       employeeId = await generateEmployeeId();
     }
 
+    // Check device PIN is unique if provided
+    if (data.deviceUserId) {
+      const existingDeviceUser = await prisma.user.findFirst({
+        where: { deviceUserId: data.deviceUserId },
+      });
+      if (existingDeviceUser) {
+        return NextResponse.json(
+          { success: false, error: "Device User ID already exists" },
+          { status: 400 }
+        );
+      }
+    }
+
     const hashedPassword = await hashPassword(data.password);
 
     const user = await prisma.user.create({
       data: {
         employeeId,
+        deviceUserId: data.deviceUserId || null,
         email: data.email,
         password: hashedPassword,
         firstName: data.firstName,
