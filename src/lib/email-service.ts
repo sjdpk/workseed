@@ -1,4 +1,5 @@
 import nodemailer, { Transporter } from "nodemailer";
+import { env } from "./env";
 import { logger } from "./logger";
 
 interface EmailOptions {
@@ -31,18 +32,18 @@ class EmailServiceClass {
 
   private async _init(): Promise<void> {
     try {
-      const isProduction = process.env.NODE_ENV === "production";
-      const hasSmtpConfig = process.env.SMTP_USER && process.env.SMTP_PASSWORD;
+      const isProduction = env.NODE_ENV === "production";
+      const hasSmtpConfig = env.SMTP_USER && env.SMTP_PASSWORD;
 
       if (isProduction && hasSmtpConfig) {
         // Production SMTP configuration
         this.transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST || "smtp.gmail.com",
-          port: parseInt(process.env.SMTP_PORT || "587"),
-          secure: process.env.SMTP_SECURE === "true",
+          host: env.SMTP_HOST,
+          port: env.SMTP_PORT,
+          secure: env.SMTP_SECURE,
           auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASSWORD,
+            user: env.SMTP_USER,
+            pass: env.SMTP_PASSWORD,
           },
         });
         logger.info("Email service initialized with production SMTP");
@@ -87,8 +88,8 @@ class EmailServiceClass {
     }
 
     try {
-      const appName = process.env.APP_NAME || "Workseed";
-      const fromEmail = process.env.SMTP_FROM || `noreply@${appName.toLowerCase().replace(/\s+/g, "")}.com`;
+      const appName = env.APP_NAME;
+      const fromEmail = env.SMTP_FROM || `noreply@${appName.toLowerCase().replace(/\s+/g, "")}.com`;
 
       const info = await this.transporter.sendMail({
         from: `"${appName}" <${fromEmail}>`,
@@ -125,7 +126,7 @@ class EmailServiceClass {
     firstName: string,
     resetLink: string
   ): Promise<string | null> {
-    const appName = process.env.APP_NAME || "Workseed";
+    const appName = env.APP_NAME;
 
     const html = `
       <!DOCTYPE html>
@@ -204,7 +205,7 @@ The ${appName} Team
    * Send welcome email
    */
   async sendWelcomeEmail(email: string, firstName: string): Promise<string | null> {
-    const appName = process.env.APP_NAME || "Workseed";
+    const appName = env.APP_NAME;
 
     const html = `
       <!DOCTYPE html>

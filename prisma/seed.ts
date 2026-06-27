@@ -4,9 +4,10 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import pg from "pg";
+import { buildDatabaseUrl } from "../src/lib/env";
 
 const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: buildDatabaseUrl(),
 });
 const adapter = new PrismaPg(pool);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma adapter typing workaround
@@ -15,21 +16,28 @@ const prisma: any = new PrismaClient({ adapter });
 async function main() {
   console.log("Setting up basic database configuration...\n");
 
-  const hashedPassword = await bcrypt.hash("admin123", 12);
+  // Admin credentials are configurable via env (see .env.example), with
+  // sensible defaults for a fresh local setup.
+  const adminEmail = process.env.ADMIN_EMAIL || "admin@company.com";
+  const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
+  const [adminFirstName, ...adminRest] = (process.env.ADMIN_NAME || "System Admin").trim().split(/\s+/);
+  const adminLastName = adminRest.join(" ") || "Admin";
+
+  const hashedPassword = await bcrypt.hash(adminPassword, 12);
 
   // ============================================
   // ADMIN USER
   // ============================================
   console.log("Creating admin user...");
   const admin = await prisma.user.upsert({
-    where: { email: "admin@company.com" },
+    where: { email: adminEmail },
     update: {},
     create: {
       employeeId: "ADMIN001",
-      email: "admin@company.com",
+      email: adminEmail,
       password: hashedPassword,
-      firstName: "System",
-      lastName: "Admin",
+      firstName: adminFirstName,
+      lastName: adminLastName,
       role: "ADMIN",
       status: "ACTIVE",
       employmentType: "FULL_TIME",
@@ -142,10 +150,8 @@ async function main() {
   console.log("\n-------------------------------------------");
   console.log("Admin Login Credentials:");
   console.log("-------------------------------------------");
-  console.log("Email:    admin@company.com");
-  console.log("Password: admin123");
-  console.log("-------------------------------------------");
-  console.log("\nTo add demo data, run: npm run db:seed-demo");
+  console.log(`Email:    ${adminEmail}`);
+  console.log(`Password: ${adminPassword}`);
   console.log("-------------------------------------------\n");
 }
 

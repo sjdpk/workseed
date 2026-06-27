@@ -43,84 +43,94 @@ Workseed provides a powerful **Permissions Management** panel for Admins to fine
 ### Prerequisites
 
 - Node.js 20+
-- PostgreSQL 14+
+- PostgreSQL 14+ running locally (or a managed database URL)
 
-### Database Setup
+<details>
+<summary>Don't have PostgreSQL? Install it</summary>
 
-Before starting, ensure you have PostgreSQL installed and running. 
-
-#### 1. Install PostgreSQL (if not installed)
-
-**macOS (using Homebrew):**
 ```bash
-brew install postgresql@14
-brew services start postgresql@14
+# macOS (Homebrew)
+brew install postgresql@14 && brew services start postgresql@14
+
+# Ubuntu/Debian
+sudo apt update && sudo apt install postgresql postgresql-contrib && sudo systemctl start postgresql
 ```
+</details>
 
-**Ubuntu/Debian:**
-```bash
-sudo apt update
-sudo apt install postgresql postgresql-contrib
-sudo systemctl start postgresql
-```
-
-#### 2. Create Database
-
-Create a new database named `workseed`:
+### Setup
 
 ```bash
-# Using psql (CLI)
-psql -U postgres -c "CREATE DATABASE workseed;"
-
-# Or using the psql shell
-psql -U postgres
-postgres=# CREATE DATABASE workseed;
-postgres=# \q
-```
-
-### Installation
-
-```bash
-# Install dependencies
-npm install
-
-# Set up environment
-cp .env.example .env
-# Edit .env with your DATABASE_URL and JWT_SECRET
-
-# Set up database
-npm run db:generate
-npm run db:migrate
-npm run db:seed
-
-# Start development server
+cp .env.example .env   # defaults work for a local Postgres; edit DB creds if yours differ
+npm run setup          # installs deps, generates a JWT, creates the DB, migrates, seeds
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000)
+
+`npm run setup` is one idempotent command — safe to re-run. It runs:
+
+```bash
+npm install
+npm run db:generate   # Prisma client
+npm run db:deploy     # apply migrations
+npm run db:seed       # admin user + leave types
+```
 
 ### Default Admin Login
 
 - Email: `admin@company.com`
 - Password: `admin123`
 
+Override these before seeding by setting `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and
+`ADMIN_NAME` in `.env`.
+
 ## Scripts
 
 | Command              | Description                |
 | -------------------- | -------------------------- |
+| `npm run setup`      | First-time setup (deps, DB, migrate, seed) |
 | `npm run dev`        | Start development server   |
 | `npm run build`      | Build for production       |
 | `npm run start`      | Start production server    |
-| `npm run db:seed`    | Create admin user (basic)  |
-| `npm run db:seed-demo` | Add demo data            |
+| `npm run db:deploy`  | Apply migrations (production / CI) |
+| `npm run db:migrate` | Create + apply a migration (development) |
+| `npm run db:seed`    | Create admin user + leave types |
 | `npm run db:studio`  | Open Prisma Studio         |
 | `npm run lint`       | Run linting checks         |
 | `npm run format`     | Format code with Prettier  |
 
 ## Environment Variables
 
+All variables are validated at startup (`src/lib/env.ts`) — a missing or invalid
+value fails fast with a clear message instead of a random runtime crash. See
+`.env.example` for the full list with comments.
+
+**Database** — set the discrete parts (assembled into a connection string for you):
+
 ```env
-DATABASE_URL="postgresql://user:password@localhost:5432/workseed"
-JWT_SECRET="your-secret-key-min-32-chars"
-APP_NAME="Workseed"
+DB_HOST=localhost
+DB_PORT=5432          # custom port supported
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=workseed
+DB_SCHEMA=public
+DB_SSL=false          # "true" for managed DBs requiring TLS
+```
+
+Or, for a managed provider (Neon/RDS/Supabase), set a full URL that **overrides**
+the parts above:
+
+```env
+DATABASE_URL=postgresql://user:password@host:5432/workseed?schema=public
+```
+
+**Other key vars:**
+
+```env
+PORT=3000             # port the app runs on
+JWT_SECRET=           # required, >=32 chars (openssl rand -base64 32)
+NEXT_PUBLIC_APP_URL=http://localhost:3000   # used for links in emails
+APP_NAME=Workseed
+# ADMIN_EMAIL / ADMIN_PASSWORD / ADMIN_NAME  — optional seed admin overrides
+# SMTP_* — optional; dev falls back to an Ethereal test account
 ```

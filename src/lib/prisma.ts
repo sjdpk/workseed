@@ -5,6 +5,7 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import pg from "pg";
+import { buildDatabaseUrl } from "./env";
 
 // Global singleton storage to persist across hot reloads in development
 const globalForPrisma = globalThis as unknown as {
@@ -17,7 +18,7 @@ function createPrismaClient() {
   // Reuse existing pool if available
   if (!globalForPrisma.pool) {
     globalForPrisma.pool = new pg.Pool({
-      connectionString: process.env.DATABASE_URL,
+      connectionString: buildDatabaseUrl(),
     });
   }
   const adapter = new PrismaPg(globalForPrisma.pool);

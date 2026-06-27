@@ -1,6 +1,8 @@
 // Structured logger with log levels and context formatting
 // Provides consistent logging across the application
 
+import { env } from "./env";
+
 // Log levels in order of severity
 export type LogLevel = "DEBUG" | "INFO" | "WARN" | "ERROR";
 
@@ -27,11 +29,11 @@ const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
 
 // Get minimum log level from environment or default to DEBUG
 function getMinLogLevel(): LogLevel {
-  const envLevel = process.env.LOG_LEVEL?.toUpperCase() as LogLevel | undefined;
+  const envLevel = env.LOG_LEVEL;
   if (envLevel && LOG_LEVEL_PRIORITY[envLevel] !== undefined) {
     return envLevel;
   }
-  return process.env.NODE_ENV === "production" ? "INFO" : "DEBUG";
+  return env.NODE_ENV === "production" ? "INFO" : "DEBUG";
 }
 
 // Check if a log level should be logged based on minimum threshold

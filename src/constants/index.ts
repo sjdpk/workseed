@@ -7,6 +7,7 @@ export const ROUTES = {
   ABOUT: "/about",
 } as const;
 
+// API base is same-origin — a relative path needs no host or env var.
 export const API_ENDPOINTS = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api",
+  BASE_URL: "/api",
 } as const;

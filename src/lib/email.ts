@@ -1,20 +1,21 @@
 import nodemailer from "nodemailer";
+import { env } from "./env";
 import { logger } from "./logger";
 
-// Email configuration from environment variables
+// Email configuration from validated environment config
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: parseInt(process.env.SMTP_PORT || "587"),
-  secure: process.env.SMTP_SECURE === "true",
+  host: env.SMTP_HOST,
+  port: env.SMTP_PORT,
+  secure: env.SMTP_SECURE,
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASSWORD,
+    user: env.SMTP_USER,
+    pass: env.SMTP_PASSWORD,
   },
 });
 
-const FROM_EMAIL = process.env.SMTP_FROM || "noreply@hrm.local";
-const APP_NAME = process.env.APP_NAME || "Workseed";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const FROM_EMAIL = env.SMTP_FROM || "noreply@hrm.local";
+const APP_NAME = env.APP_NAME;
+const APP_URL = env.NEXT_PUBLIC_APP_URL;
 
 interface EmailOptions {
   to: string;
@@ -25,7 +26,7 @@ interface EmailOptions {
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
   try {
     // Skip if SMTP is not configured
-    if (!process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+    if (!env.SMTP_USER || !env.SMTP_PASSWORD) {
       logger.debug("Email not sent - SMTP not configured", { subject: options.subject });
       return false;
     }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib";
+import { env } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { z } from "@/lib/validation";
 import { EmailService } from "@/lib/email-service";
@@ -62,8 +63,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Build reset URL
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const resetLink = `${appUrl}/reset-password?token=${token}`;
+    const resetLink = `${env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`;
 
     // Send email using EmailService (uses Ethereal in dev with preview URLs)
     await EmailService.sendPasswordResetEmail(user.email, user.firstName, resetLink);

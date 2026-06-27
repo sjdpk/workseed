@@ -1,10 +1,11 @@
+import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import type { EmailTemplate } from "@prisma/client";
 import type { NotificationType, TemplateVariables, RenderedEmail } from "./types";
 
-const APP_NAME = process.env.APP_NAME || "Workseed";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const APP_NAME = env.APP_NAME;
+const APP_URL = env.NEXT_PUBLIC_APP_URL;
 
 /**
  * Base HTML template wrapper with consistent styling

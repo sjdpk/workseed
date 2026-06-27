@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
+import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import type { EmailLog, EmailStatus } from "@prisma/client";
@@ -10,8 +11,8 @@ import {
   BATCH_CONFIG,
 } from "./types";
 
-const FROM_EMAIL = process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@hrm.local";
-const APP_NAME = process.env.APP_NAME || "Workseed";
+const FROM_EMAIL = env.SMTP_FROM || env.SMTP_USER || "noreply@hrm.local";
+const APP_NAME = env.APP_NAME;
 
 // Create transporter lazily to avoid issues during build
 let transporter: Transporter | null = null;
@@ -27,18 +28,18 @@ async function getTransporter(): Promise<Transporter> {
 }
 
 async function initTransporter(): Promise<Transporter> {
-  const isProduction = process.env.NODE_ENV === "production";
-  const hasSmtpConfig = process.env.SMTP_USER && process.env.SMTP_PASSWORD;
+  const isProduction = env.NODE_ENV === "production";
+  const hasSmtpConfig = env.SMTP_USER && env.SMTP_PASSWORD;
 
   if (isProduction && hasSmtpConfig) {
     // Production: Use configured SMTP
     transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || "smtp.gmail.com",
-      port: parseInt(process.env.SMTP_PORT || "587"),
-      secure: process.env.SMTP_SECURE === "true",
+      host: env.SMTP_HOST,
+      port: env.SMTP_PORT,
+      secure: env.SMTP_SECURE,
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASSWORD,
+        user: env.SMTP_USER,
+        pass: env.SMTP_PASSWORD,
       },
     });
     isEtherealTransporter = false;
@@ -46,12 +47,12 @@ async function initTransporter(): Promise<Transporter> {
   } else if (hasSmtpConfig) {
     // Development with SMTP config: Use configured SMTP
     transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || "smtp.gmail.com",
-      port: parseInt(process.env.SMTP_PORT || "587"),
-      secure: process.env.SMTP_SECURE === "true",
+      host: env.SMTP_HOST,
+      port: env.SMTP_PORT,
+      secure: env.SMTP_SECURE,
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASSWORD,
+        user: env.SMTP_USER,
+        pass: env.SMTP_PASSWORD,
       },
     });
     isEtherealTransporter = false;
@@ -82,10 +83,10 @@ async function initTransporter(): Promise<Transporter> {
  */
 export function isSmtpConfigured(): boolean {
   // In development, we always have Ethereal as fallback
-  if (process.env.NODE_ENV !== "production") {
+  if (env.NODE_ENV !== "production") {
     return true;
   }
-  return !!(process.env.SMTP_USER && process.env.SMTP_PASSWORD);
+  return !!(env.SMTP_USER && env.SMTP_PASSWORD);
 }
 
 /**

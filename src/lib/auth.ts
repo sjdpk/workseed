@@ -4,10 +4,11 @@
 import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies, headers } from "next/headers";
+import { env } from "./env";
 import { prisma } from "./prisma";
 
-// JWT signing secret - should be set in environment variables
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "your-secret-key");
+// JWT signing secret - validated (min 32 chars) at startup via src/lib/env.ts
+const JWT_SECRET = new TextEncoder().encode(env.JWT_SECRET);
 
 // Hash a plain text password using bcrypt with 12 rounds
 export async function hashPassword(password: string): Promise<string> {
