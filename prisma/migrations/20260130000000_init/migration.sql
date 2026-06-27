@@ -1,3 +1,27 @@
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
+-- CreateEnum
+CREATE TYPE "Role" AS ENUM ('ADMIN', 'HR', 'MANAGER', 'TEAM_LEAD', 'EMPLOYEE');
+
+-- CreateEnum
+CREATE TYPE "UserStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'SUSPENDED');
+
+-- CreateEnum
+CREATE TYPE "Gender" AS ENUM ('MALE', 'FEMALE', 'OTHER');
+
+-- CreateEnum
+CREATE TYPE "MaritalStatus" AS ENUM ('SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED');
+
+-- CreateEnum
+CREATE TYPE "EmploymentType" AS ENUM ('FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERN');
+
+-- CreateEnum
+CREATE TYPE "LeaveStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED');
+
+-- CreateEnum
+CREATE TYPE "DocumentType" AS ENUM ('ID_PROOF', 'ADDRESS_PROOF', 'EDUCATION', 'EXPERIENCE', 'CONTRACT', 'OTHER');
+
 -- CreateEnum
 CREATE TYPE "AssetCategory" AS ENUM ('LAPTOP', 'DESKTOP', 'MOBILE', 'TABLET', 'MONITOR', 'KEYBOARD', 'MOUSE', 'HEADSET', 'FURNITURE', 'VEHICLE', 'ID_CARD', 'ACCESS_CARD', 'SOFTWARE_LICENSE', 'OTHER');
 
@@ -25,16 +49,211 @@ CREATE TYPE "NotificationType" AS ENUM ('LEAVE_REQUEST_SUBMITTED', 'LEAVE_REQUES
 -- CreateEnum
 CREATE TYPE "EmailStatus" AS ENUM ('PENDING', 'QUEUED', 'SENDING', 'SENT', 'FAILED');
 
--- AlterTable
-ALTER TABLE "organization_settings" ADD COLUMN     "logoUrl" TEXT,
-ADD COLUMN     "permissions" JSONB;
+-- CreateTable
+CREATE TABLE "organization_settings" (
+    "id" UUID NOT NULL,
+    "name" TEXT NOT NULL DEFAULT 'Organization',
+    "logoUrl" TEXT,
+    "fiscalYearStart" INTEGER NOT NULL DEFAULT 1,
+    "workingDaysPerWeek" INTEGER NOT NULL DEFAULT 5,
+    "defaultLeaveAllocation" JSONB,
+    "permissions" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
--- AlterTable
-ALTER TABLE "users" ADD COLUMN     "github" TEXT,
-ADD COLUMN     "linkedIn" TEXT,
-ADD COLUMN     "profilePicture" TEXT,
-ADD COLUMN     "twitter" TEXT,
-ADD COLUMN     "website" TEXT;
+    CONSTRAINT "organization_settings_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "branches" (
+    "id" UUID NOT NULL,
+    "name" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "address" TEXT,
+    "city" TEXT,
+    "state" TEXT,
+    "country" TEXT,
+    "phone" TEXT,
+    "email" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "branches_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "departments" (
+    "id" UUID NOT NULL,
+    "name" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "description" TEXT,
+    "branchId" UUID,
+    "headId" UUID,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "departments_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "teams" (
+    "id" UUID NOT NULL,
+    "name" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "description" TEXT,
+    "departmentId" UUID NOT NULL,
+    "leadId" UUID,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "teams_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "users" (
+    "id" UUID NOT NULL,
+    "employeeId" TEXT NOT NULL,
+    "deviceUserId" TEXT,
+    "email" TEXT NOT NULL,
+    "password" TEXT NOT NULL,
+    "firstName" TEXT NOT NULL,
+    "lastName" TEXT NOT NULL,
+    "phone" TEXT,
+    "profilePicture" TEXT,
+    "role" "Role" NOT NULL DEFAULT 'EMPLOYEE',
+    "status" "UserStatus" NOT NULL DEFAULT 'ACTIVE',
+    "linkedIn" TEXT,
+    "twitter" TEXT,
+    "github" TEXT,
+    "website" TEXT,
+    "dateOfBirth" TIMESTAMP(3),
+    "gender" "Gender",
+    "maritalStatus" "MaritalStatus",
+    "nationality" TEXT,
+    "address" TEXT,
+    "city" TEXT,
+    "state" TEXT,
+    "country" TEXT,
+    "postalCode" TEXT,
+    "emergencyContact" TEXT,
+    "emergencyContactPhone" TEXT,
+    "employmentType" "EmploymentType" NOT NULL DEFAULT 'FULL_TIME',
+    "joiningDate" TIMESTAMP(3),
+    "probationEndDate" TIMESTAMP(3),
+    "confirmationDate" TIMESTAMP(3),
+    "resignationDate" TIMESTAMP(3),
+    "lastWorkingDate" TIMESTAMP(3),
+    "branchId" UUID,
+    "departmentId" UUID,
+    "teamId" UUID,
+    "managerId" UUID,
+    "designation" TEXT,
+    "lastLoginAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "createdBy" UUID,
+
+    CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "user_documents" (
+    "id" UUID NOT NULL,
+    "userId" UUID NOT NULL,
+    "type" "DocumentType" NOT NULL,
+    "name" TEXT NOT NULL,
+    "fileName" TEXT NOT NULL,
+    "filePath" TEXT NOT NULL,
+    "fileSize" INTEGER,
+    "mimeType" TEXT,
+    "expiryDate" TIMESTAMP(3),
+    "isVerified" BOOLEAN NOT NULL DEFAULT false,
+    "verifiedBy" UUID,
+    "verifiedAt" TIMESTAMP(3),
+    "notes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "user_documents_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "leave_types" (
+    "id" UUID NOT NULL,
+    "name" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "description" TEXT,
+    "defaultDays" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "maxDays" DOUBLE PRECISION,
+    "carryForward" BOOLEAN NOT NULL DEFAULT false,
+    "maxCarryForward" DOUBLE PRECISION,
+    "isPaid" BOOLEAN NOT NULL DEFAULT true,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "requiresApproval" BOOLEAN NOT NULL DEFAULT true,
+    "minDaysNotice" INTEGER NOT NULL DEFAULT 0,
+    "color" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "leave_types_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "leave_allocations" (
+    "id" UUID NOT NULL,
+    "userId" UUID NOT NULL,
+    "leaveTypeId" UUID NOT NULL,
+    "year" INTEGER NOT NULL,
+    "allocated" DOUBLE PRECISION NOT NULL,
+    "used" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "carriedOver" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "adjusted" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "notes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "leave_allocations_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "leave_requests" (
+    "id" UUID NOT NULL,
+    "userId" UUID NOT NULL,
+    "leaveTypeId" UUID NOT NULL,
+    "startDate" TIMESTAMP(3) NOT NULL,
+    "endDate" TIMESTAMP(3) NOT NULL,
+    "days" DOUBLE PRECISION NOT NULL,
+    "isHalfDay" BOOLEAN NOT NULL DEFAULT false,
+    "halfDayType" TEXT,
+    "reason" TEXT,
+    "status" "LeaveStatus" NOT NULL DEFAULT 'PENDING',
+    "approverId" UUID,
+    "approvedAt" TIMESTAMP(3),
+    "rejectionReason" TEXT,
+    "cancelReason" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "leave_requests_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "audit_logs" (
+    "id" UUID NOT NULL,
+    "userId" UUID NOT NULL,
+    "action" TEXT NOT NULL,
+    "entity" TEXT NOT NULL,
+    "entityId" TEXT,
+    "details" JSONB,
+    "ipAddress" TEXT,
+    "userAgent" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "audit_logs_pkey" PRIMARY KEY ("id")
+);
 
 -- CreateTable
 CREATE TABLE "notices" (
@@ -243,6 +462,36 @@ CREATE TABLE "password_reset_tokens" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "branches_name_key" ON "branches"("name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "branches_code_key" ON "branches"("code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "departments_code_key" ON "departments"("code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "teams_code_key" ON "teams"("code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_employeeId_key" ON "users"("employeeId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_deviceUserId_key" ON "users"("deviceUserId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "leave_types_name_key" ON "leave_types"("name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "leave_types_code_key" ON "leave_types"("code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "leave_allocations_userId_leaveTypeId_year_key" ON "leave_allocations"("userId", "leaveTypeId", "year");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "assets_assetTag_key" ON "assets"("assetTag");
 
 -- CreateIndex
@@ -288,10 +537,46 @@ CREATE INDEX "password_reset_tokens_token_idx" ON "password_reset_tokens"("token
 CREATE INDEX "password_reset_tokens_expiresAt_idx" ON "password_reset_tokens"("expiresAt");
 
 -- AddForeignKey
+ALTER TABLE "departments" ADD CONSTRAINT "departments_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES "branches"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "departments" ADD CONSTRAINT "departments_headId_fkey" FOREIGN KEY ("headId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "teams" ADD CONSTRAINT "teams_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "departments"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "teams" ADD CONSTRAINT "teams_leadId_fkey" FOREIGN KEY ("leadId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "users" ADD CONSTRAINT "users_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES "branches"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "users" ADD CONSTRAINT "users_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "departments"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "users" ADD CONSTRAINT "users_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "teams"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "users" ADD CONSTRAINT "users_managerId_fkey" FOREIGN KEY ("managerId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "user_documents" ADD CONSTRAINT "user_documents_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "leave_allocations" ADD CONSTRAINT "leave_allocations_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "leave_allocations" ADD CONSTRAINT "leave_allocations_leaveTypeId_fkey" FOREIGN KEY ("leaveTypeId") REFERENCES "leave_types"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "leave_requests" ADD CONSTRAINT "leave_requests_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "leave_requests" ADD CONSTRAINT "leave_requests_leaveTypeId_fkey" FOREIGN KEY ("leaveTypeId") REFERENCES "leave_types"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "leave_requests" ADD CONSTRAINT "leave_requests_approverId_fkey" FOREIGN KEY ("approverId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "notices" ADD CONSTRAINT "notices_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -322,3 +607,4 @@ ALTER TABLE "notification_preferences" ADD CONSTRAINT "notification_preferences_
 
 -- AddForeignKey
 ALTER TABLE "password_reset_tokens" ADD CONSTRAINT "password_reset_tokens_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
