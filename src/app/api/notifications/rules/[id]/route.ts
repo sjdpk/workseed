@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { z } from "@/lib/validation";
 import { createAuditLog, getRequestMeta } from "@/lib/audit";
+import { Prisma } from "@prisma/client";
 
 const ruleUpdateSchema = z.object({
   name: z.string().min(1).optional(),
@@ -91,8 +92,8 @@ export async function PUT(
         name: data.name,
         description: data.description,
         isActive: data.isActive,
-        recipientConfig: data.recipientConfig as any,
-        conditions: data.conditions as any,
+        recipientConfig: data.recipientConfig as Prisma.InputJsonValue,
+        conditions: data.conditions as Prisma.InputJsonValue,
       },
     });
 

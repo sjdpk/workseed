@@ -282,7 +282,7 @@ export default function TemplateEditorPage() {
             </div>
           ) : (
             <div className="flex h-[600px] items-center justify-center rounded-lg border border-dashed border-gray-300 text-gray-500 dark:border-gray-600 dark:text-gray-400">
-              Click "Preview" to see how the email will look
+              Click &quot;Preview&quot; to see how the email will look
             </div>
           )}
         </Card>

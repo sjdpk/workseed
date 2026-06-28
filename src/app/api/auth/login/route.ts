@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, verifyPassword, createToken, createAuditLog, getRequestMeta } from "@/lib";
 import { logger } from "@/lib/logger";
+import { rateLimit } from "@/lib/rate-limit";
 import { z } from "@/lib/validation";
 
 const loginSchema = z.object({
@@ -8,8 +9,22 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+// Brute-force protection: max attempts per IP per window.
+const LOGIN_MAX_ATTEMPTS = 10;
+const LOGIN_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+
 export async function POST(request: NextRequest) {
   try {
+    const { ipAddress, userAgent } = getRequestMeta(request.headers);
+    const limit = rateLimit(`login:${ipAddress || "unknown"}`, LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MS);
+    if (!limit.allowed) {
+      logger.warn("Login rate limit exceeded", { ipAddress });
+      return NextResponse.json(
+        { success: false, error: "Too many attempts. Try again later." },
+        { status: 429, headers: { "Retry-After": String(limit.retryAfterSec) } }
+      );
+    }
+
     const body = await request.json();
     logger.info("Login attempt", { email: body.email });
 
@@ -87,7 +102,6 @@ export async function POST(request: NextRequest) {
     });
 
     // Audit log
-    const { ipAddress, userAgent } = getRequestMeta(request.headers);
     await createAuditLog({
       userId: user.id,
       action: "LOGIN",

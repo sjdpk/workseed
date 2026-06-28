@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { z } from "@/lib/validation";
 import { createAuditLog, getRequestMeta } from "@/lib/audit";
+import type { NotificationType } from "@prisma/client";
 
 const templateCreateSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -78,7 +79,7 @@ export async function POST(request: NextRequest) {
       data: {
         name: data.name,
         displayName: data.displayName,
-        type: data.type as any,
+        type: data.type as NotificationType,
         subject: data.subject,
         htmlBody: data.htmlBody,
         variables: data.variables,

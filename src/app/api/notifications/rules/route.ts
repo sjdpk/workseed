@@ -4,6 +4,7 @@ import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { z } from "@/lib/validation";
+import { Prisma, type NotificationType } from "@prisma/client";
 import { createAuditLog, getRequestMeta } from "@/lib/audit";
 import { getDefaultRecipientConfig } from "@/lib/notifications";
 
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     // Check if rule for this type already exists
     const existing = await prisma.notificationRule.findUnique({
-      where: { type: data.type as any },
+      where: { type: data.type as NotificationType },
     });
 
     if (existing) {
@@ -77,12 +78,12 @@ export async function POST(request: NextRequest) {
 
     const rule = await prisma.notificationRule.create({
       data: {
-        type: data.type as any,
+        type: data.type as NotificationType,
         name: data.name,
         description: data.description,
         isActive: data.isActive,
-        recipientConfig: data.recipientConfig as any,
-        conditions: data.conditions as any,
+        recipientConfig: data.recipientConfig as Prisma.InputJsonValue,
+        conditions: data.conditions as Prisma.InputJsonValue,
       },
     });
 

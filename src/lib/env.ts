@@ -15,7 +15,9 @@ import { z } from "zod";
  *      self-hosting and custom ports. User/password are URL-encoded so special
  *      characters are safe.
  */
-export function buildDatabaseUrl(source: NodeJS.ProcessEnv = process.env): string {
+export function buildDatabaseUrl(
+  source: Record<string, string | undefined> = process.env
+): string {
   const explicit = source.DATABASE_URL?.trim();
   if (explicit) return explicit;
 
