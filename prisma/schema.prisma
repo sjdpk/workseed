@@ -435,18 +435,27 @@ enum DeviceStatus {
   MAINTENANCE
 }
 
+enum DeviceSyncMode {
+  LAN_DIRECT // App server pulls from the device over the LAN
+  CLOUD_AGENT // On-prem agent pulls locally and pushes to the cloud webhook
+}
+
 // Attendance Device (Biometric, RFID, etc.)
 model AttendanceDevice {
-  id          String       @id @default(uuid()) @db.Uuid
+  id          String         @id @default(uuid()) @db.Uuid
   name        String
-  type        String       // BIOMETRIC, RFID, FACE
-  deviceId    String       @unique // Serial or unique ID
+  type        String[]       @default([]) // capabilities: BIOMETRIC, FACE, RFID (a device can support several)
+  deviceId    String         @unique // Serial or unique ID
   location    String?
-  status      DeviceStatus @default(ACTIVE)
-  apiKey      String?      // For device authentication
+  status      DeviceStatus   @default(ACTIVE)
+  syncMode    DeviceSyncMode @default(LAN_DIRECT)
+  protocol    String         @default("zkteco") // reader driver (zkteco, ...)
+  ipAddress   String?        // Device IP for SDK pull
+  port        Int            @default(4370) // device SDK TCP port
+  apiKey      String?        // For device authentication
   lastSync    DateTime?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 
   @@map("attendance_devices")
 }

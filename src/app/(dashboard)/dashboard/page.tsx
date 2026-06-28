@@ -925,9 +925,9 @@ function StatCard({
   href: string;
 }) {
   return (
-    <Link href={href}>
-      <Card className="flex items-center gap-3 p-3 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
-        <div className={`rounded-md p-2.5 ${color}`}>
+    <Link href={href} className="block h-full">
+      <Card className="flex h-full items-center gap-3 p-3 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
+        <div className={`shrink-0 rounded-md p-2.5 ${color}`}>
           <div className="text-white">{icon}</div>
         </div>
         <div>

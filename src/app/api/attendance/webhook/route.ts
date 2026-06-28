@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib";
+import { sourceForType } from "@/lib/attendance/types";
 
 /**
  * Webhook endpoint for external attendance devices (Biometric, RFID, etc.)
@@ -77,13 +78,8 @@ export async function POST(request: NextRequest) {
     const today = new Date(now);
     today.setHours(0, 0, 0, 0);
 
-    // Determine source based on device type
-    const sourceMap: Record<string, string> = {
-      BIOMETRIC: "BIOMETRIC",
-      RFID: "RFID",
-      FACE: "BIOMETRIC",
-    };
-    const source = sourceMap[device.type] || "OTHER";
+    // Determine source from device capabilities (device.type is a text[])
+    const source = sourceForType(device.type);
 
     if (action.toUpperCase() === "IN") {
       // Check-in - check if already exists

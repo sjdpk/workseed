@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Card, Input, Avatar } from "@/components";
+import { Card, Avatar, SearchBar } from "@/components";
 
 interface User {
   id: string;
@@ -314,14 +314,11 @@ export default function DirectoryPage() {
       </div>
 
       {users.length > 0 && (
-        <Card className="p-3">
-          <Input
-            id="search"
-            placeholder="Search by name, email, designation, department, or team..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </Card>
+        <SearchBar
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="Search by name, email, designation, department, or team..."
+        />
       )}
 
       {filteredUsers.length === 0 ? (

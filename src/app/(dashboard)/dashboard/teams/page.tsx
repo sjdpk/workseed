@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, Input } from "@/components";
+import { Button, Card, SearchBar } from "@/components";
 
 interface Team {
   id: string;
@@ -116,14 +116,11 @@ export default function TeamsPage() {
         </div>
       </div>
 
-      <Card className="p-3">
-        <Input
-          id="search"
-          placeholder="Search by name, code, or department..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </Card>
+      <SearchBar
+        value={searchTerm}
+        onChange={setSearchTerm}
+        placeholder="Search by name, code, or department..."
+      />
 
       {filteredTeams.length === 0 ? (
         <Card>

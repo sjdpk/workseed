@@ -38,6 +38,9 @@ CREATE TYPE "AttendanceSource" AS ENUM ('WEB', 'MOBILE', 'BIOMETRIC', 'RFID', 'M
 CREATE TYPE "DeviceStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'MAINTENANCE');
 
 -- CreateEnum
+CREATE TYPE "DeviceSyncMode" AS ENUM ('LAN_DIRECT', 'CLOUD_AGENT');
+
+-- CreateEnum
 CREATE TYPE "RequestType" AS ENUM ('ASSET', 'DOCUMENT', 'GENERAL');
 
 -- CreateEnum
@@ -319,10 +322,14 @@ CREATE TABLE "asset_assignments" (
 CREATE TABLE "attendance_devices" (
     "id" UUID NOT NULL,
     "name" TEXT NOT NULL,
-    "type" TEXT NOT NULL,
+    "type" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "deviceId" TEXT NOT NULL,
     "location" TEXT,
     "status" "DeviceStatus" NOT NULL DEFAULT 'ACTIVE',
+    "syncMode" "DeviceSyncMode" NOT NULL DEFAULT 'LAN_DIRECT',
+    "protocol" TEXT NOT NULL DEFAULT 'zkteco',
+    "ipAddress" TEXT,
+    "port" INTEGER NOT NULL DEFAULT 4370,
     "apiKey" TEXT,
     "lastSync" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, useToast } from "@/components";
+import { Button, Card, Dropdown, useToast } from "@/components";
 
 const ALLOWED_ROLES = ["ADMIN", "HR", "MANAGER", "TEAM_LEAD"];
 
@@ -40,9 +40,14 @@ interface Team {
 interface Device {
   id: string;
   name: string;
-  type: string;
+  type: string[];
   deviceId: string;
   status: string;
+  location?: string | null;
+  syncMode?: string;
+  protocol?: string;
+  ipAddress?: string | null;
+  port?: number;
   apiKey: string;
   lastSync: string | null;
 }
@@ -54,6 +59,40 @@ const SOURCES = [
   { value: "BIOMETRIC", label: "Biometric" },
   { value: "RFID", label: "RFID" },
   { value: "MANUAL", label: "Manual" },
+];
+
+// A device can support several of these at once.
+const DEVICE_CAPABILITIES = [
+  { value: "BIOMETRIC", label: "Fingerprint" },
+  { value: "FACE", label: "Face" },
+  { value: "RFID", label: "RFID Card" },
+];
+
+// Popular reader protocols / brands. "other" reveals a free-text field.
+const PROTOCOLS = [
+  { value: "zkteco", label: "ZKTeco / eSSL (ZK Protocol)" },
+  { value: "hikvision", label: "Hikvision" },
+  { value: "suprema", label: "Suprema (BioStar)" },
+  { value: "anviz", label: "Anviz" },
+  { value: "realtime", label: "Realtime" },
+  { value: "matrix", label: "Matrix (COSEC)" },
+  { value: "dahua", label: "Dahua" },
+  { value: "mantra", label: "Mantra" },
+  { value: "secureye", label: "Secureye" },
+];
+
+// Protocol options including the custom escape hatch, for the dropdowns.
+const PROTOCOL_OPTIONS = [...PROTOCOLS, { value: "other", label: "Other (custom)…" }];
+
+const SYNC_MODE_OPTIONS = [
+  { value: "LAN_DIRECT", label: "Same network — app pulls from device" },
+  { value: "CLOUD_AGENT", label: "Cloud — on-prem agent pushes" },
+];
+
+const STATUS_OPTIONS = [
+  { value: "ACTIVE", label: "Active" },
+  { value: "INACTIVE", label: "Inactive" },
+  { value: "MAINTENANCE", label: "Maintenance" },
 ];
 
 export default function AttendanceManagePage() {
@@ -77,12 +116,24 @@ export default function AttendanceManagePage() {
   // Device setup
   const [showDeviceSetup, setShowDeviceSetup] = useState(false);
   const [showDeviceList, setShowDeviceList] = useState(false);
-  const [newDevice, setNewDevice] = useState({ name: "", type: "BIOMETRIC", deviceId: "" });
+  const [newDevice, setNewDevice] = useState({
+    name: "",
+    type: ["BIOMETRIC"] as string[],
+    deviceId: "",
+    syncMode: "LAN_DIRECT",
+    protocol: "zkteco",
+    ipAddress: "",
+    port: "4370",
+  });
   const [savingDevice, setSavingDevice] = useState(false);
   const [createdDevice, setCreatedDevice] = useState<{
     name: string;
     deviceId: string;
     apiKey: string;
+    syncMode: string;
+    protocol: string;
+    ipAddress: string | null;
+    port: number;
   } | null>(null);
   const [showDocs, setShowDocs] = useState(false);
 
@@ -212,9 +263,73 @@ export default function AttendanceManagePage() {
     toast.success("Exported successfully");
   };
 
+  const [syncing, setSyncing] = useState(false);
+  const handleSyncDevices = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/attendance/sync", { method: "POST" });
+      const data = await res.json();
+      if (!data.success) {
+        toast.error(data.error || "Sync failed");
+        return;
+      }
+      const results = data.data?.results ?? [];
+      if (results.length === 0) {
+        toast.success("No LAN-direct devices to sync");
+      } else {
+        const days = results.reduce((n: number, r: { daysWritten: number }) => n + r.daysWritten, 0);
+        const errs = results.filter((r: { error?: string }) => r.error);
+        toast.success(`Synced ${results.length} device(s), ${days} days written`);
+        errs.forEach((r: { device: string; error?: string }) =>
+          toast.error(`${r.device}: ${r.error}`)
+        );
+      }
+      fetchRecords();
+    } catch {
+      toast.error("Sync failed");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const [editDevice, setEditDevice] = useState<Device | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const handleUpdateDevice = async () => {
+    if (!editDevice) return;
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`/api/attendance/devices/${editDevice.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editDevice.name,
+          type: editDevice.type,
+          location: editDevice.location,
+          status: editDevice.status,
+          syncMode: editDevice.syncMode,
+          protocol: editDevice.protocol,
+          ipAddress: editDevice.ipAddress,
+          port: editDevice.port,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        toast.error(data.error || "Failed to update device");
+        return;
+      }
+      setDevices(devices.map((d) => (d.id === editDevice.id ? { ...d, ...data.data.device } : d)));
+      toast.success("Device updated");
+      setEditDevice(null);
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   const handleSaveDevice = async () => {
-    if (!newDevice.name || !newDevice.deviceId) {
-      toast.error("Please fill in all fields");
+    if (!newDevice.name || !newDevice.deviceId || newDevice.type.length === 0) {
+      toast.error("Name, device ID, and at least one type are required");
       return;
     }
 
@@ -237,8 +352,20 @@ export default function AttendanceManagePage() {
         name: data.data.device.name,
         deviceId: data.data.device.deviceId,
         apiKey: data.data.device.apiKey,
+        syncMode: data.data.device.syncMode,
+        protocol: data.data.device.protocol,
+        ipAddress: data.data.device.ipAddress,
+        port: data.data.device.port,
       });
-      setNewDevice({ name: "", type: "BIOMETRIC", deviceId: "" });
+      setNewDevice({
+        name: "",
+        type: ["BIOMETRIC"] as string[],
+        deviceId: "",
+        syncMode: "LAN_DIRECT",
+        protocol: "zkteco",
+        ipAddress: "",
+        port: "4370",
+      });
       toast.success("Device added");
     } catch {
       toast.error("Something went wrong");
@@ -469,6 +596,14 @@ export default function AttendanceManagePage() {
                 </h2>
                 <div className="flex items-center gap-2">
                   <button
+                    onClick={handleSyncDevices}
+                    disabled={syncing}
+                    className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 disabled:opacity-50 flex items-center gap-1"
+                    title="Pull attendance from LAN-direct devices now"
+                  >
+                    {syncing ? "Syncing…" : "Sync now"}
+                  </button>
+                  <button
                     onClick={() => setShowDocs(true)}
                     className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 flex items-center gap-1"
                   >
@@ -513,6 +648,21 @@ export default function AttendanceManagePage() {
                           {device.name}
                         </span>
                       </div>
+                      <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setEditDevice({ ...device })}
+                        className="text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors p-1"
+                        title="Edit device"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                          />
+                        </svg>
+                      </button>
                       <button
                         onClick={async () => {
                           if (!confirm(`Delete device "${device.name}"?`)) return;
@@ -549,12 +699,15 @@ export default function AttendanceManagePage() {
                           />
                         </svg>
                       </button>
+                      </div>
                     </div>
 
                     <div className="space-y-2 text-xs">
                       <div className="flex items-center justify-between">
                         <span className="text-gray-500 dark:text-gray-400">Type</span>
-                        <span className="text-gray-700 dark:text-gray-300">{device.type}</span>
+                        <span className="text-gray-700 dark:text-gray-300">
+                          {(device.type ?? []).join(", ")}
+                        </span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-gray-500 dark:text-gray-400">Device ID</span>
@@ -618,6 +771,144 @@ export default function AttendanceManagePage() {
         </div>
       )}
 
+      {/* Edit Device Modal */}
+      {editDevice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/30" onClick={() => setEditDevice(null)} />
+          <div className="relative w-full max-w-md rounded-lg bg-white shadow-xl dark:bg-gray-900">
+            <div className="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+                Edit Device — {editDevice.deviceId}
+              </h2>
+              <button
+                onClick={() => setEditDevice(null)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="max-h-[70vh] space-y-4 overflow-y-auto p-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                <input
+                  type="text"
+                  value={editDevice.name}
+                  onChange={(e) => setEditDevice({ ...editDevice, name: e.target.value })}
+                  className="w-full rounded border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Device Type{" "}
+                  <span className="text-xs font-normal text-gray-400">(select all it supports)</span>
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {DEVICE_CAPABILITIES.map((cap) => {
+                    const list = editDevice.type ?? [];
+                    const active = list.includes(cap.value);
+                    return (
+                      <button
+                        type="button"
+                        key={cap.value}
+                        onClick={() =>
+                          setEditDevice({
+                            ...editDevice,
+                            type: active ? list.filter((t) => t !== cap.value) : [...list, cap.value],
+                          })
+                        }
+                        className={`rounded border px-3 py-1 text-sm transition-colors ${
+                          active
+                            ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                            : "border-gray-200 text-gray-600 dark:border-gray-700 dark:text-gray-300"
+                        }`}
+                      >
+                        {active ? "✓ " : ""}
+                        {cap.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                <Dropdown
+                  options={STATUS_OPTIONS}
+                  value={editDevice.status}
+                  onChange={(v) => setEditDevice({ ...editDevice, status: v })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sync Mode</label>
+                <Dropdown
+                  options={SYNC_MODE_OPTIONS}
+                  value={editDevice.syncMode ?? "LAN_DIRECT"}
+                  onChange={(v) => setEditDevice({ ...editDevice, syncMode: v })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Protocol</label>
+                <Dropdown
+                  options={PROTOCOL_OPTIONS}
+                  value={
+                    PROTOCOLS.some((p) => p.value === (editDevice.protocol ?? "zkteco"))
+                      ? editDevice.protocol ?? "zkteco"
+                      : "other"
+                  }
+                  onChange={(v) => setEditDevice({ ...editDevice, protocol: v === "other" ? "" : v })}
+                />
+                {!PROTOCOLS.some((p) => p.value === (editDevice.protocol ?? "zkteco")) && (
+                  <input
+                    type="text"
+                    value={editDevice.protocol ?? ""}
+                    onChange={(e) => setEditDevice({ ...editDevice, protocol: e.target.value })}
+                    placeholder="custom protocol id"
+                    className="mt-2 w-full rounded border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  />
+                )}
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">IP Address</label>
+                  <input
+                    type="text"
+                    value={editDevice.ipAddress ?? ""}
+                    onChange={(e) => setEditDevice({ ...editDevice, ipAddress: e.target.value })}
+                    placeholder="192.168.1.50"
+                    className="w-full rounded border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Port</label>
+                  <input
+                    type="text"
+                    value={editDevice.port ?? 4370}
+                    onChange={(e) => setEditDevice({ ...editDevice, port: Number(e.target.value) || 4370 })}
+                    className="w-full rounded border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-gray-200 p-4 dark:border-gray-700">
+              <Button variant="secondary" onClick={() => setEditDevice(null)}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateDevice} disabled={savingEdit}>
+                {savingEdit ? "Saving…" : "Save"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Device Setup Sidebar */}
       {showDeviceSetup && (
         <div className="fixed inset-0 z-50 overflow-hidden">
@@ -662,115 +953,142 @@ export default function AttendanceManagePage() {
                       </p>
                     </div>
 
-                    {/* API Key - Show only once */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        API Key (save this - shown only once)
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={createdDevice.apiKey}
-                          readOnly
-                          className="flex-1 rounded border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-mono dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                        />
-                        <button
-                          onClick={() => {
-                            navigator?.clipboard?.writeText(createdDevice.apiKey);
-                            toast.success("API Key copied");
-                          }}
-                          className="rounded border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
-                        >
-                          Copy
-                        </button>
+                    {/* API Key — only relevant for push (cloud) mode */}
+                    {createdDevice.syncMode !== "LAN_DIRECT" && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          API Key (save this - shown only once)
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={createdDevice.apiKey}
+                            readOnly
+                            className="flex-1 rounded border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-mono dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                          />
+                          <button
+                            onClick={() => {
+                              navigator?.clipboard?.writeText(createdDevice.apiKey);
+                              toast.success("API Key copied");
+                            }}
+                            className="rounded border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                          >
+                            Copy
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    )}
 
-                    {/* Webhook URL */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Webhook URL
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={`${typeof window !== "undefined" ? window.location.origin : ""}/api/attendance/webhook`}
-                          readOnly
-                          className="flex-1 rounded border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-mono dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                        />
-                        <button
-                          onClick={() => {
-                            navigator?.clipboard?.writeText(
-                              `${window.location.origin}/api/attendance/webhook`
-                            );
-                            toast.success("URL copied");
-                          }}
-                          className="rounded border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
-                        >
-                          Copy
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Configuration Guide */}
-                    <div className="space-y-3">
-                      <h3 className="text-sm font-medium text-gray-900 dark:text-white">
-                        Configuration Guide
-                      </h3>
-
-                      <div className="rounded bg-gray-50 p-3 dark:bg-gray-800 space-y-2">
-                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                          1. Configure your device to POST to:
+                    {createdDevice.syncMode === "LAN_DIRECT" ? (
+                      /* LAN-direct: the app pulls from the device — no device webhook */
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+                          Setup — this app pulls from the device
+                        </h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          No webhook on the device. The app connects to it over your local
+                          network and reads punch logs.
+                          {createdDevice.protocol !== "zkteco" &&
+                            " Note: automatic LAN pull is built for ZK Protocol only — for this brand use Cloud (push) mode."}
                         </p>
-                        <code className="block text-xs bg-gray-100 dark:bg-gray-700 p-2 rounded break-all">
-                          POST /api/attendance/webhook
-                        </code>
-                      </div>
 
-                      <div className="rounded bg-gray-50 p-3 dark:bg-gray-800 space-y-2">
-                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                          2. Add header for authentication:
-                        </p>
-                        <code className="block text-xs bg-gray-100 dark:bg-gray-700 p-2 rounded">
-                          X-API-Key: {createdDevice.apiKey.slice(0, 8)}...
-                        </code>
-                      </div>
+                        <div className="rounded bg-gray-50 p-3 dark:bg-gray-800 space-y-1">
+                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                            1. On the device — give it a fixed IP
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Menu → Comm / Network → Ethernet → set IP address, subnet, gateway. Note the IP.
+                          </p>
+                        </div>
 
-                      <div className="rounded bg-gray-50 p-3 dark:bg-gray-800 space-y-2">
-                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                          3. Send JSON body:
+                        <div className="rounded bg-gray-50 p-3 dark:bg-gray-800 space-y-2">
+                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                            2. This server must reach the device at
+                          </p>
+                          <code className="block text-xs bg-gray-100 dark:bg-gray-700 p-2 rounded">
+                            {createdDevice.ipAddress || "<device IP>"}:{createdDevice.port}
+                          </code>
+                          {!createdDevice.ipAddress && (
+                            <p className="text-xs text-amber-600 dark:text-amber-400">
+                              No IP set yet — edit the device and add its IP address.
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="rounded bg-gray-50 p-3 dark:bg-gray-800 space-y-1">
+                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                            3. Pull attendance
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Open the device list and click “Sync now”. (You can also schedule it.)
+                          </p>
+                        </div>
+
+                        <div className="rounded bg-gray-50 p-3 dark:bg-gray-800 space-y-1">
+                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                            4. Match employees
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Set each person’s device enrollment number as their “Device User ID”
+                            on their employee profile.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Cloud / push: an agent or integration pushes to the API */
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+                          Setup — push attendance into this app
+                        </h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          This app can’t reach the device directly. Run a small agent on a machine
+                          on the device’s network: it reads punches and POSTs them here using the
+                          API key above. (Attendance hardware does not call webhooks on its own.)
                         </p>
-                        <pre className="text-xs bg-gray-100 dark:bg-gray-700 p-2 rounded overflow-x-auto">
-                          {`{
-  "employeeId": "EMP001",
-  "action": "IN"
-}`}
-                        </pre>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          action: &quot;IN&quot; for check-in, &quot;OUT&quot; for check-out
+
+                        <div className="rounded bg-gray-50 p-3 dark:bg-gray-800 space-y-2">
+                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                            Endpoint (batch)
+                          </p>
+                          <code className="block text-xs bg-gray-100 dark:bg-gray-700 p-2 rounded break-all">
+                            POST {typeof window !== "undefined" ? window.location.origin : ""}
+                            /api/attendance/ingest
+                          </code>
+                          <code className="block text-xs bg-gray-100 dark:bg-gray-700 p-2 rounded">
+                            X-API-Key: {createdDevice.apiKey.slice(0, 8)}...
+                          </code>
+                          <pre className="text-xs bg-gray-100 dark:bg-gray-700 p-2 rounded overflow-x-auto">
+                            {`{ "punches": [
+  { "pin": "1001", "time": "2026-06-28T09:00:00Z" }
+] }`}
+                          </pre>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            pin = the person’s Device User ID. The server aggregates and dedupes.
+                          </p>
+                        </div>
+
+                        <div className="rounded bg-gray-50 p-3 dark:bg-gray-800 space-y-2">
+                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                            Single check-in/out (custom integrations)
+                          </p>
+                          <code className="block text-xs bg-gray-100 dark:bg-gray-700 p-2 rounded break-all">
+                            POST {typeof window !== "undefined" ? window.location.origin : ""}
+                            /api/attendance/webhook
+                          </code>
+                          <pre className="text-xs bg-gray-100 dark:bg-gray-700 p-2 rounded overflow-x-auto">
+                            {`{ "deviceUserId": "1001", "action": "IN" }`}
+                          </pre>
+                        </div>
+                      </div>
+                    )}
+
+                    {createdDevice.syncMode !== "LAN_DIRECT" && (
+                      <div className="rounded border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20">
+                        <p className="text-xs text-amber-800 dark:text-amber-400">
+                          <strong>Important:</strong> Save the API key now — it&apos;s shown only once.
                         </p>
                       </div>
-
-                      <div className="rounded bg-gray-50 p-3 dark:bg-gray-800 space-y-2">
-                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                          4. Example cURL:
-                        </p>
-                        <pre className="text-xs bg-gray-100 dark:bg-gray-700 p-2 rounded overflow-x-auto whitespace-pre-wrap">
-                          {`curl -X POST \\
-  ${typeof window !== "undefined" ? window.location.origin : "https://yoursite.com"}/api/attendance/webhook \\
-  -H "X-API-Key: YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{"employeeId":"EMP001","action":"IN"}'`}
-                        </pre>
-                      </div>
-                    </div>
-
-                    <div className="rounded border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20">
-                      <p className="text-xs text-amber-800 dark:text-amber-400">
-                        <strong>Important:</strong> Save the API key now. It cannot be retrieved
-                        later for security reasons.
-                      </p>
-                    </div>
+                    )}
                   </>
                 ) : (
                   <>
@@ -789,17 +1107,36 @@ export default function AttendanceManagePage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Device Type
+                        Device Type{" "}
+                        <span className="text-xs font-normal text-gray-400">(select all it supports)</span>
                       </label>
-                      <select
-                        value={newDevice.type}
-                        onChange={(e) => setNewDevice({ ...newDevice, type: e.target.value })}
-                        className="w-full rounded border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                      >
-                        <option value="BIOMETRIC">Biometric (Fingerprint)</option>
-                        <option value="RFID">RFID Card Reader</option>
-                        <option value="FACE">Face Recognition</option>
-                      </select>
+                      <div className="flex flex-wrap gap-2">
+                        {DEVICE_CAPABILITIES.map((cap) => {
+                          const active = newDevice.type.includes(cap.value);
+                          return (
+                            <button
+                              type="button"
+                              key={cap.value}
+                              onClick={() =>
+                                setNewDevice({
+                                  ...newDevice,
+                                  type: active
+                                    ? newDevice.type.filter((t) => t !== cap.value)
+                                    : [...newDevice.type, cap.value],
+                                })
+                              }
+                              className={`rounded border px-3 py-1 text-sm transition-colors ${
+                                active
+                                  ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                                  : "border-gray-200 text-gray-600 dark:border-gray-700 dark:text-gray-300"
+                              }`}
+                            >
+                              {active ? "✓ " : ""}
+                              {cap.label}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     <div>
@@ -813,6 +1150,72 @@ export default function AttendanceManagePage() {
                         placeholder="e.g., BIO-001"
                         className="w-full rounded border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                       />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Sync Mode
+                      </label>
+                      <Dropdown
+                        options={SYNC_MODE_OPTIONS}
+                        value={newDevice.syncMode}
+                        onChange={(v) => setNewDevice({ ...newDevice, syncMode: v })}
+                      />
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        {newDevice.syncMode === "CLOUD_AGENT"
+                          ? "Run the agent on a machine on the device's network; it pushes punches to this app."
+                          : "This app reaches the device directly over the local network."}
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Protocol
+                      </label>
+                      <Dropdown
+                        options={PROTOCOL_OPTIONS}
+                        value={PROTOCOLS.some((p) => p.value === newDevice.protocol) ? newDevice.protocol : "other"}
+                        onChange={(v) => setNewDevice({ ...newDevice, protocol: v === "other" ? "" : v })}
+                      />
+                      {!PROTOCOLS.some((p) => p.value === newDevice.protocol) && (
+                        <input
+                          type="text"
+                          value={newDevice.protocol}
+                          onChange={(e) => setNewDevice({ ...newDevice, protocol: e.target.value })}
+                          placeholder="custom protocol id (e.g. hikvision-isapi)"
+                          className="mt-2 w-full rounded border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                        />
+                      )}
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Only ZK Protocol auto-pulls over LAN today; others can still push via the API.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Device IP Address
+                        </label>
+                        <input
+                          type="text"
+                          value={newDevice.ipAddress}
+                          onChange={(e) => setNewDevice({ ...newDevice, ipAddress: e.target.value })}
+                          placeholder="e.g., 192.168.1.50"
+                          className="w-full rounded border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Port
+                        </label>
+                        <input
+                          type="text"
+                          value={newDevice.port}
+                          onChange={(e) => setNewDevice({ ...newDevice, port: e.target.value })}
+                          placeholder="4370"
+                          className="w-full rounded border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                        />
+                      </div>
                     </div>
 
                     <div className="rounded bg-gray-50 p-3 dark:bg-gray-800">

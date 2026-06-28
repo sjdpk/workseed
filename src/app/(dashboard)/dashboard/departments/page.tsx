@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, Input } from "@/components";
+import { Button, Card, SearchBar } from "@/components";
 
 interface Department {
   id: string;
@@ -119,14 +119,11 @@ export default function DepartmentsPage() {
         </div>
       </div>
 
-      <Card className="p-3">
-        <Input
-          id="search"
-          placeholder="Search by name, code, or branch..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </Card>
+      <SearchBar
+        value={searchTerm}
+        onChange={setSearchTerm}
+        placeholder="Search by name, code, or branch..."
+      />
 
       {filteredDepartments.length === 0 ? (
         <Card>

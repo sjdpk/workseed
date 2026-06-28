@@ -15,9 +15,11 @@ command -v node >/dev/null 2>&1 || die "Node.js not found. Install Node 20+ firs
 command -v psql >/dev/null 2>&1 || die "psql not found. Install PostgreSQL client tools first."
 
 # Env file — create it, and auto-generate a JWT secret if blank
+created_env=false
 if [ ! -f .env ]; then
   info "Creating .env from .env.example"
   cp .env.example .env
+  created_env=true
 fi
 if grep -qE '^JWT_SECRET=$' .env; then
   info "Generating JWT_SECRET"
@@ -35,6 +37,14 @@ DB_USER="$(get_env DB_USER)";     DB_USER="${DB_USER:-postgres}"
 DB_PASSWORD="$(get_env DB_PASSWORD)"
 DB_NAME="$(get_env DB_NAME)";     DB_NAME="${DB_NAME:-workseed}"
 
+# On first run, pause so the user can set their DB credentials if they differ
+# from the defaults. Only when interactive — CI / piped input continues silently.
+if [ "$created_env" = true ] && [ -t 0 ]; then
+  warn "Created .env with defaults (DB ${DB_USER}@${DB_HOST}:${DB_PORT}/${DB_NAME})."
+  printf "  Edit .env now if your PostgreSQL differs. Press Enter to continue, Ctrl+C to abort: "
+  read -r _
+fi
+
 info "Installing dependencies"
 npm install
 
@@ -42,8 +52,13 @@ npm install
 if [ -n "$DATABASE_URL" ]; then
   warn "DATABASE_URL is set — skipping local CREATE DATABASE (managed DB assumed)."
 else
-  info "Ensuring database '$DB_NAME' exists on $DB_HOST:$DB_PORT"
   export PGPASSWORD="$DB_PASSWORD"
+  # Preflight: fail with a clear message instead of a raw psql error
+  if ! psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d postgres -tAc "SELECT 1" >/dev/null 2>&1; then
+    die "Can't connect to PostgreSQL at $DB_HOST:$DB_PORT as '$DB_USER'. Fix DB_* in .env (or set DATABASE_URL) and re-run."
+  fi
+
+  info "Ensuring database '$DB_NAME' exists on $DB_HOST:$DB_PORT"
   if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d postgres -tAc \
        "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" | grep -q 1; then
     echo "  Already exists."

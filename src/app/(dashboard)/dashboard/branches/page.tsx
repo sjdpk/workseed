@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, Input } from "@/components";
+import { Button, Card, SearchBar } from "@/components";
 import type { Branch } from "@/types";
 
 interface CurrentUser {
@@ -120,14 +120,11 @@ export default function BranchesPage() {
         </div>
       </div>
 
-      <Card className="p-3">
-        <Input
-          id="search"
-          placeholder="Search by name, code, city, or country..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </Card>
+      <SearchBar
+        value={searchTerm}
+        onChange={setSearchTerm}
+        placeholder="Search by name, code, city, or country..."
+      />
 
       {filteredBranches.length === 0 ? (
         <Card>

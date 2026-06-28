@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, Input } from "@/components";
+import { Button, Card, SearchBar } from "@/components";
 import type { LeaveType } from "@/types";
 
 const ALLOWED_ROLES = ["ADMIN", "HR"];
@@ -87,14 +87,11 @@ export default function LeaveTypesPage() {
         </Button>
       </div>
 
-      <Card className="p-3">
-        <Input
-          id="search"
-          placeholder="Search by name or code..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </Card>
+      <SearchBar
+        value={searchTerm}
+        onChange={setSearchTerm}
+        placeholder="Search by name or code..."
+      />
 
       {filteredLeaveTypes.length === 0 ? (
         <Card>

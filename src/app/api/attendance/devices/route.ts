@@ -29,6 +29,10 @@ export async function GET() {
           deviceId: d.deviceId,
           location: d.location,
           status: d.status,
+          syncMode: d.syncMode,
+          protocol: d.protocol,
+          ipAddress: d.ipAddress,
+          port: d.port,
           apiKey: d.apiKey,
           lastSync: d.lastSync?.toISOString() || null,
         })),
@@ -52,14 +56,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, type, deviceId, location } = body;
+    const { name, type, deviceId, location, syncMode, protocol, ipAddress, port } = body;
+    const types = Array.isArray(type) ? type : type ? [type] : [];
 
-    if (!name || !type || !deviceId) {
+    if (!name || types.length === 0 || !deviceId) {
       return NextResponse.json(
-        { success: false, error: "Name, type, and device ID are required" },
+        { success: false, error: "Name, at least one type, and device ID are required" },
         { status: 400 }
       );
     }
+
+    const mode = syncMode === "CLOUD_AGENT" ? "CLOUD_AGENT" : "LAN_DIRECT";
 
     // Check if device already exists
     const existing = await prisma.attendanceDevice.findUnique({
@@ -79,9 +86,13 @@ export async function POST(request: NextRequest) {
     const device = await prisma.attendanceDevice.create({
       data: {
         name,
-        type,
+        type: types,
         deviceId,
         location: location || null,
+        syncMode: mode,
+        protocol: protocol || "zkteco",
+        ipAddress: ipAddress || null,
+        port: port ? Number(port) : 4370,
         apiKey,
       },
     });
@@ -96,6 +107,10 @@ export async function POST(request: NextRequest) {
           deviceId: device.deviceId,
           location: device.location,
           status: device.status,
+          syncMode: device.syncMode,
+          protocol: device.protocol,
+          ipAddress: device.ipAddress,
+          port: device.port,
           apiKey: device.apiKey, // Return once for setup
         },
       },
