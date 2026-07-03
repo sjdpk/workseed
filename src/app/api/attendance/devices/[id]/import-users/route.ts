@@ -125,25 +125,35 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           select: { id: true, employeeId: true },
         });
 
-        await allocateDefaultLeaves(user.id);
-        await createAuditLog({
-          userId: currentUser.id,
-          action: "CREATE",
-          entity: "USER",
-          entityId: user.id,
-          details: {
-            source: "device-import",
-            deviceName: device.name,
-            deviceUserId: u.userId,
-            employeeId: user.employeeId,
-          },
-          ipAddress,
-          userAgent,
-        });
-
-        // Guard against re-import within this same batch if a PIN repeats.
+        // The employee exists and the PIN is linked — count it as created and
+        // guard against a repeated PIN in this same batch.
         taken.add(u.userId);
         created.push({ pin: u.userId, employeeId: user.employeeId, name: `${firstName} ${lastName}` });
+
+        // Leave allocation + audit are best-effort: a hiccup here must not
+        // report a successfully-created, PIN-linked employee as "failed".
+        try {
+          await allocateDefaultLeaves(user.id);
+          await createAuditLog({
+            userId: currentUser.id,
+            action: "CREATE",
+            entity: "USER",
+            entityId: user.id,
+            details: {
+              source: "device-import",
+              deviceName: device.name,
+              deviceUserId: u.userId,
+              employeeId: user.employeeId,
+            },
+            ipAddress,
+            userAgent,
+          });
+        } catch (extraErr) {
+          logger.error("Post-import setup partial failure", {
+            pin: u.userId,
+            error: extraErr instanceof Error ? extraErr.message : "unknown",
+          });
+        }
       } catch (err) {
         const error = err instanceof Error ? err.message : "Failed to create user";
         logger.error("Device user import failed", { pin: u.userId, error });
