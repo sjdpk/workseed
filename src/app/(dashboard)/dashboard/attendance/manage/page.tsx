@@ -444,6 +444,7 @@ export default function AttendanceManagePage() {
   const openInspector = (device: Device, tab: "users" | "logs") => {
     setInspect({ id: device.id, name: device.name });
     setInspectTab(tab);
+    setSelectedPins(new Set());
     setInspectUsers(null);
     setInspectUsersMeta(null);
     setInspectLogs(null);
@@ -457,6 +458,140 @@ export default function AttendanceManagePage() {
     if (!inspect) return;
     if (tab === "users" && inspectUsers === null) loadInspector(inspect.id, "users");
     if (tab === "logs" && inspectLogs === null) loadInspector(inspect.id, "logs");
+  };
+
+  // Selection for importing specific device users.
+  const [selectedPins, setSelectedPins] = useState<Set<string>>(new Set());
+  const unmappedPins = (inspectUsers ?? []).filter((u) => !u.mapped).map((u) => u.userId);
+  const allUnmappedSelected =
+    unmappedPins.length > 0 && unmappedPins.every((p) => selectedPins.has(p));
+  const togglePin = (pin: string) =>
+    setSelectedPins((s) => {
+      const next = new Set(s);
+      if (next.has(pin)) next.delete(pin);
+      else next.add(pin);
+      return next;
+    });
+  const toggleAllUnmapped = () =>
+    setSelectedPins(allUnmappedSelected ? new Set() : new Set(unmappedPins));
+
+  // Link an existing employee to a device PIN (no duplicate).
+  const [linkPin, setLinkPin] = useState<string | null>(null);
+  const [linkSearch, setLinkSearch] = useState("");
+  const [linkCandidates, setLinkCandidates] = useState<
+    { id: string; name: string; employeeId: string }[] | null
+  >(null);
+  const [linkLoading, setLinkLoading] = useState(false);
+  const [linking, setLinking] = useState(false);
+
+  const fetchLinkCandidates = async (search: string) => {
+    setLinkLoading(true);
+    try {
+      const res = await fetch(
+        `/api/attendance/unlinked-users?search=${encodeURIComponent(search)}`
+      );
+      const data = await res.json();
+      setLinkCandidates(data.success ? data.data.users : []);
+    } catch {
+      setLinkCandidates([]);
+    } finally {
+      setLinkLoading(false);
+    }
+  };
+
+  const openLink = (pin: string) => {
+    setLinkPin(pin);
+    setLinkSearch("");
+    setLinkCandidates(null);
+    fetchLinkCandidates("");
+  };
+
+  const doLink = async (userId: string) => {
+    if (!linkPin || !inspect) return;
+    setLinking(true);
+    try {
+      const res = await fetch("/api/attendance/link-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, deviceUserId: linkPin }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        toast.error(data.error || "Could not link employee");
+        return;
+      }
+      toast.success(`Linked ${data.data.user.name} to PIN ${linkPin}`);
+      setLinkPin(null);
+      await loadInspector(inspect.id, "users");
+    } catch {
+      toast.error("Could not link employee");
+    } finally {
+      setLinking(false);
+    }
+  };
+
+  // Import device users as employees (PIN pre-linked). `pins` omitted = all unmapped.
+  const [importing, setImporting] = useState(false);
+  const importDeviceUsers = async (pins?: string[]) => {
+    if (!inspect) return;
+    setImporting(true);
+    try {
+      const res = await fetch(`/api/attendance/devices/${inspect.id}/import-users`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(pins ? { pins } : {}),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        toast.error(data.error || "Import failed");
+        return;
+      }
+      const d = data.data;
+      const extra = [
+        d.skipped ? `${d.skipped} already existed` : "",
+        d.failed ? `${d.failed} failed` : "",
+      ]
+        .filter(Boolean)
+        .join(", ");
+      toast.success(`Imported ${d.created} employee(s)${extra ? ` — ${extra}` : ""}`);
+      setSelectedPins(new Set());
+      await loadInspector(inspect.id, "users"); // refresh mapping badges
+    } catch {
+      toast.error("Import failed");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  // Backfill — import ALL historical punches from one device (ignores watermark).
+  const [backfillingId, setBackfillingId] = useState<string | null>(null);
+  const handleBackfill = async (device: Device) => {
+    if (
+      !confirm(
+        `Import all past punches from "${device.name}"?\n\nThis reads every log on the device and creates attendance for mapped employees. Safe to run, but may take a moment on a busy device.`
+      )
+    )
+      return;
+    setBackfillingId(device.id);
+    try {
+      const res = await fetch(`/api/attendance/devices/${device.id}/backfill`, { method: "POST" });
+      const data = await res.json();
+      if (!data.success) {
+        toast.error(data.data?.error || data.error || "Backfill failed");
+        return;
+      }
+      const r = data.data;
+      const extra = r.unmatched?.length ? `, ${r.unmatched.length} unmatched PIN(s)` : "";
+      toast.success(`Backfill done — ${r.matched} matched, ${r.daysWritten} day(s) written${extra}`);
+      setDevices((ds) =>
+        ds.map((d) => (d.id === device.id ? { ...d, lastSync: new Date().toISOString() } : d))
+      );
+      fetchRecords();
+    } catch {
+      toast.error("Backfill failed");
+    } finally {
+      setBackfillingId(null);
+    }
   };
 
   const [editDevice, setEditDevice] = useState<Device | null>(null);
@@ -941,18 +1076,30 @@ export default function AttendanceManagePage() {
                     </div>
 
                     {(device.syncMode ?? "LAN_DIRECT") !== "CLOUD_AGENT" && (
-                      <div className="mt-3 flex gap-2 border-t border-gray-100 pt-3 dark:border-gray-800">
+                      <div className="mt-3 space-y-2 border-t border-gray-100 pt-3 dark:border-gray-800">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => openInspector(device, "users")}
+                            className="flex-1 rounded border border-gray-200 px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                          >
+                            View users
+                          </button>
+                          <button
+                            onClick={() => openInspector(device, "logs")}
+                            className="flex-1 rounded border border-gray-200 px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                          >
+                            View logs
+                          </button>
+                        </div>
                         <button
-                          onClick={() => openInspector(device, "users")}
-                          className="flex-1 rounded border border-gray-200 px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                          onClick={() => handleBackfill(device)}
+                          disabled={backfillingId === device.id}
+                          title="Import every past punch on the device (ignores the last-sync watermark)"
+                          className="w-full rounded border border-gray-200 px-2 py-1.5 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
                         >
-                          View users
-                        </button>
-                        <button
-                          onClick={() => openInspector(device, "logs")}
-                          className="flex-1 rounded border border-gray-200 px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                        >
-                          View logs
+                          {backfillingId === device.id
+                            ? "Importing history…"
+                            : "Backfill history (import all past punches)"}
                         </button>
                       </div>
                     )}
@@ -1037,15 +1184,44 @@ export default function AttendanceManagePage() {
                 </div>
               ) : inspectTab === "users" ? (
                 <>
-                  {inspectUsersMeta && (
-                    <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
-                      {inspectUsersMeta.total} enrolled · {inspectUsersMeta.mapped} mapped to
-                      employees · {inspectUsersMeta.total - inspectUsersMeta.mapped} unmapped
-                    </p>
-                  )}
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    {inspectUsersMeta ? (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {inspectUsersMeta.total} enrolled · {inspectUsersMeta.mapped} mapped ·{" "}
+                        {inspectUsersMeta.total - inspectUsersMeta.mapped} unmapped
+                      </p>
+                    ) : (
+                      <span />
+                    )}
+                    {unmappedPins.length > 0 && (
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          importDeviceUsers(selectedPins.size ? [...selectedPins] : undefined)
+                        }
+                        disabled={importing}
+                      >
+                        {importing
+                          ? "Importing…"
+                          : selectedPins.size
+                            ? `Import selected (${selectedPins.size})`
+                            : `Import all unmapped (${unmappedPins.length})`}
+                      </Button>
+                    )}
+                  </div>
                   <table className="w-full text-sm">
                     <thead className="border-b border-gray-200 text-left text-xs uppercase text-gray-500 dark:border-gray-700 dark:text-gray-400">
                       <tr>
+                        <th className="w-8 px-2 py-2">
+                          <input
+                            type="checkbox"
+                            aria-label="Select all unmapped"
+                            checked={allUnmappedSelected}
+                            disabled={unmappedPins.length === 0}
+                            onChange={toggleAllUnmapped}
+                            className="h-4 w-4 rounded border-gray-300 disabled:opacity-40"
+                          />
+                        </th>
                         <th className="px-2 py-2">PIN</th>
                         <th className="px-2 py-2">Name (on device)</th>
                         <th className="px-2 py-2">Card</th>
@@ -1055,6 +1231,17 @@ export default function AttendanceManagePage() {
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                       {(inspectUsers ?? []).map((u) => (
                         <tr key={`${u.uid}-${u.userId}`}>
+                          <td className="px-2 py-2">
+                            {!u.mapped && (
+                              <input
+                                type="checkbox"
+                                aria-label={`Select ${u.userId}`}
+                                checked={selectedPins.has(u.userId)}
+                                onChange={() => togglePin(u.userId)}
+                                className="h-4 w-4 rounded border-gray-300"
+                              />
+                            )}
+                          </td>
                           <td className="px-2 py-2 font-mono text-gray-900 dark:text-white">
                             {u.userId}
                           </td>
@@ -1073,8 +1260,24 @@ export default function AttendanceManagePage() {
                                 </span>
                               </span>
                             ) : (
-                              <span className="inline-flex rounded bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
-                                Unmapped
+                              <span className="inline-flex items-center gap-2">
+                                <span className="inline-flex rounded bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+                                  Unmapped
+                                </span>
+                                <button
+                                  onClick={() => importDeviceUsers([u.userId])}
+                                  disabled={importing}
+                                  className="text-xs text-blue-600 hover:underline disabled:opacity-50 dark:text-blue-400"
+                                >
+                                  Import
+                                </button>
+                                <span className="text-gray-300 dark:text-gray-600">|</span>
+                                <button
+                                  onClick={() => openLink(u.userId)}
+                                  className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+                                >
+                                  Link existing
+                                </button>
                               </span>
                             )}
                           </td>
@@ -1082,7 +1285,7 @@ export default function AttendanceManagePage() {
                       ))}
                       {(inspectUsers ?? []).length === 0 && (
                         <tr>
-                          <td colSpan={4} className="px-2 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                          <td colSpan={5} className="px-2 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                             No users enrolled on this device
                           </td>
                         </tr>
@@ -1090,8 +1293,10 @@ export default function AttendanceManagePage() {
                     </tbody>
                   </table>
                   <p className="mt-3 text-xs text-gray-400">
-                    Set an employee&apos;s <span className="font-medium">Device User ID</span> to the
-                    PIN above (on their profile) so their punches sync into attendance.
+                    <span className="font-medium">Import</span> creates an employee with this PIN
+                    pre-linked (name from the device; edit details later). Already have the person?
+                    Instead set their <span className="font-medium">Device User ID</span> to this PIN
+                    on their profile. Either way, their punches then sync into attendance.
                   </p>
                 </>
               ) : (
@@ -1140,6 +1345,79 @@ export default function AttendanceManagePage() {
                     </tbody>
                   </table>
                 </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Link-to-existing-employee picker (layers above the inspector) */}
+      {linkPin && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setLinkPin(null)} />
+          <div className="relative flex max-h-[70vh] w-full max-w-md flex-col rounded-lg bg-white shadow-xl dark:bg-gray-900">
+            <div className="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
+              <div>
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+                  Link PIN {linkPin} to an employee
+                </h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Pick someone already in the system — no duplicate is created.
+                </p>
+              </div>
+              <button
+                onClick={() => setLinkPin(null)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="border-b border-gray-200 p-3 dark:border-gray-700">
+              <input
+                type="text"
+                autoFocus
+                value={linkSearch}
+                onChange={(e) => {
+                  setLinkSearch(e.target.value);
+                  fetchLinkCandidates(e.target.value);
+                }}
+                placeholder="Search name or employee ID…"
+                className="w-full rounded border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              />
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-2">
+              {linkLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
+                </div>
+              ) : (linkCandidates ?? []).length === 0 ? (
+                <p className="px-2 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                  {linkSearch
+                    ? "No unlinked employees match."
+                    : "No unlinked employees — everyone active is already linked to a device."}
+                </p>
+              ) : (
+                <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {(linkCandidates ?? []).map((c) => (
+                    <li key={c.id} className="flex items-center justify-between px-2 py-2">
+                      <div>
+                        <p className="text-sm text-gray-900 dark:text-white">{c.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{c.employeeId}</p>
+                      </div>
+                      <button
+                        onClick={() => doLink(c.id)}
+                        disabled={linking}
+                        className="rounded border border-gray-200 px-3 py-1 text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                      >
+                        {linking ? "Linking…" : "Link"}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
           </div>

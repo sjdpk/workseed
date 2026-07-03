@@ -22,7 +22,11 @@ function dayStart(d: Date): Date {
  * day (earliest = check-in, latest = check-out) and only processes punches
  * newer than the device's lastSync watermark, which it then advances.
  */
-export async function applyPunches(device: AttendanceDevice, punches: Punch[]): Promise<SyncResult> {
+export async function applyPunches(
+  device: AttendanceDevice,
+  punches: Punch[],
+  opts: { ignoreWatermark?: boolean } = {}
+): Promise<SyncResult> {
   const result: SyncResult = {
     device: device.name,
     punches: 0,
@@ -31,7 +35,9 @@ export async function applyPunches(device: AttendanceDevice, punches: Punch[]): 
     daysWritten: 0,
   };
 
-  const since = device.lastSync ? new Date(device.lastSync) : null;
+  // Backfill ignores the watermark so historical punches (older than lastSync)
+  // are re-read and written for employees mapped after the last sync.
+  const since = opts.ignoreWatermark ? null : device.lastSync ? new Date(device.lastSync) : null;
   const fresh = punches
     .filter((p) => !isNaN(p.time.getTime()) && (!since || p.time > since))
     .sort((a, b) => a.time.getTime() - b.time.getTime());
@@ -112,7 +118,10 @@ export async function applyPunches(device: AttendanceDevice, punches: Punch[]): 
 }
 
 /** LAN-direct: connect to the device, read punches, write attendance. */
-export async function syncDeviceToDb(device: AttendanceDevice): Promise<SyncResult> {
+export async function syncDeviceToDb(
+  device: AttendanceDevice,
+  opts: { ignoreWatermark?: boolean } = {}
+): Promise<SyncResult> {
   const empty: SyncResult = { device: device.name, punches: 0, matched: 0, unmatched: [], daysWritten: 0 };
   if (!device.ipAddress) {
     return { ...empty, error: "No IP address configured" };
@@ -125,7 +134,7 @@ export async function syncDeviceToDb(device: AttendanceDevice): Promise<SyncResu
     logger.error("Device read failed", { device: device.name, error });
     return { ...empty, error };
   }
-  return applyPunches(device, punches);
+  return applyPunches(device, punches, opts);
 }
 
 /** Sync every active LAN-direct device. */
