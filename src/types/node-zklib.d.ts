@@ -9,11 +9,21 @@ declare module "node-zklib" {
     state?: number;
   }
 
+  interface ZKUser {
+    uid?: number;
+    role?: number;
+    name?: string;
+    userId?: string | number;
+    cardno?: number;
+    password?: string;
+  }
+
   export default class ZKLib {
     constructor(ip: string, port: number, timeout?: number, inport?: number);
     createSocket(cb?: () => void, errCb?: (err: Error) => void): Promise<void>;
     getAttendances(cb?: unknown): Promise<{ data: ZKAttendanceLog[] }>;
-    getInfo(): Promise<unknown>;
+    getUsers(): Promise<{ data: ZKUser[] }>;
+    getInfo(): Promise<{ userCounts?: number; logCounts?: number; logCapacity?: number }>;
     disconnect(): Promise<void>;
   }
 }

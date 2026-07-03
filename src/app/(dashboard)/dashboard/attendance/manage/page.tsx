@@ -52,6 +52,26 @@ interface Device {
   lastSync: string | null;
 }
 
+// Live reachability of a device, distinct from its configured status.
+type LiveStatus = "checking" | "online" | "offline" | "unknown";
+
+interface DeviceUserRow {
+  uid?: number;
+  userId: string;
+  name?: string;
+  role?: number;
+  cardno?: number;
+  mapped: boolean;
+  employee: { name: string; employeeId: string } | null;
+}
+
+interface DeviceLogRow {
+  pin: string;
+  time: string;
+  state: number | null;
+  employee: { name: string; employeeId: string } | null;
+}
+
 const SOURCES = [
   { value: "", label: "All Sources" },
   { value: "WEB", label: "Web" },
@@ -290,6 +310,153 @@ export default function AttendanceManagePage() {
     } finally {
       setSyncing(false);
     }
+  };
+
+  // Live reachability per device id — drives the status dot (green/red/amber),
+  // independent of the device's configured ACTIVE/INACTIVE status.
+  const [liveStatus, setLiveStatus] = useState<Record<string, LiveStatus>>({});
+
+  const probeStatus = async (device: Device) => {
+    if ((device.syncMode ?? "LAN_DIRECT") === "CLOUD_AGENT" || !device.ipAddress) {
+      setLiveStatus((s) => ({ ...s, [device.id]: "unknown" }));
+      return;
+    }
+    setLiveStatus((s) => ({ ...s, [device.id]: "checking" }));
+    try {
+      const res = await fetch("/api/attendance/devices/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: device.id }),
+      });
+      const data = await res.json();
+      setLiveStatus((s) => ({
+        ...s,
+        [device.id]: data.success && data.data?.reachable ? "online" : "offline",
+      }));
+    } catch {
+      setLiveStatus((s) => ({ ...s, [device.id]: "offline" }));
+    }
+  };
+
+  // Auto-check reachability whenever the device list opens.
+  useEffect(() => {
+    if (showDeviceList) devices.forEach((d) => probeStatus(d));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showDeviceList]);
+
+  const dotClass = (device: Device) => {
+    switch (liveStatus[device.id]) {
+      case "online":
+        return "bg-green-500";
+      case "offline":
+        return "bg-red-500";
+      case "checking":
+        return "bg-amber-400 animate-pulse";
+      default:
+        // Not probed (cloud / no IP): fall back to the configured status.
+        return device.status === "ACTIVE" ? "bg-gray-300 dark:bg-gray-600" : "bg-gray-400";
+    }
+  };
+
+  const dotTitle = (device: Device) => {
+    switch (liveStatus[device.id]) {
+      case "online":
+        return "Online — reachable";
+      case "offline":
+        return "Offline — not reachable";
+      case "checking":
+        return "Checking…";
+      default:
+        return `Status: ${device.status}`;
+    }
+  };
+
+  // Test connection — `testingKey` is the device id (saved device) or a
+  // sentinel ("__new__" / "__edit__") so only the clicked button shows a spinner.
+  const [testingKey, setTestingKey] = useState<string | null>(null);
+  const runTest = async (
+    payload: { id?: string; ipAddress?: string; port?: string | number; protocol?: string },
+    key: string
+  ) => {
+    setTestingKey(key);
+    try {
+      const res = await fetch("/api/attendance/devices/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      const r = data.data;
+      const reachable = data.success && r?.reachable;
+      if (payload.id) {
+        setLiveStatus((s) => ({ ...s, [payload.id as string]: reachable ? "online" : "offline" }));
+      }
+      if (reachable) {
+        const bits: string[] = [];
+        if (typeof r.latencyMs === "number") bits.push(`${r.latencyMs} ms`);
+        if (r.info?.users != null) bits.push(`${r.info.users} users`);
+        if (r.info?.logs != null) bits.push(`${r.info.logs} logs`);
+        toast.success(`Connected${bits.length ? ` — ${bits.join(", ")}` : ""}`);
+      } else {
+        toast.error(r?.error || data.error || "Could not connect to the device");
+      }
+    } catch {
+      toast.error("Could not connect to the device");
+    } finally {
+      setTestingKey(null);
+    }
+  };
+
+  // Device inspector — live view of enrolled users / punch logs on a device.
+  const [inspect, setInspect] = useState<{ id: string; name: string } | null>(null);
+  const [inspectTab, setInspectTab] = useState<"users" | "logs">("users");
+  const [inspectLoading, setInspectLoading] = useState(false);
+  const [inspectError, setInspectError] = useState<string | null>(null);
+  const [inspectUsers, setInspectUsers] = useState<DeviceUserRow[] | null>(null);
+  const [inspectUsersMeta, setInspectUsersMeta] = useState<{ total: number; mapped: number } | null>(null);
+  const [inspectLogs, setInspectLogs] = useState<DeviceLogRow[] | null>(null);
+  const [inspectLogsMeta, setInspectLogsMeta] = useState<{ totalOnDevice: number; returned: number } | null>(null);
+
+  const loadInspector = async (id: string, tab: "users" | "logs") => {
+    setInspectLoading(true);
+    setInspectError(null);
+    try {
+      const res = await fetch(`/api/attendance/devices/${id}/${tab}`);
+      const data = await res.json();
+      if (!data.success) {
+        setInspectError(data.error || "Failed to load");
+        return;
+      }
+      if (tab === "users") {
+        setInspectUsers(data.data.users);
+        setInspectUsersMeta({ total: data.data.total, mapped: data.data.mapped });
+      } else {
+        setInspectLogs(data.data.logs);
+        setInspectLogsMeta({ totalOnDevice: data.data.totalOnDevice, returned: data.data.returned });
+      }
+    } catch {
+      setInspectError("Failed to reach the server");
+    } finally {
+      setInspectLoading(false);
+    }
+  };
+
+  const openInspector = (device: Device, tab: "users" | "logs") => {
+    setInspect({ id: device.id, name: device.name });
+    setInspectTab(tab);
+    setInspectUsers(null);
+    setInspectUsersMeta(null);
+    setInspectLogs(null);
+    setInspectLogsMeta(null);
+    setInspectError(null);
+    loadInspector(device.id, tab);
+  };
+
+  const switchInspectTab = (tab: "users" | "logs") => {
+    setInspectTab(tab);
+    if (!inspect) return;
+    if (tab === "users" && inspectUsers === null) loadInspector(inspect.id, "users");
+    if (tab === "logs" && inspectLogs === null) loadInspector(inspect.id, "logs");
   };
 
   const [editDevice, setEditDevice] = useState<Device | null>(null);
@@ -641,14 +808,35 @@ export default function AttendanceManagePage() {
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <div
-                          className={`h-2 w-2 rounded-full ${device.status === "ACTIVE" ? "bg-green-500" : "bg-gray-400"}`}
+                        <span
+                          className={`h-2 w-2 rounded-full ${dotClass(device)}`}
+                          title={dotTitle(device)}
                         />
                         <span className="text-sm font-medium text-gray-900 dark:text-white">
                           {device.name}
                         </span>
                       </div>
                       <div className="flex items-center gap-1">
+                      {(device.syncMode ?? "LAN_DIRECT") !== "CLOUD_AGENT" && (
+                        <button
+                          onClick={() => {
+                            if (!device.ipAddress) {
+                              toast.error("Add the device's IP address first (edit the device).");
+                              return;
+                            }
+                            runTest({ id: device.id }, device.id);
+                          }}
+                          disabled={testingKey === device.id}
+                          className="text-gray-400 hover:text-green-500 dark:hover:text-green-400 transition-colors p-1 disabled:opacity-50"
+                          title="Test connection"
+                        >
+                          {testingKey === device.id ? (
+                            <span className="block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                          ) : (
+                            <SignalIcon />
+                          )}
+                        </button>
+                      )}
                       <button
                         onClick={() => setEditDevice({ ...device })}
                         className="text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors p-1"
@@ -751,6 +939,23 @@ export default function AttendanceManagePage() {
                         </div>
                       </div>
                     </div>
+
+                    {(device.syncMode ?? "LAN_DIRECT") !== "CLOUD_AGENT" && (
+                      <div className="mt-3 flex gap-2 border-t border-gray-100 pt-3 dark:border-gray-800">
+                        <button
+                          onClick={() => openInspector(device, "users")}
+                          className="flex-1 rounded border border-gray-200 px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                        >
+                          View users
+                        </button>
+                        <button
+                          onClick={() => openInspector(device, "logs")}
+                          className="flex-1 rounded border border-gray-200 px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                        >
+                          View logs
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -766,6 +971,176 @@ export default function AttendanceManagePage() {
                   Add New Device
                 </Button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Device Inspector — live users / logs */}
+      {inspect && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/30" onClick={() => setInspect(null)} />
+          <div className="relative flex max-h-[80vh] w-full max-w-2xl flex-col rounded-lg bg-white shadow-xl dark:bg-gray-900">
+            <div className="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
+              <div>
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+                  {inspect.name}
+                </h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Live view from the device — nothing is saved.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => loadInspector(inspect.id, inspectTab)}
+                  disabled={inspectLoading}
+                  className="text-xs text-blue-600 hover:text-blue-700 disabled:opacity-50 dark:text-blue-400"
+                >
+                  {inspectLoading ? "Loading…" : "Refresh"}
+                </button>
+                <button
+                  onClick={() => setInspect(null)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-1 border-b border-gray-200 px-4 dark:border-gray-700">
+              {(["users", "logs"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => switchInspectTab(tab)}
+                  className={`-mb-px border-b-2 px-3 py-2 text-sm ${
+                    inspectTab === tab
+                      ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                      : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400"
+                  }`}
+                >
+                  {tab === "users" ? "Enrolled Users" : "Punch Logs"}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4">
+              {inspectLoading ? (
+                <div className="flex items-center justify-center py-10">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
+                </div>
+              ) : inspectError ? (
+                <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+                  {inspectError}
+                </div>
+              ) : inspectTab === "users" ? (
+                <>
+                  {inspectUsersMeta && (
+                    <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+                      {inspectUsersMeta.total} enrolled · {inspectUsersMeta.mapped} mapped to
+                      employees · {inspectUsersMeta.total - inspectUsersMeta.mapped} unmapped
+                    </p>
+                  )}
+                  <table className="w-full text-sm">
+                    <thead className="border-b border-gray-200 text-left text-xs uppercase text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                      <tr>
+                        <th className="px-2 py-2">PIN</th>
+                        <th className="px-2 py-2">Name (on device)</th>
+                        <th className="px-2 py-2">Card</th>
+                        <th className="px-2 py-2">Mapped employee</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                      {(inspectUsers ?? []).map((u) => (
+                        <tr key={`${u.uid}-${u.userId}`}>
+                          <td className="px-2 py-2 font-mono text-gray-900 dark:text-white">
+                            {u.userId}
+                          </td>
+                          <td className="px-2 py-2 text-gray-700 dark:text-gray-300">
+                            {u.name || "—"}
+                          </td>
+                          <td className="px-2 py-2 text-gray-500 dark:text-gray-400">
+                            {u.cardno ?? "—"}
+                          </td>
+                          <td className="px-2 py-2">
+                            {u.employee ? (
+                              <span className="text-gray-700 dark:text-gray-300">
+                                {u.employee.name}{" "}
+                                <span className="text-xs text-gray-400">
+                                  ({u.employee.employeeId})
+                                </span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex rounded bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+                                Unmapped
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                      {(inspectUsers ?? []).length === 0 && (
+                        <tr>
+                          <td colSpan={4} className="px-2 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                            No users enrolled on this device
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                  <p className="mt-3 text-xs text-gray-400">
+                    Set an employee&apos;s <span className="font-medium">Device User ID</span> to the
+                    PIN above (on their profile) so their punches sync into attendance.
+                  </p>
+                </>
+              ) : (
+                <>
+                  {inspectLogsMeta && (
+                    <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+                      Showing {inspectLogsMeta.returned} most recent of {inspectLogsMeta.totalOnDevice}{" "}
+                      logs on the device
+                    </p>
+                  )}
+                  <table className="w-full text-sm">
+                    <thead className="border-b border-gray-200 text-left text-xs uppercase text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                      <tr>
+                        <th className="px-2 py-2">Time</th>
+                        <th className="px-2 py-2">PIN</th>
+                        <th className="px-2 py-2">Employee</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                      {(inspectLogs ?? []).map((l, i) => (
+                        <tr key={`${l.pin}-${l.time}-${i}`}>
+                          <td className="px-2 py-2 text-gray-900 dark:text-white">
+                            {new Date(l.time).toLocaleString()}
+                          </td>
+                          <td className="px-2 py-2 font-mono text-gray-700 dark:text-gray-300">
+                            {l.pin}
+                          </td>
+                          <td className="px-2 py-2">
+                            {l.employee ? (
+                              <span className="text-gray-700 dark:text-gray-300">
+                                {l.employee.name}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-gray-400">unmatched PIN</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                      {(inspectLogs ?? []).length === 0 && (
+                        <tr>
+                          <td colSpan={3} className="px-2 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                            No punch logs on this device
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -897,13 +1272,39 @@ export default function AttendanceManagePage() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 border-t border-gray-200 p-4 dark:border-gray-700">
-              <Button variant="secondary" onClick={() => setEditDevice(null)}>
-                Cancel
-              </Button>
-              <Button onClick={handleUpdateDevice} disabled={savingEdit}>
-                {savingEdit ? "Saving…" : "Save"}
-              </Button>
+            <div className="flex items-center justify-between gap-2 border-t border-gray-200 p-4 dark:border-gray-700">
+              {(editDevice.syncMode ?? "LAN_DIRECT") !== "CLOUD_AGENT" ? (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (!editDevice.ipAddress) {
+                      toast.error("Enter an IP address to test.");
+                      return;
+                    }
+                    runTest(
+                      {
+                        ipAddress: editDevice.ipAddress,
+                        port: editDevice.port,
+                        protocol: editDevice.protocol,
+                      },
+                      "__edit__"
+                    );
+                  }}
+                  disabled={testingKey === "__edit__"}
+                >
+                  {testingKey === "__edit__" ? "Testing…" : "Test connection"}
+                </Button>
+              ) : (
+                <span />
+              )}
+              <div className="flex gap-2">
+                <Button variant="secondary" onClick={() => setEditDevice(null)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUpdateDevice} disabled={savingEdit}>
+                  {savingEdit ? "Saving…" : "Save"}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -1240,9 +1641,37 @@ export default function AttendanceManagePage() {
                     Done
                   </Button>
                 ) : (
-                  <Button onClick={handleSaveDevice} disabled={savingDevice} className="w-full">
-                    {savingDevice ? "Adding..." : "Add Device"}
-                  </Button>
+                  <div className="flex gap-2">
+                    {newDevice.syncMode !== "CLOUD_AGENT" && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          if (!newDevice.ipAddress.trim()) {
+                            toast.error("Enter the device IP address to test.");
+                            return;
+                          }
+                          runTest(
+                            {
+                              ipAddress: newDevice.ipAddress,
+                              port: newDevice.port,
+                              protocol: newDevice.protocol,
+                            },
+                            "__new__"
+                          );
+                        }}
+                        disabled={testingKey === "__new__"}
+                      >
+                        {testingKey === "__new__" ? "Testing…" : "Test"}
+                      </Button>
+                    )}
+                    <Button
+                      onClick={handleSaveDevice}
+                      disabled={savingDevice}
+                      className="flex-1"
+                    >
+                      {savingDevice ? "Adding..." : "Add Device"}
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
@@ -1519,6 +1948,19 @@ function DownloadIcon() {
         strokeLinejoin="round"
         strokeWidth={1.5}
         d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+      />
+    </svg>
+  );
+}
+
+function SignalIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className || "h-4 w-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M8.288 15.038a5.25 5.25 0 017.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 011.06 0z"
       />
     </svg>
   );
