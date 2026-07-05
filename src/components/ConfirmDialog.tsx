@@ -101,96 +101,82 @@ function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[110] flex flex-col bg-white/95 backdrop-blur-md animate-fade-in dark:bg-gray-950/95"
+      className="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-title"
     >
-      {/* Close (cancel) button, top-right */}
-      <div className="flex justify-end p-4 sm:p-6">
-        <button
-          onClick={onCancel}
-          aria-label="Close"
-          className="flex h-10 w-10 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-        >
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
-      </div>
+      {/* Backdrop — dims (but doesn't hide) the page behind */}
+      <div
+        className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm animate-fade-in dark:bg-black/60"
+        onClick={onCancel}
+        aria-hidden="true"
+      />
 
-      {/* Centered content */}
-      <div className="flex flex-1 flex-col items-center justify-center px-6 pb-16 text-center animate-scale-in">
-        <div
-          className={
-            variant === "danger"
-              ? "flex h-20 w-20 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30"
-              : "flex h-20 w-20 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800"
-          }
-        >
-          {variant === "danger" ? (
-            <svg
-              className="h-10 w-10 text-red-600 dark:text-red-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+      {/* Card */}
+      <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5 animate-scale-in dark:bg-gray-900 dark:ring-white/10">
+        <div className="flex gap-4 p-6">
+          <div
+            className={
+              variant === "danger"
+                ? "flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30"
+                : "flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800"
+            }
+          >
+            {variant === "danger" ? (
+              <svg
+                className="h-6 w-6 text-red-600 dark:text-red-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.8}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+            ) : (
+              <svg
+                className="h-6 w-6 text-gray-600 dark:text-gray-300"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.8}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            )}
+          </div>
+          <div className="flex-1 pt-0.5">
+            <h2
+              id="confirm-title"
+              className="text-base font-semibold leading-6 text-gray-900 dark:text-white"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.8}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
-          ) : (
-            <svg
-              className="h-10 w-10 text-gray-600 dark:text-gray-300"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.8}
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          )}
+              {title}
+            </h2>
+            {message && (
+              <div className="mt-2 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                {message}
+              </div>
+            )}
+          </div>
         </div>
 
-        <h2
-          id="confirm-title"
-          className="mt-8 max-w-xl text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl dark:text-white"
-        >
-          {title}
-        </h2>
-        {message && (
-          <div className="mt-4 max-w-lg text-base leading-relaxed text-gray-500 dark:text-gray-400">
-            {message}
-          </div>
-        )}
-
-        <div className="mt-10 flex w-full max-w-sm flex-col-reverse gap-3 sm:flex-row sm:justify-center">
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={onCancel}
-            className="sm:min-w-[140px]"
-          >
+        <div className="flex flex-col-reverse gap-3 border-t border-gray-100 bg-gray-50 px-6 py-4 sm:flex-row sm:justify-end dark:border-gray-800 dark:bg-gray-800/50">
+          <Button variant="outline" onClick={onCancel} className="sm:min-w-[96px]">
             {cancelText}
           </Button>
           <Button
             ref={confirmRef}
             variant={variant === "danger" ? "danger" : "primary"}
-            size="lg"
             onClick={onConfirm}
-            className="sm:min-w-[140px]"
+            className="sm:min-w-[96px]"
           >
             {confirmText}
           </Button>

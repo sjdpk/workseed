@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Dropdown, useToast, useConfirm } from "@/components";
+import { Button, Card, Dropdown, useToast, useConfirm } from "@/components";
 
 const ALLOWED_ROLES = ["ADMIN", "HR", "MANAGER", "TEAM_LEAD"];
 
@@ -310,16 +310,23 @@ export default function AttendanceManagePage() {
         toast.error(data.error || "Sync failed");
         return;
       }
-      const results = data.data?.results ?? [];
+      const results: { device: string; daysWritten: number; error?: string }[] =
+        data.data?.results ?? [];
       if (results.length === 0) {
         toast.success("No LAN-direct devices to sync");
       } else {
-        const days = results.reduce((n: number, r: { daysWritten: number }) => n + r.daysWritten, 0);
-        const errs = results.filter((r: { error?: string }) => r.error);
-        toast.success(`Synced ${results.length} device(s), ${days} days written`);
-        errs.forEach((r: { device: string; error?: string }) =>
-          toast.error(`${r.device}: ${r.error}`)
-        );
+        const errs = results.filter((r) => r.error);
+        const ok = results.filter((r) => !r.error);
+        const days = ok.reduce((n, r) => n + r.daysWritten, 0);
+
+        // Only claim success for devices that actually synced; never show a
+        // green "synced" toast when every device failed.
+        if (ok.length > 0) {
+          toast.success(`Synced ${ok.length} device(s), ${days} days written`);
+        } else {
+          toast.error(`Sync failed for all ${results.length} device(s)`);
+        }
+        errs.forEach((r) => toast.error(`${r.device}: ${r.error}`));
       }
       fetchRecords();
     } catch {
@@ -465,6 +472,7 @@ export default function AttendanceManagePage() {
   };
 
   const openInspector = (device: Device, tab: "users" | "logs") => {
+    setShowDeviceList(false); // close the sidebar so the inline inspector is visible
     setInspect({ id: device.id, name: device.name });
     setInspectTab(tab);
     setSelectedPins(new Set());
@@ -711,6 +719,8 @@ export default function AttendanceManagePage() {
 
   return (
     <div className="space-y-6">
+      {!inspect && (
+        <>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -875,8 +885,9 @@ export default function AttendanceManagePage() {
       </div>
 
       {/* Records Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full">
+      <Card>
+        <div className="overflow-x-auto">
+          <table className="w-full">
             <thead className="border-b border-gray-200 dark:border-gray-700">
               <tr>
                 <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
@@ -945,6 +956,9 @@ export default function AttendanceManagePage() {
             </tbody>
           </table>
         </div>
+      </Card>
+        </>
+      )}
 
       {/* Device List Sidebar */}
       {showDeviceList && (
@@ -1189,41 +1203,41 @@ export default function AttendanceManagePage() {
         </div>
       )}
 
-      {/* Device Inspector — live users / logs */}
+      {/* Device Inspector — inline master/detail view (replaces the list) */}
       {inspect && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/30" onClick={() => setInspect(null)} />
-          <div className="relative flex max-h-[80vh] w-full max-w-2xl flex-col rounded-lg bg-white shadow-xl dark:bg-gray-900">
-            <div className="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
-              <div>
-                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
-                  {inspect.name}
-                </h2>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Live view from the device — nothing is saved.
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => loadInspector(inspect.id, inspectTab)}
-                  disabled={inspectLoading}
-                  className="text-xs text-blue-600 hover:text-blue-700 disabled:opacity-50 dark:text-blue-400"
-                >
-                  {inspectLoading ? "Loading…" : "Refresh"}
-                </button>
+        <div className="animate-fade-in">
+          <div className="flex flex-col overflow-hidden rounded-md border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+              <div className="flex items-center gap-3">
                 <button
                   onClick={() => setInspect(null)}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  className="flex items-center gap-1.5 rounded border border-gray-200 px-2.5 py-1.5 text-sm text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
+                  Back
                 </button>
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {inspect.name}
+                  </h2>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Live view from the device — nothing is saved.
+                  </p>
+                </div>
               </div>
+              <button
+                onClick={() => loadInspector(inspect.id, inspectTab)}
+                disabled={inspectLoading}
+                className="text-xs text-blue-600 hover:text-blue-700 disabled:opacity-50 dark:text-blue-400"
+              >
+                {inspectLoading ? "Loading…" : "Refresh"}
+              </button>
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 border-b border-gray-200 px-4 dark:border-gray-700">
+            <div className="flex gap-1 border-b border-gray-200 px-6 dark:border-gray-700">
               {(["users", "logs"] as const).map((tab) => (
                 <button
                   key={tab}
@@ -1239,7 +1253,7 @@ export default function AttendanceManagePage() {
               ))}
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="px-6 py-5">
               {inspectLoading ? (
                 <div className="flex items-center justify-center py-10">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
