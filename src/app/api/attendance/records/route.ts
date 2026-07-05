@@ -15,19 +15,24 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const dateParam = searchParams.get("date");
+    // Date range: `from`/`to` (inclusive). Falls back to the legacy single
+    // `date` param, and finally to today, so old callers keep working.
+    const fromParam = searchParams.get("from") ?? searchParams.get("date");
+    const toParam = searchParams.get("to") ?? searchParams.get("date");
     const departmentId = searchParams.get("departmentId");
     const teamId = searchParams.get("teamId");
     const source = searchParams.get("source");
     const deviceId = searchParams.get("deviceId");
 
-    // Default to today
-    const date = dateParam ? new Date(dateParam) : new Date();
-    date.setHours(0, 0, 0, 0);
+    const fromDate = fromParam ? new Date(fromParam) : new Date();
+    fromDate.setHours(0, 0, 0, 0);
+    const toDate = toParam ? new Date(toParam) : new Date();
+    toDate.setHours(0, 0, 0, 0);
+    const isRange = fromDate.getTime() !== toDate.getTime();
 
     // Build where clause based on role and filters
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = { date };
+    const where: any = { date: { gte: fromDate, lte: toDate } };
 
     // Role-based filtering
     if (currentUser.role === "MANAGER" && currentUser.departmentId) {
@@ -66,7 +71,7 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: { checkIn: "desc" },
+      orderBy: [{ date: "desc" }, { checkIn: "desc" }],
     });
 
     // Get total employees count for the filtered scope
@@ -103,10 +108,14 @@ export async function GET(request: NextRequest) {
         })),
         summary: {
           total: totalEmployees,
-          present: records.length,
-          absent: totalEmployees - records.length,
+          // Distinct employees seen in the range (a user may punch on several
+          // days). For a single day this equals records.length.
+          present: new Set(records.map((r) => r.userId)).size,
+          absent: totalEmployees - new Set(records.map((r) => r.userId)).size,
         },
-        date: date.toISOString(),
+        isRange,
+        from: fromDate.toISOString(),
+        to: toDate.toISOString(),
       },
     });
   } catch (error) {

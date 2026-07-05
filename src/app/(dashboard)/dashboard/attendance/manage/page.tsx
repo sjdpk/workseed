@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Card, Dropdown, useToast, useConfirm } from "@/components";
 
 const ALLOWED_ROLES = ["ADMIN", "HR", "MANAGER", "TEAM_LEAD"];
@@ -84,6 +84,34 @@ const SOURCES = [
   { value: "MANUAL", label: "Manual" },
 ];
 
+// Local YYYY-MM-DD (avoids the UTC shift that toISOString() introduces west of UTC).
+const toDateStr = (d: Date) => {
+  const off = d.getTimezoneOffset();
+  return new Date(d.getTime() - off * 60000).toISOString().split("T")[0];
+};
+const TODAY_STR = toDateStr(new Date());
+
+// Quick date-range presets shown next to the From/To inputs.
+const DATE_PRESETS: { label: string; range: () => { from: string; to: string } }[] = [
+  { label: "Today", range: () => ({ from: TODAY_STR, to: TODAY_STR }) },
+  {
+    label: "Last 7 days",
+    range: () => {
+      const from = new Date();
+      from.setDate(from.getDate() - 6);
+      return { from: toDateStr(from), to: TODAY_STR };
+    },
+  },
+  {
+    label: "This month",
+    range: () => {
+      const from = new Date();
+      from.setDate(1);
+      return { from: toDateStr(from), to: TODAY_STR };
+    },
+  },
+];
+
 // A device can support several of these at once.
 const DEVICE_CAPABILITIES = [
   { value: "BIOMETRIC", label: "Fingerprint" },
@@ -132,12 +160,15 @@ export default function AttendanceManagePage() {
 
   // Filters
   const [search, setSearch] = useState("");
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [dateFrom, setDateFrom] = useState(TODAY_STR);
+  const [dateTo, setDateTo] = useState(TODAY_STR);
   const [selectedDepartment, setSelectedDepartment] = useState("");
   const [selectedTeam, setSelectedTeam] = useState("");
   const [selectedSource, setSelectedSource] = useState("");
   const [selectedDevice, setSelectedDevice] = useState(""); // device serial
   const [refreshing, setRefreshing] = useState(false);
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
+  const moreFiltersRef = useRef<HTMLDivElement>(null);
 
   // Device setup
   const [showDeviceSetup, setShowDeviceSetup] = useState(false);
@@ -185,28 +216,36 @@ export default function AttendanceManagePage() {
     });
   }, [router]);
 
-  useEffect(() => {
-    if (loading) return;
-    fetchRecords();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate, selectedDepartment, selectedTeam, selectedSource, selectedDevice, loading]);
-
-  const fetchRecords = async () => {
+  const [recordsLoading, setRecordsLoading] = useState(false);
+  const fetchRecords = useCallback(async () => {
+    // Guard against an inverted range (From after To).
+    const from = dateFrom <= dateTo ? dateFrom : dateTo;
+    const to = dateFrom <= dateTo ? dateTo : dateFrom;
     const params = new URLSearchParams();
-    params.set("date", selectedDate);
+    params.set("from", from);
+    params.set("to", to);
     if (selectedDepartment) params.set("departmentId", selectedDepartment);
     if (selectedTeam) params.set("teamId", selectedTeam);
     if (selectedSource) params.set("source", selectedSource);
     if (selectedDevice) params.set("deviceId", selectedDevice);
 
-    const res = await fetch(`/api/attendance/records?${params}`);
-    const data = await res.json();
-
-    if (data.success) {
-      setRecords(data.data.records);
-      setSummary(data.data.summary);
+    setRecordsLoading(true);
+    try {
+      const res = await fetch(`/api/attendance/records?${params}`);
+      const data = await res.json();
+      if (data.success) {
+        setRecords(data.data.records);
+        setSummary(data.data.summary);
+      }
+    } finally {
+      setRecordsLoading(false);
     }
-  };
+  }, [dateFrom, dateTo, selectedDepartment, selectedTeam, selectedSource, selectedDevice]);
+
+  useEffect(() => {
+    if (loading) return;
+    fetchRecords();
+  }, [loading, fetchRecords]);
 
   // Manual refresh — re-fetch the current filtered view.
   const handleRefresh = async () => {
@@ -217,6 +256,54 @@ export default function AttendanceManagePage() {
       setRefreshing(false);
     }
   };
+
+  const isRange = dateFrom !== dateTo;
+
+  // Reset every filter back to defaults (today, all scopes).
+  const clearFilters = () => {
+    setSearch("");
+    setDateFrom(TODAY_STR);
+    setDateTo(TODAY_STR);
+    setSelectedDepartment("");
+    setSelectedTeam("");
+    setSelectedSource("");
+    setSelectedDevice("");
+  };
+
+  const hasActiveFilters =
+    !!search ||
+    !!selectedDepartment ||
+    !!selectedTeam ||
+    !!selectedSource ||
+    !!selectedDevice ||
+    dateFrom !== TODAY_STR ||
+    dateTo !== TODAY_STR;
+
+  // Count of the secondary filters tucked inside the "More filters" popover.
+  const moreFiltersCount =
+    (selectedDepartment ? 1 : 0) +
+    (selectedTeam ? 1 : 0) +
+    (selectedSource ? 1 : 0) +
+    (selectedDevice ? 1 : 0);
+
+  // Close the "More filters" popover on outside-click / Escape.
+  useEffect(() => {
+    if (!showMoreFilters) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (moreFiltersRef.current && !moreFiltersRef.current.contains(e.target as Node)) {
+        setShowMoreFilters(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowMoreFilters(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [showMoreFilters]);
 
   const formatTime = (dateStr: string) => {
     return new Date(dateStr).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -243,17 +330,22 @@ export default function AttendanceManagePage() {
     return colors[source] || colors.MANUAL;
   };
 
-  // Filter records by search (client-side)
-  const filteredRecords = records.filter((record) => {
-    if (!search) return true;
+  const formatDate = (dateStr: string) =>
+    new Date(dateStr).toLocaleDateString([], { day: "2-digit", month: "short", year: "numeric" });
+
+  // Filter records by search (client-side), memoized so typing doesn't re-scan
+  // on unrelated re-renders.
+  const filteredRecords = useMemo(() => {
+    if (!search) return records;
     const searchLower = search.toLowerCase();
-    return (
-      record.userName.toLowerCase().includes(searchLower) ||
-      record.employeeId.toLowerCase().includes(searchLower) ||
-      record.department?.toLowerCase().includes(searchLower) ||
-      record.team?.toLowerCase().includes(searchLower)
+    return records.filter(
+      (record) =>
+        record.userName.toLowerCase().includes(searchLower) ||
+        record.employeeId.toLowerCase().includes(searchLower) ||
+        record.department?.toLowerCase().includes(searchLower) ||
+        record.team?.toLowerCase().includes(searchLower)
     );
-  });
+  }, [records, search]);
 
   // Export attendance to CSV
   const exportCSV = () => {
@@ -278,7 +370,7 @@ export default function AttendanceManagePage() {
       r.userName,
       r.department || "-",
       r.team || "-",
-      selectedDate,
+      formatDate(r.date),
       formatTime(r.checkIn),
       r.checkOut ? formatTime(r.checkOut) : "-",
       calculateDuration(r.checkIn, r.checkOut),
@@ -292,7 +384,10 @@ export default function AttendanceManagePage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `attendance-${selectedDate}.csv`);
+    link.setAttribute(
+      "download",
+      isRange ? `attendance-${dateFrom}_to_${dateTo}.csv` : `attendance-${dateFrom}.csv`
+    );
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
@@ -744,7 +839,7 @@ export default function AttendanceManagePage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded bg-gray-50 p-4 dark:bg-gray-800">
           <p className="text-2xl font-semibold text-gray-900 dark:text-white">{summary.total}</p>
           <p className="text-xs text-gray-500 dark:text-gray-400">Total Employees</p>
@@ -753,11 +848,15 @@ export default function AttendanceManagePage() {
           <p className="text-2xl font-semibold text-green-700 dark:text-green-400">
             {summary.present}
           </p>
-          <p className="text-xs text-green-600 dark:text-green-500">Present</p>
+          <p className="text-xs text-green-600 dark:text-green-500">
+            {isRange ? "Present (in range)" : "Present"}
+          </p>
         </div>
         <div className="rounded bg-red-50 p-4 dark:bg-red-900/20">
           <p className="text-2xl font-semibold text-red-700 dark:text-red-400">{summary.absent}</p>
-          <p className="text-xs text-red-600 dark:text-red-500">Absent</p>
+          <p className="text-xs text-red-600 dark:text-red-500">
+            {isRange ? "Never present (in range)" : "Absent"}
+          </p>
         </div>
       </div>
 
@@ -786,70 +885,169 @@ export default function AttendanceManagePage() {
           />
         </div>
 
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          max={new Date().toISOString().split("T")[0]}
-          className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-        />
+        {/* Date range: From → To */}
+        <div className="flex items-center gap-1.5 rounded border border-gray-200 bg-white px-2 py-1 dark:border-gray-700 dark:bg-gray-800">
+          <input
+            type="date"
+            value={dateFrom}
+            max={dateTo || TODAY_STR}
+            onChange={(e) => setDateFrom(e.target.value)}
+            aria-label="From date"
+            className="bg-transparent text-sm text-gray-900 focus:outline-none dark:text-white"
+          />
+          <span className="text-gray-400">→</span>
+          <input
+            type="date"
+            value={dateTo}
+            min={dateFrom}
+            max={TODAY_STR}
+            onChange={(e) => setDateTo(e.target.value)}
+            aria-label="To date"
+            className="bg-transparent text-sm text-gray-900 focus:outline-none dark:text-white"
+          />
+        </div>
 
-        {(userRole === "ADMIN" || userRole === "HR") && (
-          <select
-            value={selectedDepartment}
-            onChange={(e) => setSelectedDepartment(e.target.value)}
-            className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+        {/* Quick range presets */}
+        <div className="flex items-center gap-1">
+          {DATE_PRESETS.map((p) => {
+            const r = p.range();
+            const active = dateFrom === r.from && dateTo === r.to;
+            return (
+              <button
+                key={p.label}
+                onClick={() => {
+                  setDateFrom(r.from);
+                  setDateTo(r.to);
+                }}
+                className={`rounded px-2 py-1 text-xs transition-colors ${
+                  active
+                    ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
+                    : "border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                }`}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* More filters — secondary filters tucked into a popover */}
+        <div className="relative" ref={moreFiltersRef}>
+          <button
+            onClick={() => setShowMoreFilters((v) => !v)}
+            className={`flex items-center gap-1.5 rounded border px-3 py-1.5 text-sm transition-colors ${
+              moreFiltersCount > 0
+                ? "border-gray-900 text-gray-900 dark:border-white dark:text-white"
+                : "border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            }`}
           >
-            <option value="">All Departments</option>
-            {departments.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
-          </select>
-        )}
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L14 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 018 21v-7.586L3.293 6.707A1 1 0 013 6V4z"
+              />
+            </svg>
+            More filters
+            {moreFiltersCount > 0 && (
+              <span className="ml-0.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-gray-900 px-1 text-[10px] font-semibold text-white dark:bg-white dark:text-gray-900">
+                {moreFiltersCount}
+              </span>
+            )}
+            <svg
+              className={`h-4 w-4 text-gray-400 transition-transform ${showMoreFilters ? "rotate-180" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
 
-        {(userRole === "ADMIN" || userRole === "HR" || userRole === "MANAGER") && (
-          <select
-            value={selectedTeam}
-            onChange={(e) => setSelectedTeam(e.target.value)}
-            className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-          >
-            <option value="">All Teams</option>
-            {teams.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-        )}
+          {showMoreFilters && (
+            <div className="absolute left-0 z-40 mt-2 w-64 rounded-lg border border-gray-200 bg-white p-3 shadow-xl dark:border-gray-700 dark:bg-gray-800">
+              <div className="space-y-3">
+                {(userRole === "ADMIN" || userRole === "HR") && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                      Department
+                    </label>
+                    <select
+                      value={selectedDepartment}
+                      onChange={(e) => setSelectedDepartment(e.target.value)}
+                      className="w-full rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                    >
+                      <option value="">All Departments</option>
+                      {departments.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
-        <select
-          value={selectedSource}
-          onChange={(e) => setSelectedSource(e.target.value)}
-          className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-        >
-          {SOURCES.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </select>
+                {(userRole === "ADMIN" || userRole === "HR" || userRole === "MANAGER") && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                      Team
+                    </label>
+                    <select
+                      value={selectedTeam}
+                      onChange={(e) => setSelectedTeam(e.target.value)}
+                      className="w-full rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                    >
+                      <option value="">All Teams</option>
+                      {teams.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
-        {devices.length > 0 && (
-          <select
-            value={selectedDevice}
-            onChange={(e) => setSelectedDevice(e.target.value)}
-            className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-          >
-            <option value="">All Devices</option>
-            {devices.map((d) => (
-              <option key={d.id} value={d.deviceId}>
-                {d.name}
-              </option>
-            ))}
-          </select>
-        )}
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                    Source
+                  </label>
+                  <select
+                    value={selectedSource}
+                    onChange={(e) => setSelectedSource(e.target.value)}
+                    className="w-full rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                  >
+                    {SOURCES.map((s) => (
+                      <option key={s.value} value={s.value}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {devices.length > 0 && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                      Device
+                    </label>
+                    <select
+                      value={selectedDevice}
+                      onChange={(e) => setSelectedDevice(e.target.value)}
+                      className="w-full rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                    >
+                      <option value="">All Devices</option>
+                      {devices.map((d) => (
+                        <option key={d.id} value={d.deviceId}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         <button
           onClick={handleRefresh}
@@ -873,23 +1071,49 @@ export default function AttendanceManagePage() {
           Refresh
         </button>
 
-        {records.length > 0 && (
+        <button
+          onClick={exportCSV}
+          disabled={records.length === 0}
+          className="flex items-center gap-1.5 rounded border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:hover:bg-white dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+        >
+          <DownloadIcon />
+          Export CSV
+        </button>
+
+        {hasActiveFilters && (
           <button
-            onClick={exportCSV}
-            className="flex items-center gap-1.5 rounded border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            onClick={clearFilters}
+            className="flex items-center gap-1.5 rounded px-3 py-1.5 text-sm text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
           >
-            <DownloadIcon />
-            Export CSV
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Clear
           </button>
         )}
       </div>
 
       {/* Records Table */}
       <Card>
+        <div className="mb-2 flex items-center justify-between px-3">
+          <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+            {filteredRecords.length} record{filteredRecords.length === 1 ? "" : "s"}
+            {isRange && (
+              <span className="ml-1 text-gray-400">
+                · {formatDate(dateFrom)} – {formatDate(dateTo)}
+              </span>
+            )}
+          </p>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="border-b border-gray-200 dark:border-gray-700">
               <tr>
+                {isRange && (
+                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                    Date
+                  </th>
+                )}
                 <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
                   Employee
                 </th>
@@ -911,45 +1135,91 @@ export default function AttendanceManagePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {filteredRecords.map((record) => (
-                <tr key={record.id}>
-                  <td className="px-3 py-2">
-                    <div>
-                      <p className="text-sm text-gray-900 dark:text-white">{record.userName}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {record.employeeId}
-                      </p>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400">
-                    {record.department || "-"}
-                    {record.team && <span className="text-xs ml-1">/ {record.team}</span>}
-                  </td>
-                  <td className="px-3 py-2 text-sm text-gray-900 dark:text-white">
-                    {formatTime(record.checkIn)}
-                  </td>
-                  <td className="px-3 py-2 text-sm text-gray-900 dark:text-white">
-                    {record.checkOut ? formatTime(record.checkOut) : "-"}
-                  </td>
-                  <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400">
-                    {calculateDuration(record.checkIn, record.checkOut)}
-                  </td>
-                  <td className="px-3 py-2">
-                    <span
-                      className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${getSourceBadge(record.source)}`}
+              {recordsLoading && filteredRecords.length === 0
+                ? Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={`skeleton-${i}`}>
+                      {Array.from({ length: isRange ? 7 : 6 }).map((__, j) => (
+                        <td key={j} className="px-3 py-3">
+                          <div className="h-3 w-full max-w-[120px] animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                : filteredRecords.map((record) => (
+                    <tr
+                      key={record.id}
+                      className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
                     >
-                      {record.source.charAt(0) + record.source.slice(1).toLowerCase()}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-              {filteredRecords.length === 0 && (
+                      {isRange && (
+                        <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-600 dark:text-gray-400">
+                          {formatDate(record.date)}
+                        </td>
+                      )}
+                      <td className="px-3 py-2">
+                        <div>
+                          <p className="text-sm text-gray-900 dark:text-white">{record.userName}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {record.employeeId}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400">
+                        {record.department || "-"}
+                        {record.team && <span className="ml-1 text-xs">/ {record.team}</span>}
+                      </td>
+                      <td className="px-3 py-2 text-sm text-gray-900 dark:text-white">
+                        {formatTime(record.checkIn)}
+                      </td>
+                      <td className="px-3 py-2 text-sm text-gray-900 dark:text-white">
+                        {record.checkOut ? formatTime(record.checkOut) : "-"}
+                      </td>
+                      <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400">
+                        {calculateDuration(record.checkIn, record.checkOut)}
+                      </td>
+                      <td className="px-3 py-2">
+                        <span
+                          className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${getSourceBadge(record.source)}`}
+                        >
+                          {record.source.charAt(0) + record.source.slice(1).toLowerCase()}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+              {!recordsLoading && filteredRecords.length === 0 && (
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="px-3 py-8 text-center text-sm text-gray-500 dark:text-gray-400"
-                  >
-                    {search ? "No employees match your search" : "No attendance records for this date"}
+                  <td colSpan={isRange ? 7 : 6} className="px-3 py-12">
+                    <div className="flex flex-col items-center justify-center text-center">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+                        <svg
+                          className="h-6 w-6 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.8}
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+                          />
+                        </svg>
+                      </div>
+                      <p className="mt-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {search
+                          ? "No employees match your search"
+                          : hasActiveFilters
+                            ? "No attendance records for these filters"
+                            : "No attendance records for this date"}
+                      </p>
+                      {hasActiveFilters && (
+                        <button
+                          onClick={clearFilters}
+                          className="mt-2 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                        >
+                          Clear filters
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               )}
