@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ThemeToggle, Button, ToastProvider } from "@/components";
+import { ThemeToggle, Button, ToastProvider, ConfirmProvider } from "@/components";
 import type { SessionUser } from "@/types";
 
 interface OrgSettings {
@@ -396,6 +396,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <ToastProvider>
+      <ConfirmProvider>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
         {sidebarOpen && (
           <div
@@ -972,6 +973,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         )}
       </div>
+      </ConfirmProvider>
     </ToastProvider>
   );
 }

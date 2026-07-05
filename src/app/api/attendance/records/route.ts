@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
     const departmentId = searchParams.get("departmentId");
     const teamId = searchParams.get("teamId");
     const source = searchParams.get("source");
+    const deviceId = searchParams.get("deviceId");
 
     // Default to today
     const date = dateParam ? new Date(dateParam) : new Date();
@@ -44,6 +45,11 @@ export async function GET(request: NextRequest) {
     }
     if (source) {
       where.source = source;
+    }
+    // Filter by the device serial that produced the punch (attendance.deviceId
+    // stores the device serial, e.g. "BIO-001").
+    if (deviceId) {
+      where.deviceId = deviceId;
     }
 
     const records = await prisma.attendance.findMany({

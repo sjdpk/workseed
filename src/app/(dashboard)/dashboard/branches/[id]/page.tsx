@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, use } from "react";
-import { Button, Card, Input, useToast } from "@/components";
+import { Button, Card, Input, useToast, useConfirm } from "@/components";
 
 const ALLOWED_ROLES = ["ADMIN", "HR"];
 
@@ -10,6 +10,7 @@ export default function EditBranchPage({ params }: { params: Promise<{ id: strin
   const { id } = use(params);
   const router = useRouter();
   const toast = useToast();
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
 
@@ -79,9 +80,13 @@ export default function EditBranchPage({ params }: { params: Promise<{ id: strin
   };
 
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this branch? This action cannot be undone.")) {
-      return;
-    }
+    const ok = await confirm({
+      title: "Delete branch?",
+      message: "Are you sure you want to delete this branch? This action cannot be undone.",
+      confirmText: "Delete",
+      variant: "danger",
+    });
+    if (!ok) return;
 
     try {
       const res = await fetch(`/api/branches/${id}`, {

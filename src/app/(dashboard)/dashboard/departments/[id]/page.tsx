@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, use } from "react";
-import { Button, Card, Input, Select, useToast } from "@/components";
+import { Button, Card, Input, Select, useToast, useConfirm } from "@/components";
 
 interface Branch {
   id: string;
@@ -22,6 +22,7 @@ export default function EditDepartmentPage({ params }: { params: Promise<{ id: s
   const { id } = use(params);
   const router = useRouter();
   const toast = useToast();
+  const confirm = useConfirm();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [deptUsers, setDeptUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
@@ -95,11 +96,13 @@ export default function EditDepartmentPage({ params }: { params: Promise<{ id: s
   };
 
   const handleDelete = async () => {
-    if (
-      !confirm("Are you sure you want to delete this department? This action cannot be undone.")
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: "Delete department?",
+      message: "Are you sure you want to delete this department? This action cannot be undone.",
+      confirmText: "Delete",
+      variant: "danger",
+    });
+    if (!ok) return;
 
     try {
       const res = await fetch(`/api/departments/${id}`, {

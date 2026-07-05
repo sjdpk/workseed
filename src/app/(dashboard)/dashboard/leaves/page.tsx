@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, useToast } from "@/components";
+import { Button, Card, useToast, useConfirm } from "@/components";
 import type { LeaveAllocation, LeaveRequest } from "@/types";
 
 type TabType = "all" | "pending" | "approved" | "rejected" | "cancelled";
@@ -11,6 +11,7 @@ export default function MyLeavesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const toast = useToast();
+  const confirm = useConfirm();
   const [allocations, setAllocations] = useState<(LeaveAllocation & { balance: number })[]>([]);
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +48,14 @@ export default function MyLeavesPage() {
   }, [searchParams]);
 
   const handleCancel = async (id: string) => {
-    if (!confirm("Are you sure you want to cancel this leave request?")) return;
+    const ok = await confirm({
+      title: "Cancel leave request?",
+      message: "Are you sure you want to cancel this leave request?",
+      confirmText: "Cancel request",
+      cancelText: "Keep",
+      variant: "danger",
+    });
+    if (!ok) return;
 
     try {
       const res = await fetch(`/api/leave-requests?id=${id}`, {

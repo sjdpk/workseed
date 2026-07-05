@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Button, Card, Input } from "@/components";
+import { Button, Card, Input, useConfirm } from "@/components";
 
 interface Holiday {
   id: string;
@@ -20,6 +20,7 @@ interface UserInfo {
 }
 
 export default function HolidaysPage() {
+  const confirm = useConfirm();
   const [user, setUser] = useState<UserInfo | null>(null);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,7 +93,13 @@ export default function HolidaysPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this holiday?")) return;
+    const ok = await confirm({
+      title: "Delete holiday?",
+      message: "Are you sure you want to delete this holiday?",
+      confirmText: "Delete",
+      variant: "danger",
+    });
+    if (!ok) return;
     const res = await fetch(`/api/holidays/${id}`, { method: "DELETE" });
     if (res.ok) fetchHolidays();
   };

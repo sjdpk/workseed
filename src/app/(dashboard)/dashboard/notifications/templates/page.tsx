@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Button, Card, useToast } from "@/components";
+import { Button, Card, useToast, useConfirm } from "@/components";
 
 interface EmailTemplate {
   id: string;
@@ -38,6 +38,7 @@ const TYPE_OPTIONS = [
 
 export default function TemplatesPage() {
   const toast = useToast();
+  const confirm = useConfirm();
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState("");
@@ -86,7 +87,13 @@ export default function TemplatesPage() {
   };
 
   const deleteTemplate = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this template?")) return;
+    const ok = await confirm({
+      title: "Delete template?",
+      message: "Are you sure you want to delete this template? This action cannot be undone.",
+      confirmText: "Delete",
+      variant: "danger",
+    });
+    if (!ok) return;
 
     try {
       const res = await fetch(`/api/notifications/templates/${id}`, {

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, Dropdown, useToast } from "@/components";
+import { Button, Dropdown, useToast, useConfirm } from "@/components";
 
 const ALLOWED_ROLES = ["ADMIN", "HR", "MANAGER", "TEAM_LEAD"];
 
@@ -70,6 +70,9 @@ interface DeviceLogRow {
   time: string;
   state: number | null;
   employee: { name: string; employeeId: string } | null;
+  // true = already imported into attendance, false = mapped but not yet synced,
+  // null = PIN not linked to any employee (can't sync until linked).
+  synced: boolean | null;
 }
 
 const SOURCES = [
@@ -118,6 +121,7 @@ const STATUS_OPTIONS = [
 export default function AttendanceManagePage() {
   const router = useRouter();
   const toast = useToast();
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [summary, setSummary] = useState<Summary>({ total: 0, present: 0, absent: 0 });
@@ -132,6 +136,8 @@ export default function AttendanceManagePage() {
   const [selectedDepartment, setSelectedDepartment] = useState("");
   const [selectedTeam, setSelectedTeam] = useState("");
   const [selectedSource, setSelectedSource] = useState("");
+  const [selectedDevice, setSelectedDevice] = useState(""); // device serial
+  const [refreshing, setRefreshing] = useState(false);
 
   // Device setup
   const [showDeviceSetup, setShowDeviceSetup] = useState(false);
@@ -183,7 +189,7 @@ export default function AttendanceManagePage() {
     if (loading) return;
     fetchRecords();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate, selectedDepartment, selectedTeam, selectedSource, loading]);
+  }, [selectedDate, selectedDepartment, selectedTeam, selectedSource, selectedDevice, loading]);
 
   const fetchRecords = async () => {
     const params = new URLSearchParams();
@@ -191,6 +197,7 @@ export default function AttendanceManagePage() {
     if (selectedDepartment) params.set("departmentId", selectedDepartment);
     if (selectedTeam) params.set("teamId", selectedTeam);
     if (selectedSource) params.set("source", selectedSource);
+    if (selectedDevice) params.set("deviceId", selectedDevice);
 
     const res = await fetch(`/api/attendance/records?${params}`);
     const data = await res.json();
@@ -198,6 +205,16 @@ export default function AttendanceManagePage() {
     if (data.success) {
       setRecords(data.data.records);
       setSummary(data.data.summary);
+    }
+  };
+
+  // Manual refresh — re-fetch the current filtered view.
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchRecords();
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -379,6 +396,7 @@ export default function AttendanceManagePage() {
     key: string
   ) => {
     setTestingKey(key);
+    toast.info("Connecting to the device…");
     try {
       const res = await fetch("/api/attendance/devices/test", {
         method: "POST",
@@ -415,7 +433,8 @@ export default function AttendanceManagePage() {
   const [inspectUsers, setInspectUsers] = useState<DeviceUserRow[] | null>(null);
   const [inspectUsersMeta, setInspectUsersMeta] = useState<{ total: number; mapped: number } | null>(null);
   const [inspectLogs, setInspectLogs] = useState<DeviceLogRow[] | null>(null);
-  const [inspectLogsMeta, setInspectLogsMeta] = useState<{ totalOnDevice: number; returned: number } | null>(null);
+  const [inspectLogsMeta, setInspectLogsMeta] = useState<{ totalOnDevice: number; returned: number; unsynced: number } | null>(null);
+  const [logsUnsyncedOnly, setLogsUnsyncedOnly] = useState(false);
 
   const loadInspector = async (id: string, tab: "users" | "logs") => {
     setInspectLoading(true);
@@ -432,7 +451,11 @@ export default function AttendanceManagePage() {
         setInspectUsersMeta({ total: data.data.total, mapped: data.data.mapped });
       } else {
         setInspectLogs(data.data.logs);
-        setInspectLogsMeta({ totalOnDevice: data.data.totalOnDevice, returned: data.data.returned });
+        setInspectLogsMeta({
+          totalOnDevice: data.data.totalOnDevice,
+          returned: data.data.returned,
+          unsynced: data.data.unsynced ?? 0,
+        });
       }
     } catch {
       setInspectError("Failed to reach the server");
@@ -449,6 +472,7 @@ export default function AttendanceManagePage() {
     setInspectUsersMeta(null);
     setInspectLogs(null);
     setInspectLogsMeta(null);
+    setLogsUnsyncedOnly(false);
     setInspectError(null);
     loadInspector(device.id, tab);
   };
@@ -566,12 +590,13 @@ export default function AttendanceManagePage() {
   // Backfill — import ALL historical punches from one device (ignores watermark).
   const [backfillingId, setBackfillingId] = useState<string | null>(null);
   const handleBackfill = async (device: Device) => {
-    if (
-      !confirm(
-        `Import all past punches from "${device.name}"?\n\nThis reads every log on the device and creates attendance for mapped employees. Safe to run, but may take a moment on a busy device.`
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: `Import all past punches from "${device.name}"?`,
+      message:
+        "This reads every log on the device and creates attendance for mapped employees. Safe to run, but may take a moment on a busy device.",
+      confirmText: "Import",
+    });
+    if (!ok) return;
     setBackfillingId(device.id);
     try {
       const res = await fetch(`/api/attendance/devices/${device.id}/backfill`, { method: "POST" });
@@ -801,6 +826,43 @@ export default function AttendanceManagePage() {
           ))}
         </select>
 
+        {devices.length > 0 && (
+          <select
+            value={selectedDevice}
+            onChange={(e) => setSelectedDevice(e.target.value)}
+            className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+          >
+            <option value="">All Devices</option>
+            {devices.map((d) => (
+              <option key={d.id} value={d.deviceId}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+        )}
+
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          title="Refresh records"
+          className="flex items-center gap-1.5 rounded border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+        >
+          <svg
+            className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            />
+          </svg>
+          Refresh
+        </button>
+
         {records.length > 0 && (
           <button
             onClick={exportCSV}
@@ -813,9 +875,8 @@ export default function AttendanceManagePage() {
       </div>
 
       {/* Records Table */}
-      <Card>
-        <div className="overflow-x-auto">
-          <table className="w-full">
+      <div className="overflow-x-auto">
+        <table className="w-full">
             <thead className="border-b border-gray-200 dark:border-gray-700">
               <tr>
                 <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
@@ -884,7 +945,6 @@ export default function AttendanceManagePage() {
             </tbody>
           </table>
         </div>
-      </Card>
 
       {/* Device List Sidebar */}
       {showDeviceList && (
@@ -988,7 +1048,13 @@ export default function AttendanceManagePage() {
                       </button>
                       <button
                         onClick={async () => {
-                          if (!confirm(`Delete device "${device.name}"?`)) return;
+                          const ok = await confirm({
+                            title: `Delete device "${device.name}"?`,
+                            message: "This action cannot be undone.",
+                            confirmText: "Delete",
+                            variant: "danger",
+                          });
+                          if (!ok) return;
                           try {
                             const res = await fetch(`/api/attendance/devices/${device.id}`, {
                               method: "DELETE",
@@ -1302,10 +1368,26 @@ export default function AttendanceManagePage() {
               ) : (
                 <>
                   {inspectLogsMeta && (
-                    <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
-                      Showing {inspectLogsMeta.returned} most recent of {inspectLogsMeta.totalOnDevice}{" "}
-                      logs on the device
-                    </p>
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Showing {inspectLogsMeta.returned} most recent of{" "}
+                        {inspectLogsMeta.totalOnDevice} logs on the device
+                        {inspectLogsMeta.unsynced > 0 && (
+                          <span className="ml-1 font-medium text-amber-600 dark:text-amber-400">
+                            · {inspectLogsMeta.unsynced} not yet in attendance
+                          </span>
+                        )}
+                      </p>
+                      <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+                        <input
+                          type="checkbox"
+                          checked={logsUnsyncedOnly}
+                          onChange={(e) => setLogsUnsyncedOnly(e.target.checked)}
+                          className="h-3.5 w-3.5 rounded border-gray-300 dark:border-gray-600"
+                        />
+                        Unsynced only
+                      </label>
+                    </div>
                   )}
                   <table className="w-full text-sm">
                     <thead className="border-b border-gray-200 text-left text-xs uppercase text-gray-500 dark:border-gray-700 dark:text-gray-400">
@@ -1313,32 +1395,53 @@ export default function AttendanceManagePage() {
                         <th className="px-2 py-2">Time</th>
                         <th className="px-2 py-2">PIN</th>
                         <th className="px-2 py-2">Employee</th>
+                        <th className="px-2 py-2">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                      {(inspectLogs ?? []).map((l, i) => (
-                        <tr key={`${l.pin}-${l.time}-${i}`}>
-                          <td className="px-2 py-2 text-gray-900 dark:text-white">
-                            {new Date(l.time).toLocaleString()}
-                          </td>
-                          <td className="px-2 py-2 font-mono text-gray-700 dark:text-gray-300">
-                            {l.pin}
-                          </td>
-                          <td className="px-2 py-2">
-                            {l.employee ? (
-                              <span className="text-gray-700 dark:text-gray-300">
-                                {l.employee.name}
-                              </span>
-                            ) : (
-                              <span className="text-xs text-gray-400">unmatched PIN</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                      {(inspectLogs ?? []).length === 0 && (
+                      {(inspectLogs ?? [])
+                        .filter((l) => !logsUnsyncedOnly || l.synced === false)
+                        .map((l, i) => (
+                          <tr key={`${l.pin}-${l.time}-${i}`}>
+                            <td className="px-2 py-2 text-gray-900 dark:text-white">
+                              {new Date(l.time).toLocaleString()}
+                            </td>
+                            <td className="px-2 py-2 font-mono text-gray-700 dark:text-gray-300">
+                              {l.pin}
+                            </td>
+                            <td className="px-2 py-2">
+                              {l.employee ? (
+                                <span className="text-gray-700 dark:text-gray-300">
+                                  {l.employee.name}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-gray-400">unmatched PIN</span>
+                              )}
+                            </td>
+                            <td className="px-2 py-2">
+                              {l.synced === true ? (
+                                <span className="inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400">
+                                  Synced
+                                </span>
+                              ) : l.synced === false ? (
+                                <span className="inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+                                  Not synced
+                                </span>
+                              ) : (
+                                <span className="inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                                  Unlinked
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      {(inspectLogs ?? []).filter((l) => !logsUnsyncedOnly || l.synced === false)
+                        .length === 0 && (
                         <tr>
-                          <td colSpan={3} className="px-2 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                            No punch logs on this device
+                          <td colSpan={4} className="px-2 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                            {logsUnsyncedOnly
+                              ? "No unsynced punches — everything is imported"
+                              : "No punch logs on this device"}
                           </td>
                         </tr>
                       )}

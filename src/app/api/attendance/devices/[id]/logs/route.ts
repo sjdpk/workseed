@@ -75,10 +75,34 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const mapped = pins.length
       ? await prisma.user.findMany({
           where: { deviceUserId: { in: pins } },
-          select: { deviceUserId: true, firstName: true, lastName: true, employeeId: true },
+          select: { id: true, deviceUserId: true, firstName: true, lastName: true, employeeId: true },
         })
       : [];
     const byPin = new Map(mapped.map((m) => [m.deviceUserId, m]));
+
+    // Determine which punches are already synced into attendance. A punch is
+    // "synced" when its matched employee has an attendance row for the punch's
+    // day (attendance is unique per [userId, date]). Fetch all relevant rows in
+    // one query, keyed by `${userId}|${YYYY-MM-DD}`.
+    const dayKey = (userId: string, time: Date) =>
+      `${userId}|${time.toISOString().slice(0, 10)}`;
+
+    const matchedUserIds = [...new Set(mapped.map((m) => m.id))];
+    const syncedKeys = new Set<string>();
+    if (matchedUserIds.length) {
+      const times = recent
+        .filter((p) => byPin.has(p.pin))
+        .map((p) => p.time.getTime());
+      const minDate = new Date(Math.min(...times));
+      const maxDate = new Date(Math.max(...times));
+      minDate.setHours(0, 0, 0, 0);
+      maxDate.setHours(23, 59, 59, 999);
+      const existing = await prisma.attendance.findMany({
+        where: { userId: { in: matchedUserIds }, date: { gte: minDate, lte: maxDate } },
+        select: { userId: true, date: true },
+      });
+      for (const a of existing) syncedKeys.add(dayKey(a.userId, a.date));
+    }
 
     const logs = recent.map((p) => {
       const emp = byPin.get(p.pin);
@@ -89,14 +113,20 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         employee: emp
           ? { name: `${emp.firstName} ${emp.lastName}`, employeeId: emp.employeeId }
           : null,
+        // true = already in attendance, false = mapped but not yet imported,
+        // null = no matching employee (can't be synced until the PIN is linked).
+        synced: emp ? syncedKeys.has(dayKey(emp.id, p.time)) : null,
       };
     });
+
+    const unsynced = logs.filter((l) => l.synced === false).length;
 
     return NextResponse.json({
       success: true,
       data: {
         totalOnDevice,
         returned: logs.length,
+        unsynced,
         limit,
         logs,
       },

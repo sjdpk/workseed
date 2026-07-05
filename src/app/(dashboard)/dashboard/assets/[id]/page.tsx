@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, use } from "react";
-import { Button, Card, Input, Select, useToast } from "@/components";
+import { Button, Card, Input, Select, useToast, useConfirm } from "@/components";
 
 interface User {
   id: string;
@@ -93,6 +93,7 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
   const { id } = use(params);
   const router = useRouter();
   const toast = useToast();
+  const confirm = useConfirm();
   const [asset, setAsset] = useState<Asset | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -287,7 +288,13 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
   };
 
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this asset?")) return;
+    const ok = await confirm({
+      title: "Delete asset?",
+      message: "Are you sure you want to delete this asset? This action cannot be undone.",
+      confirmText: "Delete",
+      variant: "danger",
+    });
+    if (!ok) return;
 
     try {
       const res = await fetch(`/api/assets/${id}`, {

@@ -9,3 +9,5 @@ export { ThemeProvider } from "./ThemeProvider";
 export { OrgThemeProvider, useOrgTheme } from "./OrgThemeProvider";
 export { ThemeToggle } from "./ThemeToggle";
 export { ToastProvider, useToast } from "./Toast";
+export { ConfirmProvider, useConfirm } from "./ConfirmDialog";
+export type { ConfirmOptions } from "./ConfirmDialog";

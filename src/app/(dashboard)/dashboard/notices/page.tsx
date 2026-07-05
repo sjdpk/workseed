@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card } from "@/components";
+import { Button, Card, useConfirm } from "@/components";
 
 interface Notice {
   id: string;
@@ -24,6 +24,7 @@ const ALLOWED_ROLES = ["ADMIN", "HR"];
 
 export default function NoticesPage() {
   const router = useRouter();
+  const confirm = useConfirm();
   const [notices, setNotices] = useState<Notice[]>([]);
   const [_currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,7 +71,13 @@ export default function NoticesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this notice?")) return;
+    const ok = await confirm({
+      title: "Delete notice?",
+      message: "Are you sure you want to delete this notice?",
+      confirmText: "Delete",
+      variant: "danger",
+    });
+    if (!ok) return;
     await fetch(`/api/notices/${id}`, { method: "DELETE" });
     fetchNotices();
   };
