@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+// NOTE: matched with startsWith(), so never add "/" here — it would make every
+// route public. "/" needs no entry: only /dashboard is token-guarded, and the
+// marketing landing page at "/" is public by default.
 const publicPaths = ["/login", "/api/auth/login", "/api/auth/logout"];
 
 export function middleware(request: NextRequest) {
@@ -60,11 +63,6 @@ export function middleware(request: NextRequest) {
     response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
     response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
     response.headers.set("Access-Control-Allow-Credentials", "true");
-  }
-
-  // Redirect to dashboard if logged in and trying to access login
-  if (token && pathname === "/") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return response;

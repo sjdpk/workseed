@@ -109,7 +109,7 @@ export default function LoginPage() {
         </div>
 
         <div className="relative">
-          <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3" aria-label="Back to home">
             {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic URL from org settings */}
             <img
               src={orgSettings?.logoUrl || "/logo.png"}
@@ -117,7 +117,7 @@ export default function LoginPage() {
               className="h-10 w-10 rounded-xl object-contain shadow-lg"
             />
             <span className="text-lg font-semibold text-white">{orgName}</span>
-          </div>
+          </Link>
         </div>
 
         <div className="relative space-y-6">
@@ -163,8 +163,8 @@ export default function LoginPage() {
 
       {/* Right side - Login form */}
       <div className="flex w-full flex-col lg:w-1/2">
-        <div className="flex items-center justify-between p-6 lg:p-8">
-          <div className="flex items-center gap-2.5 lg:hidden">
+        <div className="flex items-center justify-between gap-4 p-6 lg:p-8">
+          <Link href="/" className="flex items-center gap-2.5 lg:hidden" aria-label="Back to home">
             {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic URL from org settings */}
             <img
               src={orgSettings?.logoUrl || "/logo.png"}
@@ -172,8 +172,24 @@ export default function LoginPage() {
               className="h-8 w-8 rounded-xl object-contain shadow-md"
             />
             <span className="font-semibold text-gray-900 dark:text-white">{orgName}</span>
-          </div>
-          <div className="ml-auto">
+          </Link>
+          <div className="ml-auto flex items-center gap-3">
+            <Link
+              href="/"
+              className="flex items-center gap-1.5 rounded px-2 py-1 text-sm text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+                aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              Home
+            </Link>
             <ThemeToggle />
           </div>
         </div>

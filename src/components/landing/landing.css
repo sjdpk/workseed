@@ -1,0 +1,1814 @@
+/* ============================================================
+   WORKSEEDS LANDING — light/dark on one token set
+   Display+body: Figtree · Data/labels: DM Mono
+
+   Theme comes from next-themes, exactly like the app: the provider puts
+   `.dark` on <html>, so the dark block below keys off `.dark`. Light/Dark/Auto
+   is driven by the shared <ThemeToggle />; there is no landing-only theme state.
+
+   Ported from the standalone HTML prototype. Every selector is scoped
+   under .ws-landing so the marketing page cannot leak styles into the
+   authenticated app (which is Tailwind-driven).
+   ============================================================ */
+
+/* html-level paint so overscroll matches the landing tokens rather than the
+   app's --background (which is a different pair of neutrals) */
+html:has(.ws-landing) {
+  background: #eff1f4;
+  scroll-behavior: smooth;
+}
+html.dark:has(.ws-landing) {
+  background: #0c0e13;
+}
+/* the hero rails and the pinned stories track are wider than the viewport by
+   design — kept on body (not on .ws-landing) because overflow on the wrapper
+   would turn it into a scroll container and break every position:sticky in it */
+html:has(.ws-landing) body {
+  overflow-x: hidden;
+}
+
+/* ---- LIGHT: soft paper, dot grid, layered shadows (default) ---- */
+.ws-landing {
+  color-scheme: light;
+  --bg: #eff1f4;
+  --bg-2: #f7f8fa;
+  --surface: #ffffff;
+  --surface-2: #f4f6f8;
+  --ink: #101319;
+  --ink-2: #4a515c;
+  --ink-3: #8a919d;
+  --line: rgba(16, 19, 25, 0.09);
+  --line-strong: rgba(16, 19, 25, 0.16);
+  --dot: rgba(16, 19, 25, 0.075);
+  --accent: #2f55ff;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(47, 85, 255, 0.1);
+  --ok: #12a150;
+  --ok-soft: rgba(18, 161, 80, 0.12);
+  --warn: #e08700;
+  --warn-soft: rgba(224, 135, 0, 0.14);
+  --sh-1: 0 1px 2px rgba(16, 24, 40, 0.05), 0 10px 26px -10px rgba(16, 24, 40, 0.14);
+  --sh-2: 0 2px 4px rgba(16, 24, 40, 0.05), 0 30px 60px -18px rgba(16, 24, 40, 0.22);
+  --ring: rgba(47, 85, 255, 0.28);
+}
+/* ---- DARK ---- */
+.dark .ws-landing {
+  color-scheme: dark;
+  --bg: #0c0e13;
+  --bg-2: #10131a;
+  --surface: #171b23;
+  --surface-2: #1d222b;
+  --ink: #f1f2f4;
+  --ink-2: #a8aeb9;
+  --ink-3: #6e757f;
+  --line: rgba(241, 242, 244, 0.11);
+  --line-strong: rgba(241, 242, 244, 0.22);
+  --dot: rgba(241, 242, 244, 0.07);
+  --accent: #5c7cff;
+  --accent-ink: #08090c;
+  --accent-soft: rgba(92, 124, 255, 0.16);
+  --ok: #3ecf84;
+  --ok-soft: rgba(62, 207, 132, 0.14);
+  --warn: #ffb23f;
+  --warn-soft: rgba(255, 178, 63, 0.14);
+  --sh-1: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 30px -12px rgba(0, 0, 0, 0.7);
+  --sh-2: 0 2px 6px rgba(0, 0, 0, 0.55), 0 34px 70px -20px rgba(0, 0, 0, 0.8);
+  --ring: rgba(92, 124, 255, 0.45);
+}
+
+.ws-landing * {
+  box-sizing: border-box;
+}
+
+/* ---------- photography ----------
+   One pattern everywhere: a figure.shot holding an <img>, a gradient,
+   an optional stat line and a credit. */
+.ws-landing .shot {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  isolation: isolate;
+  background-image: linear-gradient(155deg, var(--g1, #2c3444), var(--g2, #14181f));
+}
+.ws-landing .shot img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ws-landing .shot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(200deg, rgba(8, 10, 14, 0) 38%, rgba(8, 10, 14, 0.72));
+}
+.ws-landing .shot .stat {
+  position: absolute;
+  z-index: 3;
+  left: clamp(16px, 2vw, 26px);
+  bottom: clamp(14px, 1.8vw, 22px);
+  color: #fff;
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.5);
+}
+.ws-landing .shot .stat b {
+  font-size: clamp(1.5rem, 2.4vw, 2.1rem);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+.ws-landing .shot .stat span {
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.82);
+  max-width: 15ch;
+  line-height: 1.3;
+}
+.ws-landing .shot .credit {
+  position: absolute;
+  z-index: 3;
+  right: 12px;
+  bottom: 11px;
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+/* photos sit quieter in dark mode so they don't shout */
+.dark .ws-landing .shot img {
+  filter: brightness(0.82) saturate(0.9);
+}
+
+/* initials instead of stock faces: a stranger's portrait next to a named
+   testimonial implies an endorsement they never gave. */
+.ws-landing .av {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.ws-landing .av.lg {
+  width: 38px;
+  height: 38px;
+  font-size: 11.5px;
+}
+
+.ws-landing {
+  min-height: 100svh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family:
+    var(--font-figtree),
+    Figtree,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  font-size: clamp(15px, 1.02vw, 16.5px);
+  line-height: 1.55;
+  letter-spacing: -0.008em;
+  -webkit-font-smoothing: antialiased;
+  transition:
+    background 0.45s ease,
+    color 0.45s ease;
+}
+.ws-landing h1,
+.ws-landing h2,
+.ws-landing h3,
+.ws-landing h4 {
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+}
+.ws-landing a {
+  color: inherit;
+  text-decoration: none;
+}
+.ws-landing p {
+  margin: 0;
+}
+.ws-landing .mono {
+  font-family: var(--font-dm-mono), ui-monospace, monospace;
+  font-size: 11.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.ws-landing .wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 clamp(18px, 4vw, 48px);
+}
+.ws-landing :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+.ws-landing .muted {
+  color: var(--ink-3);
+}
+
+/* ---------- buttons ---------- */
+.ws-landing .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.93rem;
+  line-height: 1.15;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.3s,
+    background 0.3s,
+    border-color 0.3s;
+  box-shadow: var(--sh-1);
+}
+.ws-landing .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sh-2);
+}
+.ws-landing .btn.pri {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.ws-landing .btn.ghost {
+  background: transparent;
+  box-shadow: none;
+}
+.ws-landing .btn.ghost:hover {
+  background: var(--accent-soft);
+  box-shadow: none;
+  transform: none;
+}
+.ws-landing .btn.lg {
+  padding: 12px 26px;
+  font-size: 0.97rem;
+  border-radius: 11px;
+}
+
+/* ---------- nav ---------- */
+.ws-landing header {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 70;
+  transition: background 0.4s;
+  backdrop-filter: blur(16px);
+}
+.ws-landing header.stuck {
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+}
+/* grid, not flex: logo pinned left, links centred, controls pinned right —
+   so hiding the links can never drag the right-hand group inwards */
+.ws-landing .nav {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  height: 72px;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 4vw, 48px);
+}
+.ws-landing .logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 1.2rem;
+  letter-spacing: -0.04em;
+  justify-self: start;
+  user-select: none;
+  white-space: nowrap;
+}
+.ws-landing .logo svg {
+  flex: 0 0 auto;
+}
+.ws-landing .nav-links {
+  display: flex;
+  gap: 2px;
+  justify-self: center;
+}
+.ws-landing .nav-links a {
+  padding: 9px 13px;
+  border-radius: 9px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: var(--ink-2);
+  transition:
+    background 0.25s,
+    color 0.25s;
+  white-space: nowrap;
+}
+.ws-landing .nav-links a:hover {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.ws-landing .nav-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: end;
+}
+
+/* burger + drawer. Fixed gap means the converge distance is knowable —
+   bar centres are (height + gap) apart, so ±6.5px lands them on top of
+   each other. Sized 38px to match the theme switcher beside it. */
+.ws-landing .burger {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 11px;
+  border: 0;
+  background: var(--surface-2);
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    background 0.3s,
+    border-color 0.3s;
+}
+.ws-landing .burger:hover {
+  background: var(--surface);
+  box-shadow: var(--sh-1);
+}
+.ws-landing .burger span {
+  display: block;
+  width: 16px;
+  height: 1.5px;
+  background: currentColor;
+  border-radius: 2px;
+  transition:
+    transform 0.38s cubic-bezier(0.5, 0, 0.2, 1),
+    opacity 0.16s linear;
+}
+.ws-landing .burger[aria-expanded="true"] span:nth-child(1) {
+  transform: translateY(6.5px) rotate(45deg);
+}
+.ws-landing .burger[aria-expanded="true"] span:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0.3);
+}
+.ws-landing .burger[aria-expanded="true"] span:nth-child(3) {
+  transform: translateY(-6.5px) rotate(-45deg);
+}
+.ws-landing .drawer {
+  position: fixed;
+  top: 72px;
+  left: 0;
+  right: 0;
+  z-index: 69;
+  height: 0;
+  overflow: hidden;
+  background: var(--bg);
+  transition: background 0.45s;
+}
+.ws-landing .drawer.open {
+  box-shadow: var(--sh-2);
+}
+.ws-landing .drawer-in {
+  padding: 6px clamp(16px, 4vw, 48px) 22px;
+  max-width: 1280px;
+  margin: 0 auto;
+  display: grid;
+}
+.ws-landing .drawer a.dl {
+  padding: 15px 4px;
+  font-weight: 600;
+  font-size: 1.06rem;
+  letter-spacing: -0.02em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition:
+    padding-left 0.28s,
+    color 0.28s;
+}
+.ws-landing .drawer a.dl:hover {
+  padding-left: 10px;
+  color: var(--accent);
+}
+.ws-landing .drawer a.dl svg {
+  color: var(--ink-3);
+}
+.ws-landing .drawer .two-up {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+@media (max-width: 1060px) {
+  .ws-landing .nav {
+    grid-template-columns: auto 1fr;
+  }
+  .ws-landing .nav-links,
+  .ws-landing .signin,
+  .ws-landing .demo-nav {
+    display: none;
+  }
+  .ws-landing .burger {
+    display: flex;
+  }
+}
+@media (max-width: 430px) {
+  .ws-landing .logo {
+    font-size: 1.08rem;
+  }
+}
+
+/* ---------- custom cursor ----------
+   Added by <Cursor />, which also adds .cursor-custom — so the native cursor is
+   only hidden once the replacement is actually running. Text fields keep their
+   caret cursor: typing without one is miserable. */
+.ws-landing.cursor-custom,
+.ws-landing.cursor-custom * {
+  cursor: none;
+}
+.ws-landing.cursor-custom :is(input, textarea) {
+  cursor: text;
+}
+.ws-cursor-dot,
+.ws-cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 200;
+  pointer-events: none;
+  border-radius: 50%;
+  visibility: hidden;
+  opacity: 0;
+  mix-blend-mode: difference;
+  will-change: transform;
+}
+.ws-cursor-dot {
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  background: #fff;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.ws-cursor-dot.hot {
+  transform: scale(0);
+}
+.ws-cursor-ring {
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  border: 1.5px solid #fff;
+  transition:
+    width 0.32s cubic-bezier(0.2, 0.8, 0.2, 1),
+    height 0.32s cubic-bezier(0.2, 0.8, 0.2, 1),
+    margin 0.32s cubic-bezier(0.2, 0.8, 0.2, 1),
+    background 0.32s,
+    border-color 0.32s;
+}
+.ws-cursor-ring.hot {
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  background: rgba(255, 255, 255, 0.16);
+}
+.ws-cursor-ring.down {
+  background: rgba(255, 255, 255, 0.34);
+}
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .ws-cursor-dot,
+  .ws-cursor-ring {
+    display: none;
+  }
+}
+
+/* The theme control is the shared <ThemeToggle /> (Light / Dark / Auto), the
+   same component the auth and dashboard screens use — it carries its own
+   Tailwind styling, so there is no landing-specific switcher CSS here. */
+
+/* ---------- hero ----------
+   The centre column owns a fixed width (--center). The two card rails are
+   sized from whatever is left over, so a floating card physically cannot
+   reach the text at any viewport. Under 1300px the gutters are too narrow
+   for that to work, so the same cards reflow into a swipeable strip. */
+.ws-landing .hero {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  --center: 800px;
+  --inset: clamp(6px, 1.5vw, 30px);
+  padding: calc(72px + clamp(24px, 5vh, 64px)) 0 clamp(26px, 5vh, 64px);
+}
+.ws-landing .hero-plate {
+  position: relative;
+  min-height: min(700px, 84svh);
+  display: grid;
+  align-content: center;
+  padding: clamp(20px, 4vh, 52px) 0;
+}
+.ws-landing .hero-plate::before {
+  content: "";
+  position: absolute;
+  inset: -10% 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(var(--dot) 1.1px, transparent 1.1px);
+  background-size: 20px 20px;
+  -webkit-mask-image: radial-gradient(108% 82% at 50% 40%, #000 24%, transparent 74%);
+  mask-image: radial-gradient(108% 82% at 50% 40%, #000 24%, transparent 74%);
+}
+.ws-landing .hero-mid {
+  position: relative;
+  z-index: 5;
+  text-align: center;
+  width: min(var(--center), 100%);
+  margin: 0 auto;
+  padding: 0 clamp(16px, 4vw, 24px);
+}
+.ws-landing h1 {
+  font-size: clamp(2.05rem, 4.8vw, 4.5rem);
+}
+.ws-landing h1 .line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.05em;
+}
+.ws-landing h1 .line > span {
+  display: block;
+}
+.ws-landing h1 .soft {
+  color: var(--ink-3);
+}
+/* rotating word. The container's width is set in JS to the incoming word and
+   CSS transitions it, so "by Friday." slides across rather than jumping. */
+.ws-landing .rot {
+  display: inline-block;
+  position: relative;
+  overflow: hidden;
+  vertical-align: top;
+  color: var(--ink);
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+  transition: width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.ws-landing .rot i {
+  display: inline-block;
+  font-style: normal;
+  white-space: nowrap;
+  will-change: transform;
+}
+.ws-landing .rot .rot-m {
+  position: absolute;
+  left: 0;
+  top: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.ws-landing .sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.ws-landing .sub {
+  margin: clamp(16px, 2.6vh, 24px) auto 0;
+  max-width: 48ch;
+  color: var(--ink-2);
+  font-size: clamp(0.98rem, 1.25vw, 1.14rem);
+}
+.ws-landing .hero-cta {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: clamp(22px, 3.4vh, 34px);
+}
+.ws-landing .hero-note {
+  margin-top: clamp(20px, 2.8vh, 30px);
+  font-size: 0.85rem;
+  max-width: 46ch;
+  margin-inline: auto;
+}
+
+/* ---------- card rails ---------- */
+.ws-landing .rails {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.ws-landing .rail {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: calc((100% - var(--center)) / 2);
+}
+.ws-landing .rail-l {
+  left: 0;
+}
+.ws-landing .rail-r {
+  right: 0;
+}
+.ws-landing .float {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  pointer-events: auto;
+  width: min(var(--w, 262px), calc(100% - var(--inset) * 2));
+  will-change: transform;
+}
+.ws-landing .float .in {
+  animation: ws-bob 7s ease-in-out infinite;
+  will-change: transform;
+}
+/* scale lives in the keyframes: the JS parallax owns .float's transform, so a
+   media-query scale there would be overwritten on every frame */
+@keyframes ws-bob {
+  0%,
+  100% {
+    transform: translateY(0) scale(var(--sc, 1));
+  }
+  50% {
+    transform: translateY(-11px) rotate(var(--r2, 0deg)) scale(var(--sc, 1));
+  }
+}
+.ws-landing .card {
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: var(--sh-2);
+  padding: 15px;
+  width: 100%;
+  transition:
+    background 0.45s,
+    border-color 0.45s;
+}
+.ws-landing .float .note {
+  max-width: none;
+}
+/* left rail, top to bottom */
+.ws-landing .f1 {
+  top: 2%;
+  --w: 266px;
+}
+.ws-landing .f1 .card {
+  transform: rotate(-1.8deg);
+}
+.ws-landing .f2 {
+  top: 39%;
+  --w: 240px;
+}
+.ws-landing .f5 {
+  bottom: 2%;
+  --w: 242px;
+}
+.ws-landing .f5 .card {
+  transform: rotate(1.6deg);
+}
+/* right rail, top to bottom */
+.ws-landing .f3 {
+  top: 3%;
+  --w: 268px;
+}
+.ws-landing .f3 .card {
+  transform: rotate(2.2deg);
+}
+.ws-landing .f6 {
+  top: 41%;
+  --w: 214px;
+}
+.ws-landing .f6 .card {
+  transform: rotate(-2.6deg);
+}
+.ws-landing .f4 {
+  bottom: 3%;
+  --w: 252px;
+}
+.ws-landing .f4 .card {
+  transform: rotate(-1.8deg);
+}
+@media (max-width: 1560px) {
+  .ws-landing .float {
+    --sc: 0.94;
+  }
+}
+
+/* under 1300px: rails become a horizontal strip under the copy */
+@media (max-width: 1299px) {
+  .ws-landing .hero {
+    padding-bottom: clamp(16px, 3vh, 36px);
+  }
+  .ws-landing .hero-plate {
+    min-height: auto;
+    padding-bottom: 0;
+  }
+  .ws-landing .hero-mid {
+    order: 1;
+  }
+  .ws-landing .rails {
+    order: 2;
+    position: static;
+    display: flex;
+    gap: 14px;
+    pointer-events: auto;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding: clamp(26px, 4vh, 44px) clamp(16px, 4vw, 48px) 10px;
+    scrollbar-width: none;
+  }
+  .ws-landing .rails::-webkit-scrollbar {
+    display: none;
+  }
+  .ws-landing .rail {
+    position: static;
+    display: flex;
+    gap: 14px;
+    width: auto;
+    flex: 0 0 auto;
+  }
+  .ws-landing .float {
+    position: relative;
+    top: auto;
+    bottom: auto;
+    left: auto;
+    right: auto;
+    margin: 0;
+    width: auto;
+    flex: 0 0 auto;
+    transform: none;
+  }
+  .ws-landing .float .in {
+    animation: none;
+  }
+  .ws-landing .float .card,
+  .ws-landing .float .note {
+    width: min(74vw, 258px);
+    transform: none;
+  }
+}
+
+/* mini UI inside the floating cards */
+.ws-landing .w-title {
+  font-weight: 600;
+  font-size: 0.92rem;
+  margin-bottom: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.ws-landing .row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--line);
+}
+.ws-landing .row:first-of-type {
+  border-top: 0;
+}
+.ws-landing .bar {
+  height: 5px;
+  border-radius: 99px;
+  background: var(--surface-2);
+  overflow: hidden;
+  flex: 1;
+}
+.ws-landing .bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 99px;
+}
+.ws-landing .chip {
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+.ws-landing .chip.ok {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.ws-landing .chip.warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.ws-landing .chip.acc {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.ws-landing .big-num {
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 1.34rem;
+  letter-spacing: -0.03em;
+  font-weight: 500;
+}
+.ws-landing .note {
+  background: #fff3b8;
+  color: #3b3211;
+  border-radius: 4px;
+  padding: 16px 15px;
+  box-shadow: var(--sh-2);
+  max-width: 230px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  transform: rotate(-3deg);
+  border: 0;
+}
+.dark .ws-landing .note {
+  background: #f2e9a8;
+}
+.ws-landing .note .pin {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #e5484d;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+.ws-landing .spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 38px;
+  margin-top: 4px;
+}
+.ws-landing .spark i {
+  flex: 1;
+  background: var(--accent-soft);
+  border-radius: 3px 3px 0 0;
+}
+.ws-landing .spark i:last-child {
+  background: var(--accent);
+}
+
+/* ---------- ticker ---------- */
+.ws-landing .ticker {
+  display: flex;
+  overflow: hidden;
+  padding: 26px 0;
+  gap: 0;
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+.ws-landing .t-row {
+  display: flex;
+  gap: clamp(28px, 4vw, 60px);
+  padding-right: clamp(28px, 4vw, 60px);
+  flex: 0 0 auto;
+  animation: ws-slide 32s linear infinite;
+}
+.ws-landing .t-row span {
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: 1.02rem;
+  color: var(--ink-3);
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.ws-landing .t-row span::before {
+  content: "";
+  width: 19px;
+  height: 19px;
+  flex: 0 0 auto;
+  background: currentColor;
+  opacity: 0.5;
+  border-radius: 5px;
+}
+.ws-landing .t-row span:nth-child(2n)::before {
+  border-radius: 50%;
+}
+.ws-landing .t-row span:nth-child(3n)::before {
+  border-radius: 3px;
+  transform: rotate(45deg);
+  width: 16px;
+  height: 16px;
+}
+.ws-landing .t-row span:nth-child(4n)::before {
+  border-radius: 50% 50% 50% 4px;
+}
+@keyframes ws-slide {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+/* ---------- image gallery ---------- */
+.ws-landing .gallery {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(12px, 1.5vw, 22px);
+  padding-bottom: clamp(56px, 10vh, 120px);
+}
+.ws-landing .gcard {
+  background: var(--surface);
+  border-radius: 18px;
+  box-shadow: var(--sh-1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition:
+    transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.45s,
+    background 0.45s;
+}
+.ws-landing .gcard:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--sh-2);
+}
+.ws-landing .gcard .shot {
+  aspect-ratio: 16 / 10;
+  flex: 0 0 auto;
+}
+.ws-landing .gcard .badge {
+  position: absolute;
+  top: 13px;
+  left: 13px;
+  z-index: 3;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  backdrop-filter: blur(8px);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.ws-landing .gcard .txt {
+  padding: clamp(18px, 2.1vw, 25px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+.ws-landing .gcard h3 {
+  font-size: 1.15rem;
+  letter-spacing: -0.03em;
+}
+.ws-landing .gcard p {
+  color: var(--ink-2);
+  font-size: 0.93rem;
+}
+.ws-landing .gcard .who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 16px;
+  font-size: 0.86rem;
+}
+@media (max-width: 900px) {
+  .ws-landing .gallery {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- section frame ---------- */
+.ws-landing section {
+  position: relative;
+}
+.ws-landing .sec-head {
+  padding: clamp(60px, 11vh, 132px) 0 clamp(28px, 4.6vh, 54px);
+  max-width: 760px;
+}
+.ws-landing .sec-head.center {
+  margin: 0 auto;
+  text-align: center;
+}
+.ws-landing .sec-head h2 {
+  font-size: clamp(1.85rem, 4.3vw, 3.5rem);
+  margin: 14px 0 0;
+}
+.ws-landing .sec-head p {
+  margin-top: 16px;
+  color: var(--ink-2);
+  font-size: clamp(1rem, 1.3vw, 1.12rem);
+  max-width: 56ch;
+}
+.ws-landing .sec-head.center p {
+  margin-inline: auto;
+}
+
+/* ---------- modules: sticky stack ---------- */
+.ws-landing .stack {
+  padding-bottom: clamp(50px, 10vh, 120px);
+}
+.ws-landing .mod {
+  position: sticky;
+  top: clamp(78px, 9vh, 100px);
+  margin-bottom: 26px;
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--sh-1);
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr);
+  transform-origin: top center;
+  transition:
+    background 0.45s,
+    border-color 0.45s;
+}
+.ws-landing .mod-l {
+  padding: clamp(22px, 2.9vw, 42px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.ws-landing .mod-l h3 {
+  font-size: clamp(1.3rem, 2.2vw, 1.95rem);
+  max-width: 22ch;
+}
+.ws-landing .mod-l p {
+  color: var(--ink-2);
+  max-width: 42ch;
+  font-size: 0.97rem;
+}
+.ws-landing .mod-l .pts {
+  list-style: none;
+  margin: auto 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.ws-landing .mod-l .pts li {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 0.93rem;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+.ws-landing .mod-l .pts svg {
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+.ws-landing .mod-r {
+  min-height: clamp(280px, 34vh, 400px);
+}
+@media (max-width: 900px) {
+  .ws-landing .mod {
+    grid-template-columns: 1fr;
+    top: 76px;
+  }
+  .ws-landing .mod-r {
+    min-height: 230px;
+    order: -1;
+  }
+}
+
+/* ---------- timeline grid ---------- */
+.ws-landing .grid4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: clamp(12px, 1.4vw, 20px);
+  padding-bottom: clamp(56px, 10vh, 120px);
+}
+.ws-landing .step {
+  background: var(--surface);
+  border-radius: 18px;
+  padding: clamp(18px, 2.2vw, 28px);
+  box-shadow: var(--sh-1);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 250px;
+  transition:
+    transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.4s,
+    background 0.45s;
+}
+.ws-landing .step:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--sh-2);
+}
+.ws-landing .step .idx {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 12px;
+  font-weight: 500;
+}
+.ws-landing .step h3 {
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+}
+.ws-landing .step p {
+  color: var(--ink-2);
+  font-size: 0.94rem;
+}
+.ws-landing .step .mono {
+  margin-top: auto;
+}
+@media (max-width: 980px) {
+  .ws-landing .grid4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 560px) {
+  .ws-landing .grid4 {
+    grid-template-columns: 1fr;
+  }
+  .ws-landing .step {
+    min-height: auto;
+  }
+}
+
+/* ---------- pinned horizontal stories ---------- */
+.ws-landing .stories {
+  height: 100svh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+.ws-landing .st-track {
+  display: flex;
+  gap: clamp(14px, 1.6vw, 22px);
+  padding: 0 clamp(18px, 4vw, 48px);
+  will-change: transform;
+}
+.ws-landing .st-intro {
+  flex: 0 0 clamp(230px, 25vw, 330px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+}
+.ws-landing .st-intro h2 {
+  font-size: clamp(1.7rem, 3.2vw, 2.8rem);
+}
+.ws-landing .story {
+  flex: 0 0 clamp(268px, 32vw, 410px);
+  background: var(--surface);
+  border-radius: 20px;
+  box-shadow: var(--sh-1);
+  padding: clamp(20px, 2.4vw, 32px);
+  height: clamp(370px, 56vh, 500px);
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  transition:
+    box-shadow 0.4s,
+    background 0.45s;
+}
+.ws-landing .story:hover {
+  box-shadow: var(--sh-2);
+}
+.ws-landing .story .quote {
+  font-size: clamp(1.02rem, 1.5vw, 1.24rem);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.32;
+}
+.ws-landing .story p {
+  color: var(--ink-2);
+  font-size: 0.94rem;
+}
+.ws-landing .story .who {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding-top: 17px;
+}
+.ws-landing .story .who div {
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+.ws-landing .story .who .av {
+  width: 38px;
+  height: 38px;
+}
+.ws-landing .story .who b {
+  font-weight: 600;
+}
+
+/* ---------- metrics ---------- */
+.ws-landing .metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: clamp(12px, 1.4vw, 20px);
+  padding-bottom: clamp(56px, 10vh, 120px);
+}
+.ws-landing .metric {
+  background: var(--surface);
+  border-radius: 18px;
+  padding: clamp(20px, 2.4vw, 30px);
+  box-shadow: var(--sh-1);
+  transition: background 0.45s;
+}
+.ws-landing .metric span {
+  display: block;
+  font-size: clamp(1.9rem, 4vw, 3.1rem);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+.ws-landing .metric p {
+  margin-top: 10px;
+  color: var(--ink-2);
+  font-size: 0.93rem;
+  max-width: 26ch;
+}
+@media (max-width: 880px) {
+  .ws-landing .metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ---------- pricing ---------- */
+.ws-landing .tiers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(12px, 1.4vw, 20px);
+  padding-bottom: clamp(56px, 10vh, 120px);
+  align-items: start;
+}
+.ws-landing .tier {
+  background: var(--surface);
+  border-radius: 20px;
+  padding: clamp(22px, 2.6vw, 34px);
+  box-shadow: var(--sh-1);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition:
+    background 0.45s,
+    border-color 0.45s;
+}
+.ws-landing .tier.best {
+  background: color-mix(in srgb, var(--accent-soft) 45%, var(--surface));
+  box-shadow: var(--sh-2);
+  position: relative;
+}
+.ws-landing .tier.best::after {
+  content: "Most chosen";
+  position: absolute;
+  top: -11px;
+  left: clamp(22px, 2.6vw, 34px);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+.ws-landing .tier h3 {
+  font-size: 1.24rem;
+  letter-spacing: -0.03em;
+}
+.ws-landing .price {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+.ws-landing .price b {
+  font-size: clamp(2.1rem, 3.6vw, 2.9rem);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+}
+.ws-landing .price span {
+  color: var(--ink-3);
+  font-size: 0.9rem;
+  padding-bottom: 5px;
+}
+.ws-landing .tier ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 11px;
+  font-size: 0.94rem;
+  color: var(--ink-2);
+}
+.ws-landing .tier li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.ws-landing .tier li svg {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  color: var(--ok);
+}
+.ws-landing .tier .btn {
+  width: 100%;
+  margin-top: auto;
+}
+@media (max-width: 900px) {
+  .ws-landing .tiers {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- free mobile app band ---------- */
+.ws-landing .appband {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: clamp(28px, 5vw, 80px);
+  align-items: center;
+  background: var(--surface);
+  border-radius: 24px;
+  box-shadow: var(--sh-1);
+  padding: clamp(26px, 4vw, 60px);
+  margin-bottom: clamp(56px, 10vh, 120px);
+  position: relative;
+  overflow: hidden;
+  transition: background 0.45s;
+}
+.ws-landing .appband::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(var(--dot) 1.1px, transparent 1.1px);
+  background-size: 20px 20px;
+  -webkit-mask-image: radial-gradient(70% 90% at 88% 10%, #000, transparent 72%);
+  mask-image: radial-gradient(70% 90% at 88% 10%, #000, transparent 72%);
+}
+.ws-landing .appband > * {
+  position: relative;
+  z-index: 2;
+}
+.ws-landing .appband h2 {
+  font-size: clamp(1.6rem, 3.2vw, 2.6rem);
+  max-width: 17ch;
+  margin: 12px 0 14px;
+}
+.ws-landing .appband p {
+  color: var(--ink-2);
+  max-width: 44ch;
+}
+.ws-landing .appband .pts {
+  list-style: none;
+  margin: 22px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.ws-landing .appband .pts li {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+.ws-landing .appband .pts svg {
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+.ws-landing .applinks {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+}
+.ws-landing .applinks .chip {
+  font-size: 11px;
+  padding: 6px 11px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+}
+.ws-landing .applinks .chip.free {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+/* phone, drawn rather than screenshotted */
+.ws-landing .phone {
+  width: 242px;
+  flex: 0 0 auto;
+  border-radius: 34px;
+  background: var(--surface-2);
+  padding: 9px;
+  box-shadow: var(--sh-2);
+  position: relative;
+  justify-self: end;
+}
+.ws-landing .phone .screen {
+  border-radius: 26px;
+  background: var(--bg);
+  overflow: hidden;
+  padding: 14px 13px 16px;
+  min-height: 430px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.ws-landing .phone .notch {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 62px;
+  height: 5px;
+  border-radius: 99px;
+  background: var(--line-strong);
+  z-index: 3;
+}
+.ws-landing .phone .ph-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.ws-landing .phone .clockin {
+  margin-top: 2px;
+  border-radius: 16px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  text-align: center;
+  padding: 16px 12px;
+}
+.ws-landing .phone .clockin b {
+  display: block;
+  font-size: 1.5rem;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+.ws-landing .phone .clockin span {
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.82;
+}
+.ws-landing .phone .ph-card {
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 11px 12px;
+}
+.ws-landing .phone .ph-card .w-title {
+  font-size: 0.8rem;
+  margin-bottom: 7px;
+}
+.ws-landing .phone .ph-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.78rem;
+  padding: 6px 0;
+}
+.ws-landing .phone .ph-row + .ph-row {
+  border-top: 1px solid var(--line);
+}
+.ws-landing .phone .tabs {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 8px 2px;
+}
+.ws-landing .phone .tabs i {
+  width: 20px;
+  height: 3px;
+  border-radius: 99px;
+  background: var(--line-strong);
+  display: block;
+}
+.ws-landing .phone .tabs i:first-child {
+  background: var(--accent);
+  width: 26px;
+}
+@media (max-width: 880px) {
+  .ws-landing .appband {
+    grid-template-columns: 1fr;
+  }
+  .ws-landing .phone {
+    justify-self: center;
+  }
+  .ws-landing .appband .pts {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- faq ---------- */
+.ws-landing .faq {
+  max-width: 880px;
+  margin: 0 auto;
+  padding-bottom: clamp(56px, 10vh, 120px);
+  display: grid;
+  gap: 8px;
+}
+.ws-landing .qa {
+  background: var(--surface);
+  border-radius: 14px;
+  box-shadow: var(--sh-1);
+  padding: 0 clamp(15px, 1.7vw, 22px);
+  transition: background 0.45s;
+}
+.ws-landing .qa button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: none;
+  border: 0;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  padding: 24px 2px;
+  font: inherit;
+  font-weight: 600;
+  font-size: clamp(1rem, 1.6vw, 1.2rem);
+  letter-spacing: -0.025em;
+}
+.ws-landing .qa button i {
+  margin-left: auto;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  position: relative;
+  transition: background 0.3s;
+}
+.ws-landing .qa button i::before,
+.ws-landing .qa button i::after {
+  content: "";
+  position: absolute;
+  left: 7px;
+  right: 7px;
+  top: 50%;
+  height: 1.5px;
+  background: currentColor;
+  border-radius: 2px;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ws-landing .qa button i::after {
+  transform: rotate(90deg);
+}
+.ws-landing .qa.open button i {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.ws-landing .qa.open button i::after {
+  transform: rotate(0);
+}
+.ws-landing .qa .body {
+  height: 0;
+  overflow: hidden;
+}
+.ws-landing .qa .body p {
+  padding: 0 0 26px;
+  color: var(--ink-2);
+  max-width: 66ch;
+}
+
+/* ---------- cta + form ---------- */
+.ws-landing .cta {
+  border-radius: 26px;
+  background: var(--surface);
+  box-shadow: var(--sh-2);
+  padding: clamp(26px, 4.4vw, 68px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.88fr);
+  gap: clamp(26px, 4vw, 60px);
+  margin-bottom: clamp(56px, 10vh, 110px);
+  position: relative;
+  overflow: hidden;
+  transition: background 0.45s;
+}
+.ws-landing .cta::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(var(--dot) 1.1px, transparent 1.1px);
+  background-size: 20px 20px;
+  mask-image: radial-gradient(80% 90% at 92% 4%, #000, transparent 70%);
+}
+.ws-landing .cta > * {
+  position: relative;
+  z-index: 2;
+}
+.ws-landing .cta h2 {
+  font-size: clamp(1.85rem, 4vw, 3.2rem);
+  max-width: 18ch;
+  margin: 14px 0 16px;
+}
+.ws-landing .cta .lede {
+  color: var(--ink-2);
+  max-width: 40ch;
+}
+.ws-landing .trust {
+  display: flex;
+  gap: 26px;
+  margin-top: 30px;
+  flex-wrap: wrap;
+}
+.ws-landing .trust div b {
+  display: block;
+  font-size: 1.06rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.ws-landing form {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+.ws-landing label {
+  display: grid;
+  gap: 7px;
+}
+.ws-landing label > span {
+  font-weight: 600;
+  font-size: 0.86rem;
+}
+.ws-landing input,
+.ws-landing select,
+.ws-landing textarea {
+  width: 100%;
+  font: inherit;
+  font-size: 0.96rem;
+  padding: 13px 14px;
+  border-radius: 11px;
+  background: var(--surface-2);
+  border: 0;
+  color: var(--ink);
+  transition:
+    box-shadow 0.25s,
+    background 0.45s;
+}
+.ws-landing textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+.ws-landing input:focus,
+.ws-landing select:focus,
+.ws-landing textarea:focus {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--accent),
+    0 0 0 5px var(--ring);
+}
+/* The native select arrow is drawn by the browser at the inline edge and
+   mostly ignores padding-right, so it crowds the corner. Suppress it (and
+   the app-wide arrow background from globals.css) and position our own
+   chevron — which also means it picks up the theme colour. */
+.ws-landing .sel {
+  position: relative;
+  display: block;
+}
+.ws-landing .sel select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: none;
+  padding-right: 44px !important;
+  cursor: pointer;
+}
+.ws-landing .sel select::-ms-expand {
+  display: none;
+}
+.ws-landing .sel-i {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--ink-3);
+  transition: color 0.25s;
+}
+.ws-landing .sel:focus-within .sel-i {
+  color: var(--accent);
+}
+.ws-landing .two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.ws-landing .err {
+  min-height: 18px;
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #e5484d;
+}
+.ws-landing .sent {
+  background: var(--ok-soft);
+  border-radius: 14px;
+  padding: 20px;
+  font-size: 0.96rem;
+  color: var(--ink);
+}
+.ws-landing .form-note {
+  font-size: 0.83rem;
+  color: var(--ink-3);
+}
+@media (max-width: 900px) {
+  .ws-landing .cta {
+    grid-template-columns: 1fr;
+  }
+  .ws-landing .two {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- footer ---------- */
+.ws-landing footer {
+  padding: clamp(38px, 6vh, 64px) 0 34px;
+}
+.ws-landing .foot {
+  display: grid;
+  grid-template-columns: 1.7fr repeat(3, 1fr);
+  gap: 34px;
+}
+.ws-landing .foot ul {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.ws-landing .foot ul a {
+  font-size: 0.93rem;
+  color: var(--ink-2);
+}
+.ws-landing .foot ul a:hover {
+  color: var(--ink);
+}
+.ws-landing .foot-end {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 34px;
+  padding-top: 24px;
+}
+@media (max-width: 760px) {
+  .ws-landing .foot {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:has(.ws-landing) {
+    scroll-behavior: auto;
+  }
+  .ws-landing .t-row,
+  .ws-landing .float .in {
+    animation: none;
+  }
+  .ws-landing .mod {
+    position: static;
+  }
+  .ws-landing .stories {
+    height: auto;
+    padding-block: 56px;
+  }
+  .ws-landing .st-track {
+    flex-direction: column;
+  }
+  .ws-landing .story,
+  .ws-landing .st-intro {
+    flex: auto;
+    height: auto;
+  }
+}
