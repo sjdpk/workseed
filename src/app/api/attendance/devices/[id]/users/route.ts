@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma, getCurrentUser } from "@/lib";
 import { readDeviceUsers, supportsUserList } from "@/lib/attendance/readers";
 import { logger } from "@/lib/logger";
-
-const ALLOWED_ROLES = ["ADMIN", "HR"];
+import { can } from "@/lib/rbac";
 
 /**
  * List the enrolled users stored on a LAN-direct device (live, read-only).
@@ -18,7 +17,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     if (!currentUser) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
-    if (!ALLOWED_ROLES.includes(currentUser.role)) {
+    if (!(await can(currentUser, "ATTENDANCE_DEVICE_MANAGE"))) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 

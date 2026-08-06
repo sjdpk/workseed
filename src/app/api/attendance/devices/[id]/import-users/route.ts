@@ -1,15 +1,9 @@
 import { randomBytes } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import {
-  prisma,
-  getCurrentUser,
-  isHROrAbove,
-  hashPassword,
-  createAuditLog,
-  getRequestMeta,
-} from "@/lib";
+import { prisma, getCurrentUser, hashPassword, createAuditLog, getRequestMeta } from "@/lib";
 import { readDeviceUsers, supportsUserList } from "@/lib/attendance/readers";
 import { logger } from "@/lib/logger";
+import { can } from "@/lib/rbac";
 
 const EMAIL_DOMAIN = "imported.local";
 
@@ -25,7 +19,7 @@ const EMAIL_DOMAIN = "imported.local";
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const currentUser = await getCurrentUser();
-    if (!currentUser || !isHROrAbove(currentUser.role)) {
+    if (!currentUser || !(await can(currentUser, "ATTENDANCE_MANAGE"))) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
@@ -128,7 +122,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         // The employee exists and the PIN is linked — count it as created and
         // guard against a repeated PIN in this same batch.
         taken.add(u.userId);
-        created.push({ pin: u.userId, employeeId: user.employeeId, name: `${firstName} ${lastName}` });
+        created.push({
+          pin: u.userId,
+          employeeId: user.employeeId,
+          name: `${firstName} ${lastName}`,
+        });
 
         // Leave allocation + audit are best-effort: a hiccup here must not
         // report a successfully-created, PIN-linked employee as "failed".
@@ -190,7 +188,10 @@ async function nextEmployeeId(): Promise<string> {
   let n = (await prisma.user.count()) + 1;
   for (let i = 0; i < 10000; i++) {
     const id = `EMP${String(n).padStart(5, "0")}`;
-    const exists = await prisma.user.findUnique({ where: { employeeId: id }, select: { id: true } });
+    const exists = await prisma.user.findUnique({
+      where: { employeeId: id },
+      select: { id: true },
+    });
     if (!exists) return id;
     n++;
   }

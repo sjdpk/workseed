@@ -3,7 +3,19 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, Input, useToast } from "@/components";
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  type EmergencyContactInput,
+  EmergencyContactList,
+  EmergencyContacts,
+  Input,
+  PageHeader,
+  useOrgSettings,
+  useToast,
+} from "@/components";
 
 interface Asset {
   id: string;
@@ -43,6 +55,7 @@ interface UserProfile {
   github?: string;
   website?: string;
   role: string;
+  roleName?: string;
   status: string;
   dateOfBirth?: string;
   gender?: string;
@@ -53,8 +66,7 @@ interface UserProfile {
   state?: string;
   country?: string;
   postalCode?: string;
-  emergencyContact?: string;
-  emergencyContactPhone?: string;
+  emergencyContacts?: EmergencyContactInput[];
   employmentType?: string;
   joiningDate?: string;
   designation?: string;
@@ -98,6 +110,7 @@ const CONDITION_COLORS: Record<string, string> = {
 type TabType = "overview" | "leaves" | "assets" | "settings";
 
 export default function ProfilePage() {
+  const { formatDate } = useOrgSettings();
   const router = useRouter();
   const toast = useToast();
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -108,6 +121,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("overview");
 
+  const [contacts, setContacts] = useState<EmergencyContactInput[]>([]);
   const [formData, setFormData] = useState({
     phone: "",
     profilePicture: "",
@@ -120,8 +134,7 @@ export default function ProfilePage() {
     state: "",
     country: "",
     postalCode: "",
-    emergencyContact: "",
-    emergencyContactPhone: "",
+
     password: "",
   });
 
@@ -139,6 +152,7 @@ export default function ProfilePage() {
 
       const userData = meData.data.user;
       setUser(userData);
+      setContacts(userData.emergencyContacts || []);
       setFormData({
         phone: userData.phone || "",
         profilePicture: userData.profilePicture || "",
@@ -151,8 +165,7 @@ export default function ProfilePage() {
         state: userData.state || "",
         country: userData.country || "",
         postalCode: userData.postalCode || "",
-        emergencyContact: userData.emergencyContact || "",
-        emergencyContactPhone: userData.emergencyContactPhone || "",
+
         password: "",
       });
 
@@ -197,8 +210,7 @@ export default function ProfilePage() {
         state: formData.state || null,
         country: formData.country || null,
         postalCode: formData.postalCode || null,
-        emergencyContact: formData.emergencyContact || null,
-        emergencyContactPhone: formData.emergencyContactPhone || null,
+        emergencyContacts: contacts,
       };
 
       if (formData.password) {
@@ -228,11 +240,6 @@ export default function ProfilePage() {
     }
   };
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleDateString();
-  };
-
   // Show assets by default (true) unless explicitly disabled (false)
   const showAssets = orgSettings?.permissions?.showOwnAssetsToEmployee ?? true;
 
@@ -257,46 +264,33 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-md bg-gray-100 text-lg font-semibold text-gray-900 dark:bg-gray-800 dark:text-white">
-            {user.profilePicture ? (
-              // eslint-disable-next-line @next/next/no-img-element -- Dynamic URL from user profile
-              <img
-                src={user.profilePicture}
-                alt={user.firstName}
-                className="h-16 w-16 rounded-md object-cover"
-              />
-            ) : (
-              `${user.firstName[0]}${user.lastName[0]}`
-            )}
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {user.firstName} {user.lastName}
-            </h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {user.designation || user.role} • {user.employeeId}
-            </p>
-            <div className="mt-1 flex items-center gap-2">
-              {user.team && (
-                <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                  {user.team.name}
-                </span>
-              )}
-              {user.branch && (
-                <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                  {user.branch.name}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-        <Link href="/dashboard/leaves/apply">
-          <Button>Apply Leave</Button>
-        </Link>
-      </div>
+      <PageHeader
+        title={`${user.firstName} ${user.lastName}`}
+        subtitle={
+          <>
+            {user.designation || user.roleName || user.role} · {user.employeeId}
+          </>
+        }
+        badges={
+          <>
+            {user.team && <Badge>{user.team.name}</Badge>}
+            {user.branch && <Badge>{user.branch.name}</Badge>}
+          </>
+        }
+        actions={
+          <>
+            <Avatar
+              src={user.profilePicture}
+              name={`${user.firstName} ${user.lastName}`}
+              size="lg"
+              className="hidden sm:block"
+            />
+            <Link href="/dashboard/leaves/apply">
+              <Button>Apply Leave</Button>
+            </Link>
+          </>
+        }
+      />
 
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-gray-700">
@@ -422,22 +416,9 @@ export default function ProfilePage() {
           {/* Emergency Contact */}
           <Card>
             <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">
-              Emergency Contact
+              Emergency Contacts
             </h2>
-            <dl className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <dt className="text-sm text-gray-500 dark:text-gray-400">Contact Name</dt>
-                <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
-                  {user.emergencyContact || "-"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-gray-500 dark:text-gray-400">Contact Phone</dt>
-                <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
-                  {user.emergencyContactPhone || "-"}
-                </dd>
-              </div>
-            </dl>
+            <EmergencyContactList contacts={user.emergencyContacts || []} />
           </Card>
 
           {/* Social Links */}
@@ -746,25 +727,15 @@ export default function ProfilePage() {
           </Card>
 
           <Card>
-            <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">
-              Emergency Contact
-            </h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Input
-                id="emergencyContact"
-                label="Contact Name"
-                value={formData.emergencyContact}
-                onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
-              />
-              <Input
-                id="emergencyContactPhone"
-                label="Contact Phone"
-                value={formData.emergencyContactPhone}
-                onChange={(e) =>
-                  setFormData({ ...formData, emergencyContactPhone: e.target.value })
-                }
-              />
+            <div className="mb-4">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+                Emergency Contacts
+              </h2>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Add as many as you like — only a name is required.
+              </p>
             </div>
+            <EmergencyContacts contacts={contacts} onChange={setContacts} />
           </Card>
 
           <div className="flex justify-end">

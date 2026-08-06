@@ -3,7 +3,19 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, use } from "react";
-import { Button, Card } from "@/components";
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  type EmergencyContactInput,
+  EmergencyContactList,
+  EmptyState,
+  FiscalYearSelect,
+  PageHeader,
+  toneForStatus,
+  useOrgSettings,
+} from "@/components";
 import type { Role, Gender, MaritalStatus, EmploymentType, LeaveType } from "@/types";
 
 const ALLOWED_ROLES = ["ADMIN", "HR"];
@@ -21,6 +33,7 @@ interface UserData {
   github?: string;
   website?: string;
   role: Role;
+  roleRecord?: { id: string; name: string; key: string; color: string | null; rank: number } | null;
   status: string;
   dateOfBirth?: string;
   gender?: Gender;
@@ -31,8 +44,7 @@ interface UserData {
   state?: string;
   country?: string;
   postalCode?: string;
-  emergencyContact?: string;
-  emergencyContactPhone?: string;
+  emergencyContacts?: EmergencyContactInput[];
   employmentType: EmploymentType;
   joiningDate?: string;
   designation?: string;
@@ -45,6 +57,7 @@ interface UserData {
 interface CurrentUser {
   id: string;
   role: string;
+  roleRecord?: { id: string; name: string; key: string; color: string | null; rank: number } | null;
 }
 
 interface Allocation {
@@ -82,8 +95,21 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
   const [user, setUser] = useState<UserData | null>(null);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [allocations, setAllocations] = useState<Allocation[]>([]);
+  /* the leave actually taken in the selected year, not just the balances */
+  const [leaveHistory, setLeaveHistory] = useState<
+    {
+      id: string;
+      startDate: string;
+      endDate: string;
+      days: number;
+      status: string;
+      reason?: string | null;
+      leaveType?: { name: string; color?: string | null };
+    }[]
+  >([]);
   const [assets, setAssets] = useState<Asset[]>([]);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const { fiscalYear, fiscalYearOf, formatDate } = useOrgSettings();
+  const [selectedYear, setSelectedYear] = useState(fiscalYear.year);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -92,7 +118,11 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
       fetch(`/api/users/${id}`).then((r) => r.json()),
       fetch(`/api/leave-allocations?userId=${id}&year=${selectedYear}`).then((r) => r.json()),
       fetch(`/api/assets?userId=${id}`).then((r) => r.json()),
-    ]).then(([meData, userData, allocData, assetsData]) => {
+      fetch(`/api/leave-requests?userId=${id}&year=${selectedYear}&all=true`).then((r) => r.json()),
+    ]).then(([meData, userData, allocData, assetsData, leaveData]) => {
+      if (leaveData?.success) {
+        setLeaveHistory(leaveData.data.leaveRequests || []);
+      }
       if (meData.success) {
         setCurrentUser(meData.data.user);
         if (!ALLOWED_ROLES.includes(meData.data.user.role)) {
@@ -113,11 +143,6 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
     });
   }, [id, router, selectedYear]);
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleDateString();
-  };
-
   const tabs = [
     { id: "overview" as TabType, label: "Overview" },
     { id: "employment" as TabType, label: "Employment" },
@@ -137,64 +162,40 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
     return <div className="p-8 text-center text-gray-500">User not found</div>;
   }
 
-  const currentYear = new Date().getFullYear();
-  const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
-
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-md bg-gray-100 text-lg font-semibold text-gray-900 dark:bg-gray-800 dark:text-white">
-            {user.profilePicture ? (
-              // eslint-disable-next-line @next/next/no-img-element -- Dynamic URL from user profile
-              <img
-                src={user.profilePicture}
-                alt={user.firstName}
-                className="h-16 w-16 rounded-md object-cover"
-              />
-            ) : (
-              `${user.firstName[0]}${user.lastName[0]}`
-            )}
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {user.firstName} {user.lastName}
-            </h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {user.designation || user.role} • {user.employeeId}
-            </p>
-            <div className="mt-1 flex items-center gap-2">
-              <span
-                className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                  user.status === "ACTIVE"
-                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                    : user.status === "INACTIVE"
-                      ? "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                      : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                }`}
-              >
-                {user.status.charAt(0) + user.status.slice(1).toLowerCase()}
-              </span>
-              <span className="inline-flex rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                {user.role
-                  .replace("_", " ")
-                  .split(" ")
-                  .map((w: string) => w.charAt(0) + w.slice(1).toLowerCase())
-                  .join(" ")}
-              </span>
-            </div>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => router.back()}>
-            Back
-          </Button>
-          <Link href={`/dashboard/users/${id}`}>
-            <Button>Edit User</Button>
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title={`${user.firstName} ${user.lastName}`}
+        subtitle={
+          <>
+            {user.designation || user.role} · {user.employeeId}
+          </>
+        }
+        badges={
+          <>
+            <Badge tone={toneForStatus(user.status)}>
+              {user.status.charAt(0) + user.status.slice(1).toLowerCase()}
+            </Badge>
+            <Badge>{user.roleRecord?.name || user.role.replace("_", " ")}</Badge>
+          </>
+        }
+        actions={
+          <>
+            <Avatar
+              src={user.profilePicture}
+              name={`${user.firstName} ${user.lastName}`}
+              size="lg"
+              className="hidden sm:block"
+            />
+            <Button variant="outline" onClick={() => router.back()}>
+              Back
+            </Button>
+            <Link href={`/dashboard/users/${id}`}>
+              <Button>Edit User</Button>
+            </Link>
+          </>
+        }
+      />
 
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-gray-700">
@@ -287,25 +288,12 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
             </Card>
           </div>
 
-          {/* Emergency Contact */}
+          {/* Emergency Contacts */}
           <Card>
             <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">
-              Emergency Contact
+              Emergency Contacts
             </h2>
-            <dl className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <dt className="text-sm text-gray-500 dark:text-gray-400">Contact Name</dt>
-                <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
-                  {user.emergencyContact || "-"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-gray-500 dark:text-gray-400">Contact Phone</dt>
-                <dd className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
-                  {user.emergencyContactPhone || "-"}
-                </dd>
-              </div>
-            </dl>
+            <EmergencyContactList contacts={user.emergencyContacts || []} />
           </Card>
 
           {/* Social Links */}
@@ -465,17 +453,12 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
               <h2 className="text-base font-semibold text-gray-900 dark:text-white">
                 Leave Allocations
               </h2>
-              <select
+              <FiscalYearSelect
+                id="allocationYear"
                 value={selectedYear}
-                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-              >
-                {yearOptions.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
+                onChange={setSelectedYear}
+                wrapperClassName="w-44"
+              />
             </div>
 
             {allocations.length === 0 ? (
@@ -530,6 +513,43 @@ export default function ViewUserPage({ params }: { params: Promise<{ id: string 
                 })}
               </div>
             )}
+
+            {/* what was actually taken in this year */}
+            <div className="mt-6 border-t border-gray-200 pt-4 dark:border-gray-800">
+              <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
+                Leave taken in {fiscalYearOf(selectedYear).label}
+              </h3>
+              {leaveHistory.length === 0 ? (
+                <EmptyState
+                  title="Nothing recorded"
+                  description="No leave was requested in this year."
+                />
+              ) : (
+                <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {leaveHistory.map((req) => (
+                    <li key={req.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2">
+                      <span
+                        className="h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: req.leaveType?.color || "#9CA3AF" }}
+                      />
+                      <span className="text-sm text-gray-900 dark:text-white">
+                        {req.leaveType?.name || "Leave"}
+                      </span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {formatDate(req.startDate)}
+                        {req.startDate !== req.endDate && ` – ${formatDate(req.endDate)}`}
+                      </span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {req.days} {req.days === 1 ? "day" : "days"}
+                      </span>
+                      <Badge tone={toneForStatus(req.status)} className="ml-auto">
+                        {req.status.charAt(0) + req.status.slice(1).toLowerCase()}
+                      </Badge>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </Card>
         </div>
       )}

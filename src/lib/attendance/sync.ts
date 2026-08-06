@@ -5,15 +5,18 @@
 import type { AttendanceDevice } from "@prisma/client";
 import { logger } from "../logger";
 import { prisma } from "../prisma";
+import { getOrgTimeZone } from "../time-server";
+import { dateOnlyToUtcDate, toDateOnly } from "../time";
 import { readDevice } from "./readers";
 import { sourceForType, type Punch, type SyncResult } from "./types";
 
 export type { Punch, SyncResult } from "./types";
 
-function dayStart(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
+/* A punch belongs to the day the company's clocks were showing, not the day the
+   server's process timezone happened to be on. `Attendance.date` is a DATE
+   column, so it is stored as UTC midnight of that calendar day. */
+function attendanceDay(punchTime: Date, timeZone: string): Date {
+  return dateOnlyToUtcDate(toDateOnly(punchTime, timeZone));
 }
 
 /**
@@ -57,7 +60,8 @@ export async function applyPunches(
     );
   }
 
-  // Group fresh punches by user + day
+  // Group fresh punches by user + company-timezone day
+  const timeZone = await getOrgTimeZone();
   const groups = new Map<string, { userId: string; day: Date; times: Date[] }>();
   for (const p of fresh) {
     maxTime = Math.max(maxTime, p.time.getTime());
@@ -67,7 +71,7 @@ export async function applyPunches(
       continue;
     }
     result.matched++;
-    const day = dayStart(p.time);
+    const day = attendanceDay(p.time, timeZone);
     const key = `${user.id}_${day.toISOString()}`;
     const g = groups.get(key) ?? { userId: user.id, day, times: [] };
     g.times.push(p.time);
@@ -122,13 +126,23 @@ export async function syncDeviceToDb(
   device: AttendanceDevice,
   opts: { ignoreWatermark?: boolean } = {}
 ): Promise<SyncResult> {
-  const empty: SyncResult = { device: device.name, punches: 0, matched: 0, unmatched: [], daysWritten: 0 };
+  const empty: SyncResult = {
+    device: device.name,
+    punches: 0,
+    matched: 0,
+    unmatched: [],
+    daysWritten: 0,
+  };
   if (!device.ipAddress) {
     return { ...empty, error: "No IP address configured" };
   }
   let punches: Punch[];
   try {
-    punches = await readDevice({ host: device.ipAddress, port: device.port, protocol: device.protocol });
+    punches = await readDevice({
+      host: device.ipAddress,
+      port: device.port,
+      protocol: device.protocol,
+    });
   } catch (err) {
     const error = err instanceof Error ? err.message : "Failed to read device";
     logger.error("Device read failed", { device: device.name, error });

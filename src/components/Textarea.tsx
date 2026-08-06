@@ -1,0 +1,51 @@
+import { TextareaHTMLAttributes, forwardRef } from "react";
+import { cn } from "@/utils";
+
+interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+  label?: string;
+  error?: string;
+  /** Classes for the wrapper — use it to size the field in a toolbar. */
+  wrapperClassName?: string;
+  hint?: string;
+}
+
+/** Matches `Input` exactly — 18 raw textareas across the app each styled their own way. */
+const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
+  ({ className, label, error, hint, wrapperClassName, id, rows = 3, ...props }, ref) => {
+    return (
+      <div className={wrapperClassName ?? "w-full"}>
+        {label && (
+          <label
+            htmlFor={id}
+            className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            {label}
+          </label>
+        )}
+        <textarea
+          ref={ref}
+          id={id}
+          rows={rows}
+          className={cn(
+            "w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 transition-colors",
+            "focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900",
+            "dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500",
+            "dark:focus:border-gray-100 dark:focus:ring-gray-100",
+            "disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 dark:disabled:bg-gray-800",
+            error && "border-red-500 focus:border-red-500 focus:ring-red-500",
+            className
+          )}
+          {...props}
+        />
+        {hint && !error && (
+          <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">{hint}</p>
+        )}
+        {error && <p className="mt-1.5 text-sm text-red-500 dark:text-red-400">{error}</p>}
+      </div>
+    );
+  }
+);
+
+Textarea.displayName = "Textarea";
+
+export { Textarea };

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib";
 import { sourceForType } from "@/lib/attendance/types";
+import { dateOnlyToUtcDate, toDateOnly } from "@/lib/time";
+import { getOrgTimeZone } from "@/lib/time-server";
 
 /**
  * Webhook endpoint for external attendance devices (Biometric, RFID, etc.)
@@ -63,8 +65,9 @@ export async function POST(request: NextRequest) {
     }
     if (!user && employeeId) {
       user =
-        (await prisma.user.findUnique({ where: { employeeId: String(employeeId).toUpperCase() } })) ??
-        (await prisma.user.findUnique({ where: { deviceUserId: String(employeeId) } }));
+        (await prisma.user.findUnique({
+          where: { employeeId: String(employeeId).toUpperCase() },
+        })) ?? (await prisma.user.findUnique({ where: { deviceUserId: String(employeeId) } }));
     }
 
     if (!user) {
@@ -75,8 +78,7 @@ export async function POST(request: NextRequest) {
     }
 
     const now = timestamp ? new Date(timestamp) : new Date();
-    const today = new Date(now);
-    today.setHours(0, 0, 0, 0);
+    const today = dateOnlyToUtcDate(toDateOnly(now, await getOrgTimeZone()));
 
     // Determine source from device capabilities (device.type is a text[])
     const source = sourceForType(device.type);

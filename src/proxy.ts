@@ -1,9 +1,25 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+/**
+ * Edge request filter — Next 16's replacement for the deprecated `middleware`
+ * file convention. Same contract, new name: export `proxy` plus a matcher.
+ *
+ * It does two jobs and deliberately no more:
+ *   - CORS for /api, including preflight, so the mobile app can call in
+ *   - a cookie gate on /dashboard, so an unauthenticated visitor lands on /login
+ *
+ * Authorization proper is NOT done here. Every route re-reads the user and asks
+ * `can(user, PERMISSION)` (src/lib/rbac.ts), because a cookie says who you claim
+ * to be, not what you may do — and this runs before any database is reachable.
+ */
+
+// NOTE: matched with startsWith(), so never add "/" here — it would make every
+// route public. "/" needs no entry: only /dashboard is token-guarded, and the
+// home page at "/" is public by default.
 const publicPaths = ["/login", "/api/auth/login", "/api/auth/logout"];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Handle CORS - allow all origins for API (including mobile apps without origin header)
@@ -44,14 +60,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Handle API auth
-  if (!token && isApi && !publicPaths.some(p => pathname.startsWith(p))) {
-    // Check for Authorization header in middleware or let the route handler deal with it?
-    // Since we updated getCurrentUser to support Bearer, heartbeat/me should be checked.
-    // But middleware might block it if we are not careful.
-    // Existing middleware doesn't block /api/auth/me because it doesn't start with /dashboard.
-  }
-
   const response = NextResponse.next();
 
   // Add CORS headers to all API responses
@@ -60,11 +68,6 @@ export function middleware(request: NextRequest) {
     response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
     response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
     response.headers.set("Access-Control-Allow-Credentials", "true");
-  }
-
-  // Redirect to dashboard if logged in and trying to access login
-  if (token && pathname === "/") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return response;

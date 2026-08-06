@@ -6,7 +6,11 @@ import ZKLib from "node-zklib";
 import type { DeviceInfo, DeviceUser, ProbeResult, Punch } from "../types";
 
 /** Read the device's enrolled users (name + enrollment PIN + card no). */
-export async function readUsers(host: string, port = 4370, timeoutMs = 10000): Promise<DeviceUser[]> {
+export async function readUsers(
+  host: string,
+  port = 4370,
+  timeoutMs = 10000
+): Promise<DeviceUser[]> {
   const zk = new ZKLib(host, port, timeoutMs, 4000);
   try {
     await zk.createSocket();
@@ -117,15 +121,9 @@ function withTimeout<T>(p: Promise<T>, ms: number, stage: string): Promise<T> {
 function friendlyError(err: unknown): string {
   // node-zklib rejects with varied shapes ({ err: { code } }, Error, string).
   const code =
-    (err as { code?: string })?.code ||
-    (err as { err?: { code?: string } })?.err?.code ||
-    "";
+    (err as { code?: string })?.code || (err as { err?: { code?: string } })?.err?.code || "";
   const raw =
-    err instanceof Error
-      ? err.message
-      : typeof err === "string"
-        ? err
-        : JSON.stringify(err ?? "");
+    err instanceof Error ? err.message : typeof err === "string" ? err : JSON.stringify(err ?? "");
 
   if (raw.startsWith("__timeout__")) {
     return "Timed out — no response from the device. Check that it's powered on, the IP is correct, and no firewall blocks the port.";

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, getCurrentUser, isHROrAbove } from "@/lib";
+import { prisma, getCurrentUser } from "@/lib";
+import { describeFiscalYear } from "@/lib/fiscal-year";
+import { getCurrentFiscalYear, getFiscalYearConfig } from "@/lib/fiscal-year-server";
+import { getOrgTimeZone } from "@/lib/time-server";
 import { logger } from "@/lib/logger";
 import { z } from "@/lib/validation";
+import { can } from "@/lib/rbac";
 
 const createAllocationSchema = z.object({
   userId: z.string().uuid(),
@@ -28,10 +32,21 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
-    const year = searchParams.get("year") || new Date().getFullYear().toString();
+    // allocations are keyed by fiscal year, which is only the calendar year when
+    // the company starts its year on 1 January
+    const running = await getCurrentFiscalYear();
+    const requested = searchParams.get("year");
+    const year = requested || String(running.year);
+    /* Echo the year that was actually read, not the running one — the balance
+       screen labels itself from this. */
+    const fiscalYear =
+      requested && Number(requested) !== running.year
+        ? describeFiscalYear(Number(requested), await getFiscalYearConfig(), await getOrgTimeZone())
+        : running;
 
     // Users can only see their own allocations unless HR/Admin
-    const targetUserId = isHROrAbove(currentUser.role) && userId ? userId : currentUser.id;
+    const targetUserId =
+      (await can(currentUser, "LEAVE_TYPE_EDIT")) && userId ? userId : currentUser.id;
 
     const allocations = await prisma.leaveAllocation.findMany({
       where: {
@@ -52,7 +67,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: { allocations: allocationsWithBalance },
+      data: {
+        allocations: allocationsWithBalance,
+        fiscalYear: { year: fiscalYear.year, label: fiscalYear.label },
+      },
     });
   } catch (error) {
     logger.error("List leave allocations error", { error, endpoint: "GET /api/leave-allocations" });
@@ -63,7 +81,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
-    if (!currentUser || !isHROrAbove(currentUser.role)) {
+    if (!currentUser || !(await can(currentUser, "LEAVE_TYPE_EDIT"))) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
@@ -121,7 +139,7 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
-    if (!currentUser || !isHROrAbove(currentUser.role)) {
+    if (!currentUser || !(await can(currentUser, "LEAVE_TYPE_EDIT"))) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 

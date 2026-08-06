@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Card } from "@/components";
+import { Button, Card, Combobox, FiscalYearSelect, PageHeader, useOrgSettings } from "@/components";
 
 const ALLOWED_ROLES = ["ADMIN", "HR", "MANAGER"];
 
@@ -54,8 +54,11 @@ export default function ReportsPage() {
   const [attendanceData, setAttendanceData] = useState<AttendanceData | null>(null);
   const [leaveData, setLeaveData] = useState<LeaveData | null>(null);
 
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const { fiscalYear, today } = useOrgSettings();
+  /* the month comes from the company's today, the year from its fiscal year, so a
+     report never opens on a period the company is not in */
+  const [selectedMonth, setSelectedMonth] = useState(Number(today.slice(5, 7)) - 1);
+  const [selectedYear, setSelectedYear] = useState(fiscalYear.year);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -178,13 +181,11 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Reports</h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">HR analytics and insights</p>
-      </div>
+      <PageHeader title="Reports" subtitle="HR analytics and insights" />
 
-      {/* Tabs */}
-      <div className="border-b border-gray-200 dark:border-gray-700">
+      {/* Tabs and this tab's filters share one row — the filters belong to the tab,
+          so stacking them cost a whole band of empty page for two dropdowns. */}
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-gray-200 dark:border-gray-700">
         <nav className="flex gap-6">
           {tabs.map((tab) => (
             <button
@@ -200,6 +201,52 @@ export default function ReportsPage() {
             </button>
           ))}
         </nav>
+
+        <div className="flex items-center gap-2 pb-2">
+          {activeTab === "attendance" && (
+            <>
+              <Combobox
+                id="reportMonth"
+                options={months.map((m, i) => ({ value: String(i), label: m }))}
+                value={String(selectedMonth)}
+                placeholder="Find a month…"
+                className="w-32 shrink-0"
+                size="sm"
+                onChange={(v) => setSelectedMonth(parseInt(v, 10))}
+              />
+              <FiscalYearSelect
+                id="reportYear"
+                value={selectedYear}
+                onChange={setSelectedYear}
+                wrapperClassName="w-40 shrink-0"
+                size="sm"
+              />
+              {attendanceData && attendanceData.userAttendance.length > 0 && (
+                <Button variant="outline" size="sm" onClick={exportAttendanceCSV}>
+                  <DownloadIcon />
+                  <span className="ml-1.5">Export CSV</span>
+                </Button>
+              )}
+            </>
+          )}
+          {activeTab === "leave" && (
+            <>
+              <FiscalYearSelect
+                id="leaveReportYear"
+                value={selectedYear}
+                onChange={setSelectedYear}
+                wrapperClassName="w-40 shrink-0"
+                size="sm"
+              />
+              {leaveData && leaveData.byStatus.length > 0 && (
+                <Button variant="outline" size="sm" onClick={exportLeaveCSV}>
+                  <DownloadIcon />
+                  <span className="ml-1.5">Export CSV</span>
+                </Button>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Overview Tab */}
@@ -345,43 +392,6 @@ export default function ReportsPage() {
       {/* Attendance Tab */}
       {activeTab === "attendance" && (
         <div className="space-y-6">
-          {/* Filters */}
-          <div className="flex items-center justify-between">
-            <div className="flex gap-3">
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              >
-                {months.map((m, i) => (
-                  <option key={m} value={i}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              >
-                {[2023, 2024, 2025, 2026].map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {attendanceData && attendanceData.userAttendance.length > 0 && (
-              <button
-                onClick={exportAttendanceCSV}
-                className="flex items-center gap-1.5 rounded border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-              >
-                <DownloadIcon />
-                Export CSV
-              </button>
-            )}
-          </div>
-
           {attendanceData && (
             <>
               {/* Summary */}
@@ -467,30 +477,6 @@ export default function ReportsPage() {
       {/* Leave Tab */}
       {activeTab === "leave" && (
         <div className="space-y-6">
-          {/* Year Filter */}
-          <div className="flex items-center justify-between">
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-            >
-              {[2023, 2024, 2025, 2026].map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
-            {leaveData && leaveData.byStatus.length > 0 && (
-              <button
-                onClick={exportLeaveCSV}
-                className="flex items-center gap-1.5 rounded border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-              >
-                <DownloadIcon />
-                Export CSV
-              </button>
-            )}
-          </div>
-
           {leaveData && (
             <div className="grid gap-6 lg:grid-cols-2">
               {/* By Status */}

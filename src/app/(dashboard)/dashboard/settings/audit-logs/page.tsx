@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, Input } from "@/components";
+import { Button, Card, Input, PageHeader, useOrgSettings } from "@/components";
 
 interface AuditLog {
   id: string;
@@ -53,6 +53,7 @@ const ACTIONS = [
 ];
 
 export default function AuditLogsPage() {
+  const { formatDate, formatDateTime, formatTime } = useOrgSettings();
   const router = useRouter();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
@@ -165,7 +166,7 @@ export default function AuditLogsPage() {
       "Details",
     ];
     const rows = logs.map((log) => [
-      new Date(log.createdAt).toLocaleString(),
+      formatDateTime(log.createdAt),
       log.user ? `${log.user.firstName} ${log.user.lastName}` : log.userId,
       log.user?.employeeId || "",
       log.action,
@@ -199,17 +200,17 @@ export default function AuditLogsPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Audit Logs</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Track all system activities and changes
-          </p>
-        </div>
-        <Button variant="outline" size="sm" onClick={exportToCSV}>
-          Export CSV
-        </Button>
-      </div>
+      <PageHeader
+        title="Audit Logs"
+        subtitle="Track all system activities and changes"
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={exportToCSV}>
+              Export CSV
+            </Button>
+          </>
+        }
+      />
 
       {/* Filters */}
       <Card className="p-4">
@@ -342,10 +343,8 @@ export default function AuditLogsPage() {
                   <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
                       <div>
-                        <p>{new Date(log.createdAt).toLocaleDateString()}</p>
-                        <p className="text-xs text-gray-400">
-                          {new Date(log.createdAt).toLocaleTimeString()}
-                        </p>
+                        <p>{formatDate(log.createdAt)}</p>
+                        <p className="text-xs text-gray-400">{formatTime(log.createdAt)}</p>
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">

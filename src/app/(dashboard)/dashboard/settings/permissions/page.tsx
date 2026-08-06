@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, useToast } from "@/components";
+import { Button, Card, PageHeader, useRoles, useToast } from "@/components";
 
 const ALLOWED_ROLES = ["ADMIN"];
 
@@ -102,11 +102,16 @@ const defaultPermissions: PermissionSettings = {
   },
 };
 
-const ALL_ROLES = ["ADMIN", "HR", "MANAGER", "TEAM_LEAD", "EMPLOYEE"];
-
 export default function PermissionsPage() {
   const router = useRouter();
   const toast = useToast();
+  /* Columns follow the roster, so a role added in Settings → Roles shows up here
+     instead of this matrix silently ignoring it. */
+  const { roles } = useRoles();
+  const roleKeys = roles.length ? roles.map((r) => r.key) : ["ADMIN"];
+  const roleName = (key: string) =>
+    roles.find((r) => r.key === key)?.name ?? key.replace(/_/g, " ");
+
   const [permissions, setPermissions] = useState<PermissionSettings>(defaultPermissions);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -257,17 +262,17 @@ export default function PermissionsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Permissions</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Configure role-based access and visibility settings
-          </p>
-        </div>
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? "Saving..." : "Save Changes"}
-        </Button>
-      </div>
+      <PageHeader
+        title="Permissions"
+        subtitle="Configure role-based access and visibility settings"
+        actions={
+          <>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Saving..." : "Save Changes"}
+            </Button>
+          </>
+        }
+      />
 
       {/* Employee Visibility Settings */}
       <Card>
@@ -673,27 +678,27 @@ export default function PermissionsPage() {
                 <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
                   Feature
                 </th>
-                {ALL_ROLES.map((role) => (
+                {roleKeys.map((role) => (
                   <th
                     key={role}
                     className="px-3 py-2 text-center text-xs font-medium uppercase text-gray-500 dark:text-gray-400"
                   >
-                    {role.replace("_", " ")}
+                    {roleName(role)}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {Object.entries(permissions.roleAccess).map(([feature, roles]) => (
+              {Object.entries(permissions.roleAccess).map(([feature, allowedRoles]) => (
                 <tr key={feature}>
                   <td className="px-3 py-2 text-sm font-medium text-gray-900 dark:text-white capitalize">
                     {feature.replace(/([A-Z])/g, " $1").trim()}
                   </td>
-                  {ALL_ROLES.map((role) => (
+                  {roleKeys.map((role) => (
                     <td key={role} className="px-3 py-2 text-center">
                       <input
                         type="checkbox"
-                        checked={roles.includes(role)}
+                        checked={allowedRoles.includes(role)}
                         onChange={() =>
                           toggleRoleAccess(feature as keyof typeof permissions.roleAccess, role)
                         }
@@ -846,7 +851,9 @@ export default function PermissionsPage() {
                             onChange={(e) => {
                               const ids = e.target.checked
                                 ? [...permissions.onlineAttendance.teamIds, team.id]
-                                : permissions.onlineAttendance.teamIds.filter((id) => id !== team.id);
+                                : permissions.onlineAttendance.teamIds.filter(
+                                    (id) => id !== team.id
+                                  );
                               setPermissions({
                                 ...permissions,
                                 onlineAttendance: { ...permissions.onlineAttendance, teamIds: ids },
@@ -855,7 +862,9 @@ export default function PermissionsPage() {
                             className="rounded border-gray-300 dark:border-gray-600"
                           />
                           <div>
-                            <span className="text-sm text-gray-900 dark:text-white">{team.name}</span>
+                            <span className="text-sm text-gray-900 dark:text-white">
+                              {team.name}
+                            </span>
                             {team.department && (
                               <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
                                 ({team.department.name})
@@ -917,10 +926,15 @@ export default function PermissionsPage() {
                                 onChange={(e) => {
                                   const ids = e.target.checked
                                     ? [...permissions.onlineAttendance.userIds, user.id]
-                                    : permissions.onlineAttendance.userIds.filter((id) => id !== user.id);
+                                    : permissions.onlineAttendance.userIds.filter(
+                                        (id) => id !== user.id
+                                      );
                                   setPermissions({
                                     ...permissions,
-                                    onlineAttendance: { ...permissions.onlineAttendance, userIds: ids },
+                                    onlineAttendance: {
+                                      ...permissions.onlineAttendance,
+                                      userIds: ids,
+                                    },
                                   });
                                 }}
                                 className="rounded border-gray-300 dark:border-gray-600"

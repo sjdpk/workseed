@@ -83,7 +83,13 @@ describe("readUsers", () => {
     const users = await readUsers("192.168.1.50", 4370);
     expect(users[0]).toEqual({ uid: 1, userId: "1001", name: "John Doe", role: 0, cardno: 12345 });
     // empty name -> undefined, cardno 0 -> undefined
-    expect(users[1]).toEqual({ uid: 2, userId: "1002", name: undefined, role: 14, cardno: undefined });
+    expect(users[1]).toEqual({
+      uid: 2,
+      userId: "1002",
+      name: undefined,
+      role: 14,
+      cardno: undefined,
+    });
     expect(disconnect).toHaveBeenCalled();
   });
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PageHeader, useOrgSettings } from "@/components";
 
 interface EmployeeRequest {
   id: string;
@@ -32,6 +33,7 @@ interface UserInfo {
 }
 
 export default function RequestsPage() {
+  const { formatDate, formatDateTime } = useOrgSettings();
   const [user, setUser] = useState<UserInfo | null>(null);
   const [requests, setRequests] = useState<EmployeeRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -164,22 +166,22 @@ export default function RequestsPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {isAdminOrHR ? "Employee Requests" : "My Requests"}
-          </h1>
-          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-            {isAdminOrHR ? "Manage employee service requests" : "Submit and track your requests"}
-          </p>
-        </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
-        >
-          New Request
-        </button>
-      </div>
+      <PageHeader
+        title={isAdminOrHR ? "Employee Requests" : "My Requests"}
+        subtitle={
+          isAdminOrHR ? "Manage employee service requests" : "Submit and track your requests"
+        }
+        actions={
+          <>
+            <button
+              onClick={() => setShowModal(true)}
+              className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+            >
+              New Request
+            </button>
+          </>
+        }
+      />
 
       {/* Filters */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -282,7 +284,7 @@ export default function RequestsPage() {
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {isAdminOrHR && `${req.user.firstName} ${req.user.lastName} · `}
-                  {req.type} · {new Date(req.createdAt).toLocaleDateString()}
+                  {req.type} · {formatDate(req.createdAt)}
                 </p>
               </div>
               <span className={`text-xs font-medium ${getPriorityColor(req.priority)}`}>
@@ -536,7 +538,7 @@ export default function RequestsPage() {
                   )}
                   <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
                     <span className="font-medium">Submitted:</span>
-                    <span>{new Date(selectedRequest.createdAt).toLocaleString()}</span>
+                    <span>{formatDateTime(selectedRequest.createdAt)}</span>
                   </div>
                   {selectedRequest.approver && (
                     <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">

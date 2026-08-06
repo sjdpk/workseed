@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, SearchBar } from "@/components";
+import { Button, Card, PageHeader, SearchBar } from "@/components";
 import type { Branch } from "@/types";
 
 interface CurrentUser {
@@ -105,20 +105,20 @@ export default function BranchesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Branches</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Manage company branches</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={exportToCSV}>
-            Export CSV
-          </Button>
-          {hasPermission("CREATE") && (
-            <Button onClick={() => router.push("/dashboard/branches/new")}>Add Branch</Button>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="Branches"
+        subtitle="Manage company branches"
+        actions={
+          <>
+            <Button variant="outline" onClick={exportToCSV}>
+              Export CSV
+            </Button>
+            {hasPermission("CREATE") && (
+              <Button onClick={() => router.push("/dashboard/branches/new")}>Add Branch</Button>
+            )}
+          </>
+        }
+      />
 
       <SearchBar
         value={searchTerm}

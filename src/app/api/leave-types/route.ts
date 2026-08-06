@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, getCurrentUser, isHROrAbove } from "@/lib";
+import { prisma, getCurrentUser } from "@/lib";
 import { logger } from "@/lib/logger";
 import { z } from "@/lib/validation";
+import { can } from "@/lib/rbac";
 
 const createLeaveTypeSchema = z.object({
   name: z.string().min(1, "Leave type name is required"),
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
     const includeInactive = searchParams.get("all") === "true";
 
     // Only HR and above can see inactive leave types
-    const showAll = includeInactive && isHROrAbove(currentUser.role);
+    const showAll = includeInactive && (await can(currentUser, "LEAVE_TYPE_EDIT"));
 
     const leaveTypes = await prisma.leaveType.findMany({
       where: showAll ? {} : { isActive: true },
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
-    if (!currentUser || !isHROrAbove(currentUser.role)) {
+    if (!currentUser || !(await can(currentUser, "LEAVE_TYPE_EDIT"))) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 

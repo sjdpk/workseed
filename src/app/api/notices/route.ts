@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, getCurrentUser, isHROrAbove } from "@/lib";
+import { prisma, getCurrentUser } from "@/lib";
 import { sendAnnouncementNotification } from "@/lib/notifications";
 import { logger } from "@/lib/logger";
 import { z } from "@/lib/validation";
+import { can } from "@/lib/rbac";
 
 const createNoticeSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -21,7 +22,7 @@ export async function GET() {
     const now = new Date();
 
     // For employees, only show active and non-expired notices
-    const whereClause = isHROrAbove(currentUser.role)
+    const whereClause = (await can(currentUser, "USER_EDIT"))
       ? {}
       : {
           isActive: true,
@@ -54,7 +55,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
-    if (!currentUser || !isHROrAbove(currentUser.role)) {
+    if (!currentUser || !(await can(currentUser, "USER_EDIT"))) {
       return NextResponse.json(
         { success: false, error: "Unauthorized - HR or Admin only" },
         { status: 403 }

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: "Dashboard",
   description: "Human Resource Management System",
   icons: {
-    icon: "/favicon.png",
+    icon: [{ url: "/logo.svg", type: "image/svg+xml" }, { url: "/favicon.png" }],
   },
 };
 

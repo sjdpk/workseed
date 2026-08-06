@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, getCurrentUser, isHROrAbove, createAuditLog, getRequestMeta } from "@/lib";
+import { prisma, getCurrentUser, createAuditLog, getRequestMeta } from "@/lib";
+import { can } from "@/lib/rbac";
 
 interface DepartmentImportRow {
   code: string;
@@ -70,7 +71,7 @@ function parseCSVLine(line: string): string[] {
 export async function POST(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
-    if (!currentUser || !isHROrAbove(currentUser.role)) {
+    if (!currentUser || !(await can(currentUser, "USER_CREATE"))) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 

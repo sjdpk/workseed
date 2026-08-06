@@ -129,7 +129,7 @@ DATABASE_URL=postgresql://user:password@host:5432/workseed?schema=public
 ```env
 PORT=3000             # port the app runs on
 JWT_SECRET=           # required, >=32 chars (openssl rand -base64 32)
-NEXT_PUBLIC_APP_URL=http://localhost:3000   # used for links in emails
+# NEXT_PUBLIC_APP_URL=https://hr.company.com  # email links; defaults to http://localhost:$PORT
 APP_NAME=Workseed
 # ADMIN_EMAIL / ADMIN_PASSWORD / ADMIN_NAME  — optional seed admin overrides
 # SMTP_* — optional; dev falls back to an Ethereal test account

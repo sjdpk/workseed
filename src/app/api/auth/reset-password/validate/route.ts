@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib";
+import { checkResetToken } from "@/lib/password-reset";
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
@@ -8,11 +8,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, valid: false });
   }
 
-  const resetToken = await prisma.passwordResetToken.findUnique({
-    where: { token },
-  });
+  const { valid, reason } = await checkResetToken(token);
 
-  const valid = resetToken && !resetToken.usedAt && resetToken.expiresAt > new Date();
-
-  return NextResponse.json({ success: true, valid });
+  return NextResponse.json({ success: true, valid, reason });
 }

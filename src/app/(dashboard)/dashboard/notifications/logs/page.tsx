@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, Fragment } from "react";
-import { Button, useToast } from "@/components";
+import { Button, PageHeader, useOrgSettings, useToast } from "@/components";
 
 interface EmailLog {
   id: string;
@@ -52,6 +52,7 @@ const TYPE_OPTIONS = [
 ];
 
 export default function EmailLogsPage() {
+  const { formatDate, formatDateTime } = useOrgSettings();
   const toast = useToast();
   const [logs, setLogs] = useState<EmailLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,7 +72,9 @@ export default function EmailLogsPage() {
 
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
-  const [queueStats, setQueueStats] = useState<{ queued: number; smtpConfigured: boolean } | null>(null);
+  const [queueStats, setQueueStats] = useState<{ queued: number; smtpConfigured: boolean } | null>(
+    null
+  );
 
   const fetchQueueStatus = async () => {
     try {
@@ -96,7 +99,9 @@ export default function EmailLogsPage() {
       });
       const data = await res.json();
       if (data.success) {
-        toast.success(`Processed: ${data.data.result.sent} sent, ${data.data.result.failed} failed`);
+        toast.success(
+          `Processed: ${data.data.result.sent} sent, ${data.data.result.failed} failed`
+        );
         fetchLogs();
         fetchQueueStatus();
       } else {
@@ -174,93 +179,103 @@ export default function EmailLogsPage() {
     return styles[status] || "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
   };
 
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Email Logs</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            View sent emails and troubleshoot failures
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={filters.status}
-            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-            className="h-9 rounded border border-gray-300 bg-white px-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-          >
-            {STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-          <select
-            value={filters.type}
-            onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-            className="h-9 rounded border border-gray-300 bg-white px-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-          >
-            {TYPE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-          <input
-            type="text"
-            placeholder="Search email..."
-            value={filters.email}
-            onChange={(e) => setFilters({ ...filters, email: e.target.value })}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            className="h-9 w-40 rounded border border-gray-300 bg-white px-3 text-sm placeholder-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500"
-          />
-          <Button onClick={handleSearch} size="sm">Search</Button>
-          {queueStats && queueStats.queued > 0 && (
-            <Button
-              onClick={processQueue}
-              disabled={processing}
-              size="sm"
-              variant="outline"
+      <PageHeader
+        title="Email Logs"
+        subtitle="View sent emails and troubleshoot failures"
+        actions={
+          <>
+            <select
+              value={filters.status}
+              onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+              className="h-9 rounded border border-gray-300 bg-white px-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
             >
-              {processing ? (
-                <span className="flex items-center gap-1.5">
-                  <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Sending...
-                </span>
-              ) : (
-                <span className="flex items-center gap-1.5">
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                  </svg>
-                  Send ({queueStats.queued})
-                </span>
-              )}
-            </Button>
-          )}
-          {(filters.status || filters.type || filters.email) && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setFilters({ status: "", type: "", email: "" });
-                setPagination((prev) => ({ ...prev, page: 1 }));
-              }}
+              {STATUS_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <select
+              value={filters.type}
+              onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+              className="h-9 rounded border border-gray-300 bg-white px-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
             >
-              Clear
+              {TYPE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <input
+              type="text"
+              placeholder="Search email..."
+              value={filters.email}
+              onChange={(e) => setFilters({ ...filters, email: e.target.value })}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              className="h-9 w-40 rounded border border-gray-300 bg-white px-3 text-sm placeholder-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder-gray-500"
+            />
+            <Button onClick={handleSearch} size="sm">
+              Search
             </Button>
-          )}
-        </div>
-      </div>
+            {queueStats && queueStats.queued > 0 && (
+              <Button onClick={processQueue} disabled={processing} size="sm" variant="outline">
+                {processing ? (
+                  <span className="flex items-center gap-1.5">
+                    <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      />
+                    </svg>
+                    Sending...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5">
+                    <svg
+                      className="h-3.5 w-3.5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                      />
+                    </svg>
+                    Send ({queueStats.queued})
+                  </span>
+                )}
+              </Button>
+            )}
+            {(filters.status || filters.type || filters.email) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setFilters({ status: "", type: "", email: "" });
+                  setPagination((prev) => ({ ...prev, page: 1 }));
+                }}
+              >
+                Clear
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {/* Table */}
       <div className="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
@@ -322,12 +337,14 @@ export default function EmailLogsPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`inline-flex rounded-md px-2 py-0.5 text-xs font-medium ${getStatusBadge(log.status)}`}>
+                          <span
+                            className={`inline-flex rounded-md px-2 py-0.5 text-xs font-medium ${getStatusBadge(log.status)}`}
+                          >
                             {log.status}
                           </span>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                          {formatDate(log.createdAt)}
+                          {formatDateTime(log.createdAt)}
                         </td>
                         <td className="px-4 py-3 text-right">
                           {log.status === "FAILED" && (
@@ -350,26 +367,40 @@ export default function EmailLogsPage() {
                           <td colSpan={6} className="bg-gray-50 px-4 py-4 dark:bg-gray-800/50">
                             <div className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
                               <div>
-                                <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Template</p>
-                                <p className="text-gray-900 dark:text-white">{log.template?.displayName || "-"}</p>
+                                <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                  Template
+                                </p>
+                                <p className="text-gray-900 dark:text-white">
+                                  {log.template?.displayName || "-"}
+                                </p>
                               </div>
                               <div>
-                                <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Sent At</p>
-                                <p className="text-gray-900 dark:text-white">{formatDate(log.sentAt)}</p>
+                                <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                  Sent At
+                                </p>
+                                <p className="text-gray-900 dark:text-white">
+                                  {formatDateTime(log.sentAt)}
+                                </p>
                               </div>
                               <div>
-                                <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Retry Count</p>
+                                <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                  Retry Count
+                                </p>
                                 <p className="text-gray-900 dark:text-white">{log.retryCount}</p>
                               </div>
                               {log.entityType && (
                                 <div>
-                                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Entity</p>
+                                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                    Entity
+                                  </p>
                                   <p className="text-gray-900 dark:text-white">{log.entityType}</p>
                                 </div>
                               )}
                               {log.errorMessage && (
                                 <div className="sm:col-span-2 lg:col-span-4">
-                                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Error</p>
+                                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                    Error
+                                  </p>
                                   <p className="mt-1 rounded bg-red-50 p-2 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-400">
                                     {log.errorMessage}
                                   </p>
@@ -390,7 +421,8 @@ export default function EmailLogsPage() {
               <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3 dark:border-gray-700">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   {(pagination.page - 1) * pagination.limit + 1}-
-                  {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
+                  {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
+                  {pagination.total}
                 </p>
                 <div className="flex gap-2">
                   <Button

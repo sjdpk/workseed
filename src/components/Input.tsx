@@ -4,12 +4,16 @@ import { cn } from "@/utils";
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  /** Classes for the wrapper — use it to size the field in a toolbar. */
+  wrapperClassName?: string;
+  /** Helper text under the field, hidden while an error is showing. */
+  hint?: string;
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, id, ...props }, ref) => {
+  ({ className, label, error, hint, wrapperClassName, id, ...props }, ref) => {
     return (
-      <div className="w-full">
+      <div className={wrapperClassName ?? "w-full"}>
         {label && (
           <label
             htmlFor={id}
@@ -32,6 +36,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
           {...props}
         />
+        {hint && !error && (
+          <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">{hint}</p>
+        )}
         {error && <p className="mt-1.5 text-sm text-red-500 dark:text-red-400">{error}</p>}
       </div>
     );

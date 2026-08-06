@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, SearchBar } from "@/components";
+import { Button, Card, PageHeader, SearchBar } from "@/components";
 import type { LeaveType } from "@/types";
 
 const ALLOWED_ROLES = ["ADMIN", "HR"];
@@ -75,17 +75,17 @@ export default function LeaveTypesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Leave Types</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Configure organization leave policies
-          </p>
-        </div>
-        <Button onClick={() => router.push("/dashboard/settings/leave-types/new")}>
-          Add Leave Type
-        </Button>
-      </div>
+      <PageHeader
+        title="Leave Types"
+        subtitle="Configure organization leave policies"
+        actions={
+          <>
+            <Button onClick={() => router.push("/dashboard/settings/leave-types/new")}>
+              Add Leave Type
+            </Button>
+          </>
+        }
+      />
 
       <SearchBar
         value={searchTerm}

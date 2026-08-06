@@ -2,7 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, Input, Select, useToast } from "@/components";
+import {
+  Button,
+  Card,
+  type EmergencyContactInput,
+  EmergencyContacts,
+  Input,
+  PageHeader,
+  RoleSelect,
+  Select,
+  useToast,
+} from "@/components";
 import type {
   Branch,
   Department,
@@ -19,6 +29,10 @@ export default function NewUserPage() {
   const router = useRouter();
   const toast = useToast();
   const [currentUserRole, setCurrentUserRole] = useState<string>("");
+  /* a creator can only hand out roles at or below their own seniority — the API
+     enforces the same rule */
+  const [currentUserRank, setCurrentUserRank] = useState<number | undefined>(undefined);
+  const [roleId, setRoleId] = useState("");
   const [branches, setBranches] = useState<Branch[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -28,6 +42,9 @@ export default function NewUserPage() {
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
 
+  const [contacts, setContacts] = useState<EmergencyContactInput[]>([]);
+  /* invite by default — see the Password fieldset below */
+  const [sendInvite, setSendInvite] = useState(true);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -47,8 +64,7 @@ export default function NewUserPage() {
     state: "",
     country: "",
     postalCode: "",
-    emergencyContact: "",
-    emergencyContactPhone: "",
+
     employmentType: "FULL_TIME" as EmploymentType,
     joiningDate: "",
     designation: "",
@@ -73,6 +89,7 @@ export default function NewUserPage() {
           return;
         }
         setCurrentUserRole(meData.data.user.role);
+        setCurrentUserRank(meData.data.user.roleRank);
       }
       if (branchesData.success) setBranches(branchesData.data.branches);
       if (deptData.success) setDepartments(deptData.data.departments);
@@ -105,6 +122,10 @@ export default function NewUserPage() {
         managerId: formData.managerId || undefined,
         dateOfBirth: formData.dateOfBirth || undefined,
         joiningDate: formData.joiningDate || undefined,
+        emergencyContacts: contacts.filter((c) => c.name.trim()),
+        roleId: roleId || undefined,
+        sendInvite,
+        password: sendInvite ? undefined : formData.password,
       };
 
       const res = await fetch("/api/users", {
@@ -120,7 +141,15 @@ export default function NewUserPage() {
         return;
       }
 
-      toast.success("User created successfully");
+      // say plainly whether the invite actually went out
+      const invite = data.data?.invite;
+      if (invite && !invite.sent) {
+        toast.error(invite.error || "Account created, but the invite email failed");
+      } else if (invite?.sent) {
+        toast.success(`Account created — invite sent to ${formData.email}`);
+      } else {
+        toast.success("User created successfully");
+      }
       router.push("/dashboard/users");
     } catch {
       toast.error("Something went wrong");
@@ -128,19 +157,6 @@ export default function NewUserPage() {
       setLoading(false);
     }
   };
-
-  // Only ADMIN can assign ADMIN or HR roles
-  const roleOptions = [
-    { value: "EMPLOYEE", label: "Employee" },
-    { value: "TEAM_LEAD", label: "Team Lead" },
-    { value: "MANAGER", label: "Manager" },
-    ...(currentUserRole === "ADMIN"
-      ? [
-          { value: "HR", label: "HR" },
-          { value: "ADMIN", label: "Admin" },
-        ]
-      : []),
-  ];
 
   const genderOptions = [
     { value: "", label: "Select Gender" },
@@ -180,24 +196,24 @@ export default function NewUserPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Add New User</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Create a new employee account
-          </p>
-        </div>
-        <Button variant="outline" onClick={() => router.back()}>
-          Cancel
-        </Button>
-      </div>
+      <PageHeader
+        title="Add New User"
+        subtitle="Create a new employee account"
+        actions={
+          <>
+            <Button variant="outline" onClick={() => router.back()}>
+              Cancel
+            </Button>
+          </>
+        }
+      />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">
             Account Information
           </h2>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-4">
             <Input
               id="email"
               type="email"
@@ -206,14 +222,58 @@ export default function NewUserPage() {
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
             />
-            <Input
-              id="password"
-              type="password"
-              label="Password *"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              required
-            />
+
+            {/* Inviting is the default: the employee picks their own password, so
+                nobody else ever knows it and there is no password to hand over. */}
+            <fieldset className="space-y-2">
+              <legend className="mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+                Password
+              </legend>
+              <label className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <input
+                  type="radio"
+                  name="passwordMode"
+                  className="mt-1 h-4 w-4"
+                  checked={sendInvite}
+                  onChange={() => setSendInvite(true)}
+                />
+                <span>
+                  Email an invite so they set their own password
+                  <span className="block text-xs text-gray-500 dark:text-gray-400">
+                    Recommended — the link works once and expires in 72 hours. You never see their
+                    password.
+                  </span>
+                </span>
+              </label>
+              <label className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <input
+                  type="radio"
+                  name="passwordMode"
+                  className="mt-1 h-4 w-4"
+                  checked={!sendInvite}
+                  onChange={() => setSendInvite(false)}
+                />
+                <span>
+                  Set a temporary password myself
+                  <span className="block text-xs text-gray-500 dark:text-gray-400">
+                    Tell them to change it on first sign-in.
+                  </span>
+                </span>
+              </label>
+            </fieldset>
+
+            {!sendInvite && (
+              <Input
+                id="password"
+                type="password"
+                label="Temporary password *"
+                value={formData.password}
+                minLength={8}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                required
+                hint="At least 8 characters."
+              />
+            )}
           </div>
         </Card>
 
@@ -313,23 +373,15 @@ export default function NewUserPage() {
         </Card>
 
         <Card>
-          <h2 className="mb-4 text-base font-semibold text-gray-900 dark:text-white">
-            Emergency Contact
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Input
-              id="emergencyContact"
-              label="Contact Name"
-              value={formData.emergencyContact}
-              onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
-            />
-            <Input
-              id="emergencyContactPhone"
-              label="Contact Phone"
-              value={formData.emergencyContactPhone}
-              onChange={(e) => setFormData({ ...formData, emergencyContactPhone: e.target.value })}
-            />
+          <div className="mb-4">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+              Emergency Contacts
+            </h2>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Optional. Add as many as you need — only a name is required.
+            </p>
           </div>
+          <EmergencyContacts contacts={contacts} onChange={setContacts} />
         </Card>
 
         <Card>
@@ -353,12 +405,15 @@ export default function NewUserPage() {
               value={formData.deviceUserId}
               onChange={(e) => setFormData({ ...formData, deviceUserId: e.target.value })}
             />
-            <Select
-              id="role"
+            <RoleSelect
+              id="roleId"
               label="Role *"
-              options={roleOptions}
-              value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value as Role })}
+              value={roleId}
+              maxRank={currentUserRank}
+              onChange={(id, role) => {
+                setRoleId(id);
+                setFormData({ ...formData, role: role.key as Role });
+              }}
             />
             <div>
               <Select

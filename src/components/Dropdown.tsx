@@ -65,7 +65,10 @@ export function Dropdown({
           {selected ? selected.label : placeholder}
         </span>
         <svg
-          className={cn("h-4 w-4 shrink-0 text-gray-400 transition-transform", open && "rotate-180")}
+          className={cn(
+            "h-4 w-4 shrink-0 text-gray-400 transition-transform",
+            open && "rotate-180"
+          )}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -100,8 +103,18 @@ export function Dropdown({
                 >
                   {o.label}
                   {active && (
-                    <svg className="h-4 w-4 text-gray-900 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    <svg
+                      className="h-4 w-4 text-gray-900 dark:text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
                     </svg>
                   )}
                 </button>

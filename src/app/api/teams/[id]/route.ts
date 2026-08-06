@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, getCurrentUser, isHROrAbove } from "@/lib";
+import { prisma, getCurrentUser } from "@/lib";
 import { logger } from "@/lib/logger";
 import { z } from "@/lib/validation";
+import { can } from "@/lib/rbac";
 
 const updateTeamSchema = z.object({
   name: z.string().min(1).optional(),
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const currentUser = await getCurrentUser();
-    if (!currentUser || !isHROrAbove(currentUser.role)) {
+    if (!currentUser || !(await can(currentUser, "TEAM_EDIT"))) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 

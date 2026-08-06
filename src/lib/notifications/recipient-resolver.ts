@@ -77,11 +77,19 @@ async function getUserById(userId: string) {
 /**
  * Get users by role
  */
-async function getUsersByRole(roles: Role[]): Promise<NotificationRecipient[]> {
+/** Matches on the role ROW's key as well as the legacy enum, so a custom role
+ *  ("Attendance Officer") can be a notification recipient like any other. */
+async function getUsersByRole(roles: string[]): Promise<NotificationRecipient[]> {
+  const legacy = roles.filter((r) =>
+    ["ADMIN", "HR", "MANAGER", "TEAM_LEAD", "EMPLOYEE"].includes(r)
+  ) as Role[];
   const users = await prisma.user.findMany({
     where: {
-      role: { in: roles },
       status: "ACTIVE",
+      OR: [
+        ...(legacy.length ? [{ role: { in: legacy } }] : []),
+        { roleRecord: { key: { in: roles } } },
+      ],
     },
     select: {
       id: true,
@@ -310,7 +318,7 @@ export async function resolveRecipients(
 
   // Notify by role
   if (config.roleRecipients?.length) {
-    const roleUsers = await getUsersByRole(config.roleRecipients as Role[]);
+    const roleUsers = await getUsersByRole(config.roleRecipients);
     roleUsers.forEach(addRecipient);
   }
 

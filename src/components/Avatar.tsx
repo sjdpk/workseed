@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { cn } from "@/utils";
 
 interface AvatarProps {
@@ -17,6 +20,10 @@ const sizeClasses = {
 };
 
 export function Avatar({ src, name, size = "md", className, colorClass }: AvatarProps) {
+  /* remembering WHICH url failed means a new photo is tried again, with no
+     effect and no cascading render */
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+
   const initials = name
     .split(" ")
     .map((n) => n[0])
@@ -26,18 +33,16 @@ export function Avatar({ src, name, size = "md", className, colorClass }: Avatar
 
   const defaultColorClass = "bg-gray-900 dark:bg-gray-700";
 
-  if (src) {
+  if (src && failedSrc !== src) {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- Dynamic URL from user profile
       <img
         src={src}
         alt={name}
+        loading="lazy"
+        decoding="async"
         className={cn(sizeClasses[size], "rounded-full object-cover flex-shrink-0", className)}
-        onError={(e) => {
-          // Hide image on error, show initials fallback
-          e.currentTarget.style.display = "none";
-          e.currentTarget.nextElementSibling?.classList.remove("hidden");
-        }}
+        onError={() => setFailedSrc(src)}
       />
     );
   }

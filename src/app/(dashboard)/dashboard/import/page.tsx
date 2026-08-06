@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Button, Card, Select, useToast } from "@/components";
+import { Button, Card, PageHeader, Select, useToast } from "@/components";
 
 type ImportType = "users" | "leave-allocations" | "departments" | "teams" | "branches";
 
@@ -253,12 +253,7 @@ export default function ImportPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Import Data</h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Bulk import data from CSV files
-        </p>
-      </div>
+      <PageHeader title="Import Data" subtitle="Bulk import data from CSV files" />
 
       <Card>
         <div className="space-y-6">

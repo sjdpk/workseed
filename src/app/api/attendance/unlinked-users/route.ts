@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, getCurrentUser, isHROrAbove } from "@/lib";
+import { prisma, getCurrentUser } from "@/lib";
 import { logger } from "@/lib/logger";
+import { can } from "@/lib/rbac";
 
 /**
  * List active employees that are NOT yet linked to any device (deviceUserId is
@@ -12,7 +13,7 @@ import { logger } from "@/lib/logger";
 export async function GET(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
-    if (!currentUser || !isHROrAbove(currentUser.role)) {
+    if (!currentUser || !(await can(currentUser, "ATTENDANCE_MANAGE"))) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 

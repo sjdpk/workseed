@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, Input } from "@/components";
+import { Button, Card, Input, PageHeader } from "@/components";
 
 interface Notice {
   id: string;
@@ -92,19 +92,19 @@ export default function EditNoticePage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Edit Notice</h1>
-          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-            Update announcement details
-          </p>
-        </div>
-        <Link href="/dashboard/notices">
-          <Button variant="outline" size="sm">
-            Cancel
-          </Button>
-        </Link>
-      </div>
+      <PageHeader
+        title="Edit Notice"
+        subtitle="Update announcement details"
+        actions={
+          <>
+            <Link href="/dashboard/notices">
+              <Button variant="outline" size="sm">
+                Cancel
+              </Button>
+            </Link>
+          </>
+        }
+      />
 
       <Card>
         {error && (

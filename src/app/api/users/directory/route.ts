@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, getCurrentUser } from "@/lib";
+import { can } from "@/lib/rbac";
 
 export async function GET(_request: NextRequest) {
   try {
@@ -9,7 +10,7 @@ export async function GET(_request: NextRequest) {
     }
 
     // Admin and HR should use the main Users page
-    const isHROrAbove = ["ADMIN", "HR"].includes(currentUser.role);
+    const isHROrAbove = await can(currentUser, "USER_VIEW_ALL");
     if (isHROrAbove) {
       return NextResponse.json(
         { success: false, error: "Use Users page for admin access" },

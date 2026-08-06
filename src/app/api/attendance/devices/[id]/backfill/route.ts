@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, getCurrentUser, isHROrAbove } from "@/lib";
+import { prisma, getCurrentUser } from "@/lib";
 import { syncDeviceToDb } from "@/lib/attendance/sync";
 import { logger } from "@/lib/logger";
+import { can } from "@/lib/rbac";
 
 /**
  * Backfill: import ALL punches stored on a LAN-direct device, ignoring the
@@ -15,7 +16,7 @@ import { logger } from "@/lib/logger";
 export async function POST(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const currentUser = await getCurrentUser();
-    if (!currentUser || !isHROrAbove(currentUser.role)) {
+    if (!currentUser || !(await can(currentUser, "ATTENDANCE_MANAGE"))) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 

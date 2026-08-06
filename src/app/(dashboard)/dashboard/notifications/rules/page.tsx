@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, Card, useToast } from "@/components";
+import { Button, Card, PageHeader, useRoles, useToast } from "@/components";
+import Link from "next/link";
 
 interface NotificationRule {
   id: string;
@@ -14,6 +15,8 @@ interface NotificationRule {
     notifyTeamLead: boolean;
     notifyHR: boolean;
     notifyAdmin: boolean;
+    /** Role keys from the roster — how a custom role becomes a recipient. */
+    roleRecipients?: string[];
   };
 }
 
@@ -29,17 +32,19 @@ const NOTIFICATION_TYPES = [
   { value: "ASSET_ASSIGNED", label: "Asset Assigned" },
 ];
 
-const RECIPIENTS = [
+/* Relationships to the person the notification is about. Roles are a separate
+   set of columns built from the roster, so adding a role adds a column. */
+const RELATIONSHIPS = [
   { key: "notifyRequester", label: "Requester" },
-  { key: "notifyManager", label: "Manager" },
-  { key: "notifyTeamLead", label: "Team Lead" },
-  { key: "notifyHR", label: "HR" },
-  { key: "notifyAdmin", label: "Admin" },
+  { key: "notifyManager", label: "Their manager" },
+  { key: "notifyTeamLead", label: "Their team lead" },
 ];
 
 export default function NotificationRulesPage() {
   const toast = useToast();
   const [rules, setRules] = useState<NotificationRule[]>([]);
+  /* one column per role that actually exists */
+  const { roles } = useRoles();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -65,6 +70,35 @@ export default function NotificationRulesPage() {
 
   const getRule = (type: string): NotificationRule | undefined => {
     return rules.find((r) => r.type === type);
+  };
+
+  /** Toggling a role column edits `roleRecipients`, keeping the two legacy
+   *  booleans in step so older consumers keep working. */
+  const updateRoleRecipient = (type: string, roleKey: string, value: boolean) => {
+    setHasChanges(true);
+    setRules((prev) => {
+      const existing = prev.find((r) => r.type === type);
+      const current = existing?.recipientConfig.roleRecipients ?? [];
+      const next = value
+        ? [...new Set([...current, roleKey])]
+        : current.filter((k) => k !== roleKey);
+      const config = {
+        notifyRequester: existing?.recipientConfig.notifyRequester ?? true,
+        notifyManager: existing?.recipientConfig.notifyManager ?? false,
+        notifyTeamLead: existing?.recipientConfig.notifyTeamLead ?? false,
+        notifyHR: next.includes("HR"),
+        notifyAdmin: next.includes("ADMIN"),
+        roleRecipients: next,
+      };
+      if (existing) {
+        return prev.map((r) => (r.type === type ? { ...r, recipientConfig: config } : r));
+      }
+      const typeInfo = NOTIFICATION_TYPES.find((t) => t.value === type);
+      return [
+        ...prev,
+        { id: "", type, name: typeInfo?.label || type, isActive: true, recipientConfig: config },
+      ];
+    });
   };
 
   const updateRule = (type: string, field: string, value: boolean) => {
@@ -147,19 +181,17 @@ export default function NotificationRulesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Notification Rules
-          </h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Configure who receives each notification
-          </p>
-        </div>
-        <Button onClick={handleSave} disabled={saving || !hasChanges}>
-          {saving ? "Saving..." : "Save Changes"}
-        </Button>
-      </div>
+      <PageHeader
+        title="Notification Rules"
+        subtitle="Configure who receives each notification"
+        actions={
+          <>
+            <Button onClick={handleSave} disabled={saving || !hasChanges}>
+              {saving ? "Saving..." : "Save Changes"}
+            </Button>
+          </>
+        }
+      />
 
       <Card>
         <div className="overflow-x-auto">
@@ -172,12 +204,20 @@ export default function NotificationRulesPage() {
                 <th className="px-3 py-2 text-center text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
                   Enabled
                 </th>
-                {RECIPIENTS.map((r) => (
+                {RELATIONSHIPS.map((r) => (
                   <th
                     key={r.key}
                     className="px-3 py-2 text-center text-xs font-medium uppercase text-gray-500 dark:text-gray-400"
                   >
                     {r.label}
+                  </th>
+                ))}
+                {roles.map((role) => (
+                  <th
+                    key={role.id}
+                    className="px-3 py-2 text-center text-xs font-medium uppercase text-gray-500 dark:text-gray-400"
+                  >
+                    {role.name}
                   </th>
                 ))}
               </tr>
@@ -200,21 +240,39 @@ export default function NotificationRulesPage() {
                         className="rounded border-gray-300 dark:border-gray-600"
                       />
                     </td>
-                    {RECIPIENTS.map((r) => {
-                      const checked =
-                        rule?.recipientConfig[r.key as keyof typeof rule.recipientConfig] ?? false;
-                      return (
-                        <td key={r.key} className="px-3 py-2 text-center">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={(e) => updateRule(type.value, r.key, e.target.checked)}
-                            disabled={!isActive}
-                            className="rounded border-gray-300 dark:border-gray-600 disabled:opacity-30"
-                          />
-                        </td>
-                      );
-                    })}
+                    {RELATIONSHIPS.map((r) => (
+                      <td key={r.key} className="px-3 py-2 text-center">
+                        <input
+                          type="checkbox"
+                          checked={
+                            !!rule?.recipientConfig[r.key as keyof typeof rule.recipientConfig]
+                          }
+                          onChange={(e) => updateRule(type.value, r.key, e.target.checked)}
+                          disabled={!isActive}
+                          className="rounded border-gray-300 dark:border-gray-600 disabled:opacity-30"
+                        />
+                      </td>
+                    ))}
+                    {roles.map((role) => (
+                      <td key={role.id} className="px-3 py-2 text-center">
+                        <input
+                          type="checkbox"
+                          checked={
+                            rule?.recipientConfig.roleRecipients?.includes(role.key) ??
+                            (role.key === "HR"
+                              ? !!rule?.recipientConfig.notifyHR
+                              : role.key === "ADMIN"
+                                ? !!rule?.recipientConfig.notifyAdmin
+                                : false)
+                          }
+                          onChange={(e) =>
+                            updateRoleRecipient(type.value, role.key, e.target.checked)
+                          }
+                          disabled={!isActive}
+                          className="rounded border-gray-300 dark:border-gray-600 disabled:opacity-30"
+                        />
+                      </td>
+                    ))}
                   </tr>
                 );
               })}
@@ -222,7 +280,11 @@ export default function NotificationRulesPage() {
           </table>
         </div>
         <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
-          Requester = person who submitted the request or is the subject of the notification.
+          Requester = the person the notification is about. Role columns come from{" "}
+          <Link href="/dashboard/settings/roles" className="underline">
+            Settings → Roles
+          </Link>
+          , so a new role appears here automatically.
         </p>
       </Card>
     </div>

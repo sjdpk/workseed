@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, Input, Select, useToast } from "@/components";
+import { Button, Card, Input, PageHeader, Select, useToast } from "@/components";
 
 interface Department {
   id: string;
@@ -76,15 +76,17 @@ export default function NewTeamPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Add Team</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Create a new team</p>
-        </div>
-        <Button variant="outline" onClick={() => router.back()}>
-          Cancel
-        </Button>
-      </div>
+      <PageHeader
+        title="Add Team"
+        subtitle="Create a new team"
+        actions={
+          <>
+            <Button variant="outline" onClick={() => router.back()}>
+              Cancel
+            </Button>
+          </>
+        }
+      />
 
       <form onSubmit={handleSubmit}>
         <Card className="space-y-4">

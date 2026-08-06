@@ -2,7 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Button, Card, Dropdown, useToast, useConfirm } from "@/components";
+import {
+  Button,
+  Card,
+  Dropdown,
+  PageHeader,
+  useConfirm,
+  useOrgSettings,
+  useToast,
+} from "@/components";
 
 const ALLOWED_ROLES = ["ADMIN", "HR", "MANAGER", "TEAM_LEAD"];
 
@@ -147,6 +155,7 @@ const STATUS_OPTIONS = [
 ];
 
 export default function AttendanceManagePage() {
+  const { formatDate, formatDateTime, formatTime } = useOrgSettings();
   const router = useRouter();
   const toast = useToast();
   const confirm = useConfirm();
@@ -305,10 +314,6 @@ export default function AttendanceManagePage() {
     };
   }, [showMoreFilters]);
 
-  const formatTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  };
-
   const calculateDuration = (checkIn: string, checkOut: string | null) => {
     const start = new Date(checkIn);
     const end = checkOut ? new Date(checkOut) : null;
@@ -329,9 +334,6 @@ export default function AttendanceManagePage() {
     };
     return colors[source] || colors.MANUAL;
   };
-
-  const formatDate = (dateStr: string) =>
-    new Date(dateStr).toLocaleDateString([], { day: "2-digit", month: "short", year: "numeric" });
 
   // Filter records by search (client-side), memoized so typing doesn't re-scan
   // on unrelated re-renders.
@@ -533,9 +535,16 @@ export default function AttendanceManagePage() {
   const [inspectLoading, setInspectLoading] = useState(false);
   const [inspectError, setInspectError] = useState<string | null>(null);
   const [inspectUsers, setInspectUsers] = useState<DeviceUserRow[] | null>(null);
-  const [inspectUsersMeta, setInspectUsersMeta] = useState<{ total: number; mapped: number } | null>(null);
+  const [inspectUsersMeta, setInspectUsersMeta] = useState<{
+    total: number;
+    mapped: number;
+  } | null>(null);
   const [inspectLogs, setInspectLogs] = useState<DeviceLogRow[] | null>(null);
-  const [inspectLogsMeta, setInspectLogsMeta] = useState<{ totalOnDevice: number; returned: number; unsynced: number } | null>(null);
+  const [inspectLogsMeta, setInspectLogsMeta] = useState<{
+    totalOnDevice: number;
+    returned: number;
+    unsynced: number;
+  } | null>(null);
   const [logsUnsyncedOnly, setLogsUnsyncedOnly] = useState(false);
 
   const loadInspector = async (id: string, tab: "users" | "logs") => {
@@ -710,7 +719,9 @@ export default function AttendanceManagePage() {
       }
       const r = data.data;
       const extra = r.unmatched?.length ? `, ${r.unmatched.length} unmatched PIN(s)` : "";
-      toast.success(`Backfill done — ${r.matched} matched, ${r.daysWritten} day(s) written${extra}`);
+      toast.success(
+        `Backfill done — ${r.matched} matched, ${r.daysWritten} day(s) written${extra}`
+      );
       setDevices((ds) =>
         ds.map((d) => (d.id === device.id ? { ...d, lastSync: new Date().toISOString() } : d))
       );
@@ -816,417 +827,431 @@ export default function AttendanceManagePage() {
     <div className="space-y-6">
       {!inspect && (
         <>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Attendance Management
-          </h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            View and manage employee attendance records
-          </p>
-        </div>
-        {(userRole === "ADMIN" || userRole === "HR") && (
-          <div className="flex items-center gap-2">
-            {devices.length > 0 && (
-              <Button variant="outline" onClick={() => setShowDeviceList(true)}>
-                <DeviceIcon className="h-4 w-4 mr-1.5" />
-                Devices ({devices.length})
-              </Button>
-            )}
-            <Button onClick={() => setShowDeviceSetup(true)}>Add Device</Button>
+          <PageHeader
+            title="Attendance Management"
+            subtitle="View and manage employee attendance records"
+            actions={
+              <>
+                {(userRole === "ADMIN" || userRole === "HR") && (
+                  <div className="flex items-center gap-2">
+                    {devices.length > 0 && (
+                      <Button variant="outline" onClick={() => setShowDeviceList(true)}>
+                        <DeviceIcon className="h-4 w-4 mr-1.5" />
+                        Devices ({devices.length})
+                      </Button>
+                    )}
+                    <Button onClick={() => setShowDeviceSetup(true)}>Add Device</Button>
+                  </div>
+                )}
+              </>
+            }
+          />
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="rounded bg-gray-50 p-4 dark:bg-gray-800">
+              <p className="text-2xl font-semibold text-gray-900 dark:text-white">
+                {summary.total}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Total Employees</p>
+            </div>
+            <div className="rounded bg-green-50 p-4 dark:bg-green-900/20">
+              <p className="text-2xl font-semibold text-green-700 dark:text-green-400">
+                {summary.present}
+              </p>
+              <p className="text-xs text-green-600 dark:text-green-500">
+                {isRange ? "Present (in range)" : "Present"}
+              </p>
+            </div>
+            <div className="rounded bg-red-50 p-4 dark:bg-red-900/20">
+              <p className="text-2xl font-semibold text-red-700 dark:text-red-400">
+                {summary.absent}
+              </p>
+              <p className="text-xs text-red-600 dark:text-red-500">
+                {isRange ? "Never present (in range)" : "Absent"}
+              </p>
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded bg-gray-50 p-4 dark:bg-gray-800">
-          <p className="text-2xl font-semibold text-gray-900 dark:text-white">{summary.total}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Total Employees</p>
-        </div>
-        <div className="rounded bg-green-50 p-4 dark:bg-green-900/20">
-          <p className="text-2xl font-semibold text-green-700 dark:text-green-400">
-            {summary.present}
-          </p>
-          <p className="text-xs text-green-600 dark:text-green-500">
-            {isRange ? "Present (in range)" : "Present"}
-          </p>
-        </div>
-        <div className="rounded bg-red-50 p-4 dark:bg-red-900/20">
-          <p className="text-2xl font-semibold text-red-700 dark:text-red-400">{summary.absent}</p>
-          <p className="text-xs text-red-600 dark:text-red-500">
-            {isRange ? "Never present (in range)" : "Absent"}
-          </p>
-        </div>
-      </div>
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[200px]">
+              <svg
+                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search employee..."
+                className="w-full rounded border border-gray-200 bg-white py-1.5 pl-9 pr-3 text-sm focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              />
+            </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px]">
-          <svg
-            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search employee..."
-            className="w-full rounded border border-gray-200 bg-white py-1.5 pl-9 pr-3 text-sm focus:border-gray-400 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-          />
-        </div>
+            {/* Date range: From → To */}
+            <div className="flex items-center gap-1.5 rounded border border-gray-200 bg-white px-2 py-1 dark:border-gray-700 dark:bg-gray-800">
+              <input
+                type="date"
+                value={dateFrom}
+                max={dateTo || TODAY_STR}
+                onChange={(e) => setDateFrom(e.target.value)}
+                aria-label="From date"
+                className="bg-transparent text-sm text-gray-900 focus:outline-none dark:text-white"
+              />
+              <span className="text-gray-400">→</span>
+              <input
+                type="date"
+                value={dateTo}
+                min={dateFrom}
+                max={TODAY_STR}
+                onChange={(e) => setDateTo(e.target.value)}
+                aria-label="To date"
+                className="bg-transparent text-sm text-gray-900 focus:outline-none dark:text-white"
+              />
+            </div>
 
-        {/* Date range: From → To */}
-        <div className="flex items-center gap-1.5 rounded border border-gray-200 bg-white px-2 py-1 dark:border-gray-700 dark:bg-gray-800">
-          <input
-            type="date"
-            value={dateFrom}
-            max={dateTo || TODAY_STR}
-            onChange={(e) => setDateFrom(e.target.value)}
-            aria-label="From date"
-            className="bg-transparent text-sm text-gray-900 focus:outline-none dark:text-white"
-          />
-          <span className="text-gray-400">→</span>
-          <input
-            type="date"
-            value={dateTo}
-            min={dateFrom}
-            max={TODAY_STR}
-            onChange={(e) => setDateTo(e.target.value)}
-            aria-label="To date"
-            className="bg-transparent text-sm text-gray-900 focus:outline-none dark:text-white"
-          />
-        </div>
+            {/* Quick range presets */}
+            <div className="flex items-center gap-1">
+              {DATE_PRESETS.map((p) => {
+                const r = p.range();
+                const active = dateFrom === r.from && dateTo === r.to;
+                return (
+                  <button
+                    key={p.label}
+                    onClick={() => {
+                      setDateFrom(r.from);
+                      setDateTo(r.to);
+                    }}
+                    className={`rounded px-2 py-1 text-xs transition-colors ${
+                      active
+                        ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
+                        : "border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
 
-        {/* Quick range presets */}
-        <div className="flex items-center gap-1">
-          {DATE_PRESETS.map((p) => {
-            const r = p.range();
-            const active = dateFrom === r.from && dateTo === r.to;
-            return (
+            {/* More filters — secondary filters tucked into a popover */}
+            <div className="relative" ref={moreFiltersRef}>
               <button
-                key={p.label}
-                onClick={() => {
-                  setDateFrom(r.from);
-                  setDateTo(r.to);
-                }}
-                className={`rounded px-2 py-1 text-xs transition-colors ${
-                  active
-                    ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
-                    : "border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                onClick={() => setShowMoreFilters((v) => !v)}
+                className={`flex items-center gap-1.5 rounded border px-3 py-1.5 text-sm transition-colors ${
+                  moreFiltersCount > 0
+                    ? "border-gray-900 text-gray-900 dark:border-white dark:text-white"
+                    : "border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                 }`}
               >
-                {p.label}
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L14 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 018 21v-7.586L3.293 6.707A1 1 0 013 6V4z"
+                  />
+                </svg>
+                More filters
+                {moreFiltersCount > 0 && (
+                  <span className="ml-0.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-gray-900 px-1 text-[10px] font-semibold text-white dark:bg-white dark:text-gray-900">
+                    {moreFiltersCount}
+                  </span>
+                )}
+                <svg
+                  className={`h-4 w-4 text-gray-400 transition-transform ${showMoreFilters ? "rotate-180" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
               </button>
-            );
-          })}
-        </div>
 
-        {/* More filters — secondary filters tucked into a popover */}
-        <div className="relative" ref={moreFiltersRef}>
-          <button
-            onClick={() => setShowMoreFilters((v) => !v)}
-            className={`flex items-center gap-1.5 rounded border px-3 py-1.5 text-sm transition-colors ${
-              moreFiltersCount > 0
-                ? "border-gray-900 text-gray-900 dark:border-white dark:text-white"
-                : "border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-            }`}
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L14 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 018 21v-7.586L3.293 6.707A1 1 0 013 6V4z"
-              />
-            </svg>
-            More filters
-            {moreFiltersCount > 0 && (
-              <span className="ml-0.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-gray-900 px-1 text-[10px] font-semibold text-white dark:bg-white dark:text-gray-900">
-                {moreFiltersCount}
-              </span>
-            )}
-            <svg
-              className={`h-4 w-4 text-gray-400 transition-transform ${showMoreFilters ? "rotate-180" : ""}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+              {showMoreFilters && (
+                <div className="absolute left-0 z-40 mt-2 w-64 rounded-lg border border-gray-200 bg-white p-3 shadow-xl dark:border-gray-700 dark:bg-gray-800">
+                  <div className="space-y-3">
+                    {(userRole === "ADMIN" || userRole === "HR") && (
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                          Department
+                        </label>
+                        <select
+                          value={selectedDepartment}
+                          onChange={(e) => setSelectedDepartment(e.target.value)}
+                          className="w-full rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                        >
+                          <option value="">All Departments</option>
+                          {departments.map((d) => (
+                            <option key={d.id} value={d.id}>
+                              {d.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
 
-          {showMoreFilters && (
-            <div className="absolute left-0 z-40 mt-2 w-64 rounded-lg border border-gray-200 bg-white p-3 shadow-xl dark:border-gray-700 dark:bg-gray-800">
-              <div className="space-y-3">
-                {(userRole === "ADMIN" || userRole === "HR") && (
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                      Department
-                    </label>
-                    <select
-                      value={selectedDepartment}
-                      onChange={(e) => setSelectedDepartment(e.target.value)}
-                      className="w-full rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                    >
-                      <option value="">All Departments</option>
-                      {departments.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.name}
-                        </option>
-                      ))}
-                    </select>
+                    {(userRole === "ADMIN" || userRole === "HR" || userRole === "MANAGER") && (
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                          Team
+                        </label>
+                        <select
+                          value={selectedTeam}
+                          onChange={(e) => setSelectedTeam(e.target.value)}
+                          className="w-full rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                        >
+                          <option value="">All Teams</option>
+                          {teams.map((t) => (
+                            <option key={t.id} value={t.id}>
+                              {t.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                        Source
+                      </label>
+                      <select
+                        value={selectedSource}
+                        onChange={(e) => setSelectedSource(e.target.value)}
+                        className="w-full rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                      >
+                        {SOURCES.map((s) => (
+                          <option key={s.value} value={s.value}>
+                            {s.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {devices.length > 0 && (
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                          Device
+                        </label>
+                        <select
+                          value={selectedDevice}
+                          onChange={(e) => setSelectedDevice(e.target.value)}
+                          className="w-full rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                        >
+                          <option value="">All Devices</option>
+                          {devices.map((d) => (
+                            <option key={d.id} value={d.deviceId}>
+                              {d.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
-                )}
-
-                {(userRole === "ADMIN" || userRole === "HR" || userRole === "MANAGER") && (
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                      Team
-                    </label>
-                    <select
-                      value={selectedTeam}
-                      onChange={(e) => setSelectedTeam(e.target.value)}
-                      className="w-full rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                    >
-                      <option value="">All Teams</option>
-                      {teams.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                    Source
-                  </label>
-                  <select
-                    value={selectedSource}
-                    onChange={(e) => setSelectedSource(e.target.value)}
-                    className="w-full rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                  >
-                    {SOURCES.map((s) => (
-                      <option key={s.value} value={s.value}>
-                        {s.label}
-                      </option>
-                    ))}
-                  </select>
                 </div>
-
-                {devices.length > 0 && (
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                      Device
-                    </label>
-                    <select
-                      value={selectedDevice}
-                      onChange={(e) => setSelectedDevice(e.target.value)}
-                      className="w-full rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                    >
-                      <option value="">All Devices</option>
-                      {devices.map((d) => (
-                        <option key={d.id} value={d.deviceId}>
-                          {d.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
-          )}
-        </div>
 
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          title="Refresh records"
-          className="flex items-center gap-1.5 rounded border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-        >
-          <svg
-            className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
-          Refresh
-        </button>
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              title="Refresh records"
+              className="flex items-center gap-1.5 rounded border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              <svg
+                className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              Refresh
+            </button>
 
-        <button
-          onClick={exportCSV}
-          disabled={records.length === 0}
-          className="flex items-center gap-1.5 rounded border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:hover:bg-white dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-        >
-          <DownloadIcon />
-          Export CSV
-        </button>
+            <button
+              onClick={exportCSV}
+              disabled={records.length === 0}
+              className="flex items-center gap-1.5 rounded border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:hover:bg-white dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              <DownloadIcon />
+              Export CSV
+            </button>
 
-        {hasActiveFilters && (
-          <button
-            onClick={clearFilters}
-            className="flex items-center gap-1.5 rounded px-3 py-1.5 text-sm text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            Clear
-          </button>
-        )}
-      </div>
-
-      {/* Records Table */}
-      <Card>
-        <div className="mb-2 flex items-center justify-between px-3">
-          <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
-            {filteredRecords.length} record{filteredRecords.length === 1 ? "" : "s"}
-            {isRange && (
-              <span className="ml-1 text-gray-400">
-                · {formatDate(dateFrom)} – {formatDate(dateTo)}
-              </span>
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="flex items-center gap-1.5 rounded px-3 py-1.5 text-sm text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+                Clear
+              </button>
             )}
-          </p>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="border-b border-gray-200 dark:border-gray-700">
-              <tr>
+          </div>
+
+          {/* Records Table */}
+          <Card>
+            <div className="mb-2 flex items-center justify-between px-3">
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                {filteredRecords.length} record{filteredRecords.length === 1 ? "" : "s"}
                 {isRange && (
-                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                    Date
-                  </th>
+                  <span className="ml-1 text-gray-400">
+                    · {formatDate(dateFrom)} – {formatDate(dateTo)}
+                  </span>
                 )}
-                <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                  Employee
-                </th>
-                <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                  Department
-                </th>
-                <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                  Check In
-                </th>
-                <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                  Check Out
-                </th>
-                <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                  Duration
-                </th>
-                <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                  Source
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {recordsLoading && filteredRecords.length === 0
-                ? Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={`skeleton-${i}`}>
-                      {Array.from({ length: isRange ? 7 : 6 }).map((__, j) => (
-                        <td key={j} className="px-3 py-3">
-                          <div className="h-3 w-full max-w-[120px] animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
-                        </td>
+              </p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="border-b border-gray-200 dark:border-gray-700">
+                  <tr>
+                    {isRange && (
+                      <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                        Date
+                      </th>
+                    )}
+                    <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                      Employee
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                      Department
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                      Check In
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                      Check Out
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                      Duration
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                      Source
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {recordsLoading && filteredRecords.length === 0
+                    ? Array.from({ length: 5 }).map((_, i) => (
+                        <tr key={`skeleton-${i}`}>
+                          {Array.from({ length: isRange ? 7 : 6 }).map((__, j) => (
+                            <td key={j} className="px-3 py-3">
+                              <div className="h-3 w-full max-w-[120px] animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+                            </td>
+                          ))}
+                        </tr>
+                      ))
+                    : filteredRecords.map((record) => (
+                        <tr
+                          key={record.id}
+                          className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                        >
+                          {isRange && (
+                            <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-600 dark:text-gray-400">
+                              {formatDate(record.date)}
+                            </td>
+                          )}
+                          <td className="px-3 py-2">
+                            <div>
+                              <p className="text-sm text-gray-900 dark:text-white">
+                                {record.userName}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {record.employeeId}
+                              </p>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400">
+                            {record.department || "-"}
+                            {record.team && <span className="ml-1 text-xs">/ {record.team}</span>}
+                          </td>
+                          <td className="px-3 py-2 text-sm text-gray-900 dark:text-white">
+                            {formatTime(record.checkIn)}
+                          </td>
+                          <td className="px-3 py-2 text-sm text-gray-900 dark:text-white">
+                            {record.checkOut ? formatTime(record.checkOut) : "-"}
+                          </td>
+                          <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400">
+                            {calculateDuration(record.checkIn, record.checkOut)}
+                          </td>
+                          <td className="px-3 py-2">
+                            <span
+                              className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${getSourceBadge(record.source)}`}
+                            >
+                              {record.source.charAt(0) + record.source.slice(1).toLowerCase()}
+                            </span>
+                          </td>
+                        </tr>
                       ))}
-                    </tr>
-                  ))
-                : filteredRecords.map((record) => (
-                    <tr
-                      key={record.id}
-                      className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
-                    >
-                      {isRange && (
-                        <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-600 dark:text-gray-400">
-                          {formatDate(record.date)}
-                        </td>
-                      )}
-                      <td className="px-3 py-2">
-                        <div>
-                          <p className="text-sm text-gray-900 dark:text-white">{record.userName}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {record.employeeId}
+                  {!recordsLoading && filteredRecords.length === 0 && (
+                    <tr>
+                      <td colSpan={isRange ? 7 : 6} className="px-3 py-12">
+                        <div className="flex flex-col items-center justify-center text-center">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+                            <svg
+                              className="h-6 w-6 text-gray-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={1.8}
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+                              />
+                            </svg>
+                          </div>
+                          <p className="mt-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {search
+                              ? "No employees match your search"
+                              : hasActiveFilters
+                                ? "No attendance records for these filters"
+                                : "No attendance records for this date"}
                           </p>
+                          {hasActiveFilters && (
+                            <button
+                              onClick={clearFilters}
+                              className="mt-2 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                            >
+                              Clear filters
+                            </button>
+                          )}
                         </div>
                       </td>
-                      <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400">
-                        {record.department || "-"}
-                        {record.team && <span className="ml-1 text-xs">/ {record.team}</span>}
-                      </td>
-                      <td className="px-3 py-2 text-sm text-gray-900 dark:text-white">
-                        {formatTime(record.checkIn)}
-                      </td>
-                      <td className="px-3 py-2 text-sm text-gray-900 dark:text-white">
-                        {record.checkOut ? formatTime(record.checkOut) : "-"}
-                      </td>
-                      <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400">
-                        {calculateDuration(record.checkIn, record.checkOut)}
-                      </td>
-                      <td className="px-3 py-2">
-                        <span
-                          className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${getSourceBadge(record.source)}`}
-                        >
-                          {record.source.charAt(0) + record.source.slice(1).toLowerCase()}
-                        </span>
-                      </td>
                     </tr>
-                  ))}
-              {!recordsLoading && filteredRecords.length === 0 && (
-                <tr>
-                  <td colSpan={isRange ? 7 : 6} className="px-3 py-12">
-                    <div className="flex flex-col items-center justify-center text-center">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-                        <svg
-                          className="h-6 w-6 text-gray-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1.8}
-                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
-                          />
-                        </svg>
-                      </div>
-                      <p className="mt-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                        {search
-                          ? "No employees match your search"
-                          : hasActiveFilters
-                            ? "No attendance records for these filters"
-                            : "No attendance records for this date"}
-                      </p>
-                      {hasActiveFilters && (
-                        <button
-                          onClick={clearFilters}
-                          className="mt-2 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
-                        >
-                          Clear filters
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
         </>
       )}
 
@@ -1296,82 +1321,87 @@ export default function AttendanceManagePage() {
                         </span>
                       </div>
                       <div className="flex items-center gap-1">
-                      {(device.syncMode ?? "LAN_DIRECT") !== "CLOUD_AGENT" && (
+                        {(device.syncMode ?? "LAN_DIRECT") !== "CLOUD_AGENT" && (
+                          <button
+                            onClick={() => {
+                              if (!device.ipAddress) {
+                                toast.error("Add the device's IP address first (edit the device).");
+                                return;
+                              }
+                              runTest({ id: device.id }, device.id);
+                            }}
+                            disabled={testingKey === device.id}
+                            className="text-gray-400 hover:text-green-500 dark:hover:text-green-400 transition-colors p-1 disabled:opacity-50"
+                            title="Test connection"
+                          >
+                            {testingKey === device.id ? (
+                              <span className="block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                            ) : (
+                              <SignalIcon />
+                            )}
+                          </button>
+                        )}
                         <button
-                          onClick={() => {
-                            if (!device.ipAddress) {
-                              toast.error("Add the device's IP address first (edit the device).");
-                              return;
-                            }
-                            runTest({ id: device.id }, device.id);
-                          }}
-                          disabled={testingKey === device.id}
-                          className="text-gray-400 hover:text-green-500 dark:hover:text-green-400 transition-colors p-1 disabled:opacity-50"
-                          title="Test connection"
+                          onClick={() => setEditDevice({ ...device })}
+                          className="text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors p-1"
+                          title="Edit device"
                         >
-                          {testingKey === device.id ? (
-                            <span className="block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                          ) : (
-                            <SignalIcon />
-                          )}
+                          <svg
+                            className="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={1.5}
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
                         </button>
-                      )}
-                      <button
-                        onClick={() => setEditDevice({ ...device })}
-                        className="text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors p-1"
-                        title="Edit device"
-                      >
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1.5}
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                          />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={async () => {
-                          const ok = await confirm({
-                            title: `Delete device "${device.name}"?`,
-                            message: "This action cannot be undone.",
-                            confirmText: "Delete",
-                            variant: "danger",
-                          });
-                          if (!ok) return;
-                          try {
-                            const res = await fetch(`/api/attendance/devices/${device.id}`, {
-                              method: "DELETE",
+                        <button
+                          onClick={async () => {
+                            const ok = await confirm({
+                              title: `Delete device "${device.name}"?`,
+                              message: "This action cannot be undone.",
+                              confirmText: "Delete",
+                              variant: "danger",
                             });
-                            const data = await res.json();
-                            if (data.success) {
-                              setDevices(devices.filter((d) => d.id !== device.id));
-                              toast.success("Device deleted");
-                              if (devices.length === 1) setShowDeviceList(false);
-                            } else {
-                              toast.error(data.error || "Failed to delete");
+                            if (!ok) return;
+                            try {
+                              const res = await fetch(`/api/attendance/devices/${device.id}`, {
+                                method: "DELETE",
+                              });
+                              const data = await res.json();
+                              if (data.success) {
+                                setDevices(devices.filter((d) => d.id !== device.id));
+                                toast.success("Device deleted");
+                                if (devices.length === 1) setShowDeviceList(false);
+                              } else {
+                                toast.error(data.error || "Failed to delete");
+                              }
+                            } catch {
+                              toast.error("Something went wrong");
                             }
-                          } catch {
-                            toast.error("Something went wrong");
-                          }
-                        }}
-                        className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors p-1"
-                        title="Delete device"
-                      >
-                        <svg
-                          className="h-4 w-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                          }}
+                          className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors p-1"
+                          title="Delete device"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1.5}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
-                        </svg>
-                      </button>
+                          <svg
+                            className="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={1.5}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                        </button>
                       </div>
                     </div>
 
@@ -1391,7 +1421,7 @@ export default function AttendanceManagePage() {
                       <div className="flex items-center justify-between">
                         <span className="text-gray-500 dark:text-gray-400">Last Sync</span>
                         <span className="text-gray-700 dark:text-gray-300">
-                          {device.lastSync ? new Date(device.lastSync).toLocaleString() : "Never"}
+                          {device.lastSync ? formatDateTime(device.lastSync) : "Never"}
                         </span>
                       </div>
                       <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
@@ -1484,7 +1514,12 @@ export default function AttendanceManagePage() {
                   className="flex items-center gap-1.5 rounded border border-gray-200 px-2.5 py-1.5 text-sm text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
                 >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 19l-7-7 7-7"
+                    />
                   </svg>
                   Back
                 </button>
@@ -1635,7 +1670,10 @@ export default function AttendanceManagePage() {
                       ))}
                       {(inspectUsers ?? []).length === 0 && (
                         <tr>
-                          <td colSpan={5} className="px-2 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                          <td
+                            colSpan={5}
+                            className="px-2 py-8 text-center text-sm text-gray-500 dark:text-gray-400"
+                          >
                             No users enrolled on this device
                           </td>
                         </tr>
@@ -1645,8 +1683,8 @@ export default function AttendanceManagePage() {
                   <p className="mt-3 text-xs text-gray-400">
                     <span className="font-medium">Import</span> creates an employee with this PIN
                     pre-linked (name from the device; edit details later). Already have the person?
-                    Instead set their <span className="font-medium">Device User ID</span> to this PIN
-                    on their profile. Either way, their punches then sync into attendance.
+                    Instead set their <span className="font-medium">Device User ID</span> to this
+                    PIN on their profile. Either way, their punches then sync into attendance.
                   </p>
                 </>
               ) : (
@@ -1688,7 +1726,7 @@ export default function AttendanceManagePage() {
                         .map((l, i) => (
                           <tr key={`${l.pin}-${l.time}-${i}`}>
                             <td className="px-2 py-2 text-gray-900 dark:text-white">
-                              {new Date(l.time).toLocaleString()}
+                              {formatDateTime(l.time)}
                             </td>
                             <td className="px-2 py-2 font-mono text-gray-700 dark:text-gray-300">
                               {l.pin}
@@ -1722,7 +1760,10 @@ export default function AttendanceManagePage() {
                       {(inspectLogs ?? []).filter((l) => !logsUnsyncedOnly || l.synced === false)
                         .length === 0 && (
                         <tr>
-                          <td colSpan={4} className="px-2 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                          <td
+                            colSpan={4}
+                            className="px-2 py-8 text-center text-sm text-gray-500 dark:text-gray-400"
+                          >
                             {logsUnsyncedOnly
                               ? "No unsynced punches — everything is imported"
                               : "No punch logs on this device"}
@@ -1757,7 +1798,12 @@ export default function AttendanceManagePage() {
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -1825,14 +1871,21 @@ export default function AttendanceManagePage() {
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
 
             <div className="max-h-[70vh] space-y-4 overflow-y-auto p-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Name
+                </label>
                 <input
                   type="text"
                   value={editDevice.name}
@@ -1844,7 +1897,9 @@ export default function AttendanceManagePage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Device Type{" "}
-                  <span className="text-xs font-normal text-gray-400">(select all it supports)</span>
+                  <span className="text-xs font-normal text-gray-400">
+                    (select all it supports)
+                  </span>
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {DEVICE_CAPABILITIES.map((cap) => {
@@ -1857,7 +1912,9 @@ export default function AttendanceManagePage() {
                         onClick={() =>
                           setEditDevice({
                             ...editDevice,
-                            type: active ? list.filter((t) => t !== cap.value) : [...list, cap.value],
+                            type: active
+                              ? list.filter((t) => t !== cap.value)
+                              : [...list, cap.value],
                           })
                         }
                         className={`rounded border px-3 py-1 text-sm transition-colors ${
@@ -1875,7 +1932,9 @@ export default function AttendanceManagePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Status
+                </label>
                 <Dropdown
                   options={STATUS_OPTIONS}
                   value={editDevice.status}
@@ -1884,7 +1943,9 @@ export default function AttendanceManagePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sync Mode</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Sync Mode
+                </label>
                 <Dropdown
                   options={SYNC_MODE_OPTIONS}
                   value={editDevice.syncMode ?? "LAN_DIRECT"}
@@ -1893,15 +1954,19 @@ export default function AttendanceManagePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Protocol</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Protocol
+                </label>
                 <Dropdown
                   options={PROTOCOL_OPTIONS}
                   value={
                     PROTOCOLS.some((p) => p.value === (editDevice.protocol ?? "zkteco"))
-                      ? editDevice.protocol ?? "zkteco"
+                      ? (editDevice.protocol ?? "zkteco")
                       : "other"
                   }
-                  onChange={(v) => setEditDevice({ ...editDevice, protocol: v === "other" ? "" : v })}
+                  onChange={(v) =>
+                    setEditDevice({ ...editDevice, protocol: v === "other" ? "" : v })
+                  }
                 />
                 {!PROTOCOLS.some((p) => p.value === (editDevice.protocol ?? "zkteco")) && (
                   <input
@@ -1916,7 +1981,9 @@ export default function AttendanceManagePage() {
 
               <div className="grid grid-cols-3 gap-2">
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">IP Address</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    IP Address
+                  </label>
                   <input
                     type="text"
                     value={editDevice.ipAddress ?? ""}
@@ -1926,11 +1993,15 @@ export default function AttendanceManagePage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Port</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Port
+                  </label>
                   <input
                     type="text"
                     value={editDevice.port ?? 4370}
-                    onChange={(e) => setEditDevice({ ...editDevice, port: Number(e.target.value) || 4370 })}
+                    onChange={(e) =>
+                      setEditDevice({ ...editDevice, port: Number(e.target.value) || 4370 })
+                    }
                     className="w-full rounded border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                   />
                 </div>
@@ -2052,8 +2123,8 @@ export default function AttendanceManagePage() {
                           Setup — this app pulls from the device
                         </h3>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          No webhook on the device. The app connects to it over your local
-                          network and reads punch logs.
+                          No webhook on the device. The app connects to it over your local network
+                          and reads punch logs.
                           {createdDevice.protocol !== "zkteco" &&
                             " Note: automatic LAN pull is built for ZK Protocol only — for this brand use Cloud (push) mode."}
                         </p>
@@ -2063,7 +2134,8 @@ export default function AttendanceManagePage() {
                             1. On the device — give it a fixed IP
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Menu → Comm / Network → Ethernet → set IP address, subnet, gateway. Note the IP.
+                            Menu → Comm / Network → Ethernet → set IP address, subnet, gateway. Note
+                            the IP.
                           </p>
                         </div>
 
@@ -2095,8 +2167,8 @@ export default function AttendanceManagePage() {
                             4. Match employees
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Set each person’s device enrollment number as their “Device User ID”
-                            on their employee profile.
+                            Set each person’s device enrollment number as their “Device User ID” on
+                            their employee profile.
                           </p>
                         </div>
                       </div>
@@ -2151,7 +2223,8 @@ export default function AttendanceManagePage() {
                     {createdDevice.syncMode !== "LAN_DIRECT" && (
                       <div className="rounded border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20">
                         <p className="text-xs text-amber-800 dark:text-amber-400">
-                          <strong>Important:</strong> Save the API key now — it&apos;s shown only once.
+                          <strong>Important:</strong> Save the API key now — it&apos;s shown only
+                          once.
                         </p>
                       </div>
                     )}
@@ -2174,7 +2247,9 @@ export default function AttendanceManagePage() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Device Type{" "}
-                        <span className="text-xs font-normal text-gray-400">(select all it supports)</span>
+                        <span className="text-xs font-normal text-gray-400">
+                          (select all it supports)
+                        </span>
                       </label>
                       <div className="flex flex-wrap gap-2">
                         {DEVICE_CAPABILITIES.map((cap) => {
@@ -2240,8 +2315,14 @@ export default function AttendanceManagePage() {
                       </label>
                       <Dropdown
                         options={PROTOCOL_OPTIONS}
-                        value={PROTOCOLS.some((p) => p.value === newDevice.protocol) ? newDevice.protocol : "other"}
-                        onChange={(v) => setNewDevice({ ...newDevice, protocol: v === "other" ? "" : v })}
+                        value={
+                          PROTOCOLS.some((p) => p.value === newDevice.protocol)
+                            ? newDevice.protocol
+                            : "other"
+                        }
+                        onChange={(v) =>
+                          setNewDevice({ ...newDevice, protocol: v === "other" ? "" : v })
+                        }
                       />
                       {!PROTOCOLS.some((p) => p.value === newDevice.protocol) && (
                         <input
@@ -2253,7 +2334,8 @@ export default function AttendanceManagePage() {
                         />
                       )}
                       <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        Only ZK Protocol auto-pulls over LAN today; others can still push via the API.
+                        Only ZK Protocol auto-pulls over LAN today; others can still push via the
+                        API.
                       </p>
                     </div>
 
@@ -2265,7 +2347,9 @@ export default function AttendanceManagePage() {
                         <input
                           type="text"
                           value={newDevice.ipAddress}
-                          onChange={(e) => setNewDevice({ ...newDevice, ipAddress: e.target.value })}
+                          onChange={(e) =>
+                            setNewDevice({ ...newDevice, ipAddress: e.target.value })
+                          }
                           placeholder="e.g., 192.168.1.50"
                           className="w-full rounded border border-gray-200 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                         />
@@ -2286,8 +2370,8 @@ export default function AttendanceManagePage() {
 
                     <div className="rounded bg-gray-50 p-3 dark:bg-gray-800">
                       <p className="text-xs text-gray-600 dark:text-gray-400">
-                        After adding a device, you&apos;ll receive an API key and configuration guide to
-                        integrate with your biometric/RFID hardware.
+                        After adding a device, you&apos;ll receive an API key and configuration
+                        guide to integrate with your biometric/RFID hardware.
                       </p>
                     </div>
                   </>
@@ -2329,11 +2413,7 @@ export default function AttendanceManagePage() {
                         {testingKey === "__new__" ? "Testing…" : "Test"}
                       </Button>
                     )}
-                    <Button
-                      onClick={handleSaveDevice}
-                      disabled={savingDevice}
-                      className="flex-1"
-                    >
+                    <Button onClick={handleSaveDevice} disabled={savingDevice} className="flex-1">
                       {savingDevice ? "Adding..." : "Add Device"}
                     </Button>
                   </div>

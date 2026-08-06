@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, getCurrentUser, isHROrAbove } from "@/lib";
+import { prisma, getCurrentUser } from "@/lib";
 import { logger } from "@/lib/logger";
 import { syncDeviceToDb, syncAllLanDevices } from "@/lib/attendance/sync";
+import { can } from "@/lib/rbac";
 
 // Pull attendance from LAN-direct ZKTeco devices on demand.
 // POST /api/attendance/sync            -> all active LAN devices
@@ -9,7 +10,7 @@ import { syncDeviceToDb, syncAllLanDevices } from "@/lib/attendance/sync";
 export async function POST(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
-    if (!currentUser || !isHROrAbove(currentUser.role)) {
+    if (!currentUser || !(await can(currentUser, "ATTENDANCE_MANAGE"))) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 

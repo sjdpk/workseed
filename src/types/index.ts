@@ -68,6 +68,7 @@ export interface OrganizationSettings {
   name: string;
   logoUrl?: string | null;
   fiscalYearStart: number;
+  fiscalYearStartDay: number;
   workingDaysPerWeek: number;
   permissions?: OrganizationPermissions;
   defaultLeaveAllocation?: Record<string, unknown>;
@@ -143,8 +144,17 @@ export interface User {
   state?: string;
   country?: string;
   postalCode?: string;
-  emergencyContact?: string;
-  emergencyContactPhone?: string;
+  emergencyContacts?: {
+    id: string;
+    name: string;
+    relation?: string | null;
+    phone?: string | null;
+    altPhone?: string | null;
+    email?: string | null;
+    address?: string | null;
+    notes?: string | null;
+    isPrimary: boolean;
+  }[];
   employmentType: EmploymentType;
   joiningDate?: string;
   designation?: string;
@@ -213,7 +223,14 @@ export interface SessionUser {
   email: string;
   firstName: string;
   lastName: string;
+  /** Legacy tier; `roleName`/`permissions` describe the actual role. */
   role: Role;
+  roleId?: string | null;
+  roleName?: string;
+  roleRank?: number;
+  roleColor?: string | null;
+  /** Every permission this user's role grants — see src/lib/rbac.ts. */
+  permissions?: string[];
   status: UserStatus;
   employeeId: string;
   teamId?: string | null;

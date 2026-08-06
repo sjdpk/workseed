@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, SearchBar } from "@/components";
+import { Button, Card, PageHeader, SearchBar } from "@/components";
 
 interface Team {
   id: string;
@@ -101,20 +101,20 @@ export default function TeamsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Teams</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Manage organization teams</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={exportToCSV}>
-            Export CSV
-          </Button>
-          {hasPermission("CREATE") && (
-            <Button onClick={() => router.push("/dashboard/teams/new")}>Add Team</Button>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="Teams"
+        subtitle="Manage organization teams"
+        actions={
+          <>
+            <Button variant="outline" onClick={exportToCSV}>
+              Export CSV
+            </Button>
+            {hasPermission("CREATE") && (
+              <Button onClick={() => router.push("/dashboard/teams/new")}>Add Team</Button>
+            )}
+          </>
+        }
+      />
 
       <SearchBar
         value={searchTerm}

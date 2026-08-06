@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, Card, Input, useToast } from "@/components";
+import { Button, Card, Input, PageHeader, useToast } from "@/components";
 
 interface EmailStats {
   total: number;
@@ -59,7 +59,9 @@ export default function NotificationsOverviewPage() {
       });
       const data = await res.json();
       if (data.success) {
-        toast.success(`Processed ${data.data.processed} emails (${data.data.sent} sent, ${data.data.failed} failed)`);
+        toast.success(
+          `Processed ${data.data.processed} emails (${data.data.sent} sent, ${data.data.failed} failed)`
+        );
         fetchStatus();
       } else {
         toast.error(data.error || "Failed to process queue");
@@ -109,12 +111,7 @@ export default function NotificationsOverviewPage() {
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Email Notifications</h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Manage templates, rules, and view logs
-        </p>
-      </div>
+      <PageHeader title="Email Notifications" subtitle="Manage templates, rules, and view logs" />
 
       {/* SMTP Status */}
       <Card className="p-3 sm:p-4">
@@ -206,7 +203,6 @@ export default function NotificationsOverviewPage() {
           </div>
         </Card>
       </div>
-
-          </div>
+    </div>
   );
 }

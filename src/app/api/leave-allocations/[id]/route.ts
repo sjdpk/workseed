@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, getCurrentUser, isHROrAbove } from "@/lib";
+import { prisma, getCurrentUser } from "@/lib";
 import { logger } from "@/lib/logger";
 import { z } from "@/lib/validation";
+import { can } from "@/lib/rbac";
 
 const updateAllocationSchema = z.object({
   allocated: z.number().min(0).optional(),
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // Only allow viewing own allocation or if HR/Admin
-    if (allocation.userId !== currentUser.id && !isHROrAbove(currentUser.role)) {
+    if (allocation.userId !== currentUser.id && !(await can(currentUser, "LEAVE_TYPE_EDIT"))) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const currentUser = await getCurrentUser();
-    if (!currentUser || !isHROrAbove(currentUser.role)) {
+    if (!currentUser || !(await can(currentUser, "LEAVE_TYPE_EDIT"))) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 

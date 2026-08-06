@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, useToast } from "@/components";
+import { Button, Card, PageHeader, useOrgSettings, useToast } from "@/components";
 
 interface Asset {
   id: string;
@@ -82,6 +82,7 @@ const CONDITION_COLORS: Record<string, string> = {
 };
 
 export default function AssetsPage() {
+  const { formatDate } = useOrgSettings();
   const _router = useRouter();
   const toast = useToast();
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -132,24 +133,21 @@ export default function AssetsPage() {
     fetchAssets();
   };
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleDateString();
-  };
-
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Assets</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Manage company assets and equipment
-          </p>
-        </div>
-        <Link href="/dashboard/assets/new">
-          <Button>Add Asset</Button>
-        </Link>
-      </div>
+      {/* No fiscal-year picker here on purpose: an asset assigned in one year stays
+          assigned into the next, unlike a leave balance that resets. */}
+      <PageHeader
+        title="Assets"
+        subtitle="Manage company assets and equipment — assignments carry across fiscal years"
+        actions={
+          <>
+            <Link href="/dashboard/assets/new">
+              <Button>Add Asset</Button>
+            </Link>
+          </>
+        }
+      />
 
       {/* Filters */}
       <form onSubmit={handleSearch} className="flex flex-wrap items-center gap-3">
@@ -222,7 +220,9 @@ export default function AssetsPage() {
       {/* Stats */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="text-center p-3">
-          <p className="text-base font-semibold text-gray-900 dark:text-white">{pagination.total}</p>
+          <p className="text-base font-semibold text-gray-900 dark:text-white">
+            {pagination.total}
+          </p>
           <p className="text-xs text-gray-500 dark:text-gray-400">Total Assets</p>
         </Card>
         <Card className="text-center p-3">
@@ -288,7 +288,9 @@ export default function AssetsPage() {
                   <tr key={asset.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                     <td className="px-4 py-3">
                       <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{asset.name}</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {asset.name}
+                        </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           {asset.assetTag}
                           {asset.serialNumber && ` • S/N: ${asset.serialNumber}`}

@@ -1,5 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma, getCurrentUser } from "@/lib";
+import { dateOnlyToUtcDate, todayInZone } from "@/lib/time";
+import { getOrgTimeZone } from "@/lib/time-server";
+import { can } from "@/lib/rbac";
+
+/** Days until the next occurrence of a DATE column's month/day, counted on the
+ *  UTC calendar because that is how DATE values are stored. `0` means today. */
+function daysUntilAnniversary(stored: Date, todayUtc: Date): number {
+  const month = stored.getUTCMonth();
+  const day = stored.getUTCDate();
+  let next = new Date(Date.UTC(todayUtc.getUTCFullYear(), month, day));
+  if (next < todayUtc) next = new Date(Date.UTC(todayUtc.getUTCFullYear() + 1, month, day));
+  return Math.round((next.getTime() - todayUtc.getTime()) / 86_400_000);
+}
 
 export async function GET() {
   try {
@@ -8,12 +21,13 @@ export async function GET() {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const isHROrAbove = ["ADMIN", "HR"].includes(currentUser.role);
+    const isHROrAbove = await can(currentUser, "USER_VIEW_ALL");
     const isManagerOrAbove = ["ADMIN", "HR", "MANAGER", "TEAM_LEAD"].includes(currentUser.role);
 
     let count = 0;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // birthdays and anniversaries are calendar facts, judged in the company's day
+    const timeZone = await getOrgTimeZone();
+    const today = dateOnlyToUtcDate(todayInZone(timeZone));
 
     // 1. Pending leave requests (for managers and above)
     if (isManagerOrAbove) {
@@ -37,12 +51,7 @@ export async function GET() {
 
       const upcomingBirthdays = users.filter((u) => {
         if (!u.dateOfBirth) return false;
-        const dob = new Date(u.dateOfBirth);
-        const thisYearBday = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
-        if (thisYearBday < today) {
-          thisYearBday.setFullYear(thisYearBday.getFullYear() + 1);
-        }
-        const daysUntil = Math.ceil((thisYearBday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        const daysUntil = daysUntilAnniversary(u.dateOfBirth, today);
         return daysUntil >= 0 && daysUntil <= 7;
       });
       count += upcomingBirthdays.length;
@@ -58,13 +67,9 @@ export async function GET() {
 
       const upcomingAnniversaries = usersWithJoining.filter((u) => {
         if (!u.joiningDate) return false;
-        const joinDate = new Date(u.joiningDate);
-        if (joinDate.getFullYear() === today.getFullYear()) return false; // No anniversary in first year
-        const thisYearAnniv = new Date(today.getFullYear(), joinDate.getMonth(), joinDate.getDate());
-        if (thisYearAnniv < today) {
-          thisYearAnniv.setFullYear(thisYearAnniv.getFullYear() + 1);
-        }
-        const daysUntil = Math.ceil((thisYearAnniv.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        // no anniversary in the first year
+        if (u.joiningDate.getUTCFullYear() === today.getUTCFullYear()) return false;
+        const daysUntil = daysUntilAnniversary(u.joiningDate, today);
         return daysUntil >= 0 && daysUntil <= 7;
       });
       count += upcomingAnniversaries.length;

@@ -22,10 +22,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
-    const [stats, pendingCount] = await Promise.all([
-      getEmailStats(),
-      getPendingCount(),
-    ]);
+    const [stats, pendingCount] = await Promise.all([getEmailStats(), getPendingCount()]);
 
     return NextResponse.json({
       success: true,
@@ -37,7 +34,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     logger.error("Get queue status error", { error });
-    return NextResponse.json({ success: false, error: "Failed to get queue status" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to get queue status" },
+      { status: 500 }
+    );
   }
 }
 
@@ -95,10 +95,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json(
-      { success: false, error: "Invalid action" },
-      { status: 400 }
-    );
+    return NextResponse.json({ success: false, error: "Invalid action" }, { status: 400 });
   } catch (error) {
     logger.error("Queue action error", { error });
     return NextResponse.json({ success: false, error: "Failed to process queue" }, { status: 500 });

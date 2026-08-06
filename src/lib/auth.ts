@@ -71,6 +71,8 @@ export async function getCurrentUser() {
       firstName: true,
       lastName: true,
       role: true,
+      roleId: true,
+      roleRecord: { select: { id: true, key: true, name: true, rank: true, color: true } },
       status: true,
       employeeId: true,
       teamId: true,

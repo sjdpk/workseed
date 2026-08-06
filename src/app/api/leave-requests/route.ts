@@ -1,21 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  prisma,
-  getCurrentUser,
-  isHROrAbove,
-  isManagerOrAbove,
-  createAuditLog,
-  getRequestMeta,
-} from "@/lib";
+import { prisma, getCurrentUser, isManagerOrAbove, createAuditLog, getRequestMeta } from "@/lib";
 import { sendLeaveNotification } from "@/lib/notifications";
+import { describeFiscalYear } from "@/lib/fiscal-year";
+import { getFiscalYearConfig, getFiscalYearFor } from "@/lib/fiscal-year-server";
 import { logger } from "@/lib/logger";
+import {
+  dateOnlyToUtcDate,
+  formatDateOnly,
+  isDateOnly,
+  toDateOnly,
+  utcDateToDateOnly,
+} from "@/lib/time";
+import { getOrgTimeZone } from "@/lib/time-server";
 import { z } from "@/lib/validation";
+import { can } from "@/lib/rbac";
+
+/** Working days between two calendar dates, inclusive. Computed here rather than
+ *  trusting the browser: `days` is what a balance is debited by. */
+function countLeaveDays(startDate: string, endDate: string, isHalfDay: boolean): number {
+  const start = dateOnlyToUtcDate(startDate).getTime();
+  const end = dateOnlyToUtcDate(endDate).getTime();
+  const spanDays = Math.round((end - start) / 86_400_000) + 1;
+  if (isHalfDay) return 0.5;
+  return spanDays;
+}
 
 const createLeaveRequestSchema = z.object({
   leaveTypeId: z.string().uuid(),
-  startDate: z.string(),
-  endDate: z.string(),
-  days: z.number().min(0.5),
+  startDate: z.string().refine(isDateOnly, { message: "startDate must be YYYY-MM-DD" }),
+  endDate: z.string().refine(isDateOnly, { message: "endDate must be YYYY-MM-DD" }),
+  /* accepted for backwards compatibility but recomputed server-side */
+  days: z.number().min(0.5).optional(),
   isHalfDay: z.boolean().default(false),
   halfDayType: z.enum(["FIRST_HALF", "SECOND_HALF"]).optional(),
   reason: z.string().optional(),
@@ -38,6 +53,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
     const status = searchParams.get("status");
+    /* Fiscal year, for looking back at a previous year's leave. */
+    const yearParam = searchParams.get("year");
     const pending = searchParams.get("pending"); // For managers to see pending approvals
     const all = searchParams.get("all"); // For authorized roles to see all requests
     const team = searchParams.get("team"); // For employees to see team leaves
@@ -56,9 +73,20 @@ export async function GET(request: NextRequest) {
     let where: Record<string, unknown> = {};
     let scope = "own"; // Track scope for UI
 
+    const yearFilter = yearParam
+      ? await (async () => {
+          const [config, timeZone] = await Promise.all([getFiscalYearConfig(), getOrgTimeZone()]);
+          const fy = describeFiscalYear(parseInt(yearParam, 10), config, timeZone);
+          return {
+            gte: dateOnlyToUtcDate(toDateOnly(fy.start, timeZone)),
+            lte: dateOnlyToUtcDate(toDateOnly(fy.end, timeZone)),
+          };
+        })()
+      : null;
+
     if (all === "true" && canViewLeaveRequests) {
       // Hierarchical leave viewing based on role
-      if (isHROrAbove(currentUser.role)) {
+      if (await can(currentUser, "LEAVE_REQUEST_APPROVE")) {
         // HR/Admin see all leave requests
         where = {};
         scope = "all";
@@ -103,7 +131,7 @@ export async function GET(request: NextRequest) {
       scope = "department_approved";
     } else if (pending === "true" && isManagerOrAbove(currentUser.role)) {
       // Get pending requests for approval
-      if (isHROrAbove(currentUser.role)) {
+      if (await can(currentUser, "LEAVE_REQUEST_APPROVE")) {
         where = { status: "PENDING" };
         scope = "all_pending";
       } else if (currentUser.role === "MANAGER") {
@@ -129,7 +157,7 @@ export async function GET(request: NextRequest) {
           scope = "direct_reports_pending";
         }
       }
-    } else if (userId && isHROrAbove(currentUser.role)) {
+    } else if (userId && (await can(currentUser, "LEAVE_REQUEST_APPROVE"))) {
       where = { userId };
       scope = "specific_user";
     } else {
@@ -139,6 +167,9 @@ export async function GET(request: NextRequest) {
 
     if (status) {
       where.status = status;
+    }
+    if (yearFilter) {
+      where.startDate = yearFilter;
     }
 
     const leaveRequests = await prisma.leaveRequest.findMany({
@@ -181,8 +212,24 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const data = createLeaveRequestSchema.parse(body);
 
-    // Check leave balance
-    const year = new Date(data.startDate).getFullYear();
+    if (dateOnlyToUtcDate(data.endDate) < dateOnlyToUtcDate(data.startDate)) {
+      return NextResponse.json(
+        { success: false, error: "End date cannot be before the start date" },
+        { status: 400 }
+      );
+    }
+    if (data.isHalfDay && data.startDate !== data.endDate) {
+      return NextResponse.json(
+        { success: false, error: "A half day must start and end on the same date" },
+        { status: 400 }
+      );
+    }
+
+    /* Never trust the client's day count — it decides how much balance is spent. */
+    const days = countLeaveDays(data.startDate, data.endDate, data.isHalfDay);
+
+    // Check leave balance against the fiscal year the leave starts in
+    const { year } = await getFiscalYearFor(data.startDate);
     const allocation = await prisma.leaveAllocation.findUnique({
       where: {
         userId_leaveTypeId_year: {
@@ -203,9 +250,25 @@ export async function POST(request: NextRequest) {
     const balance =
       allocation.allocated + allocation.carriedOver + allocation.adjusted - allocation.used;
 
-    if (data.days > balance) {
+    /* An exhausted balance is not always a hard stop: Settings → Leave Policy can
+       allow a negative balance up to a limit. Those two settings were written by
+       the policy screen but never read, so the answer was always "no". */
+    const orgForPolicy = await prisma.organizationSettings.findFirst({
+      select: { defaultLeaveAllocation: true },
+    });
+    const policy = ((orgForPolicy?.defaultLeaveAllocation as Record<string, unknown>)
+      ?.leavePolicy ?? {}) as { allowNegativeBalance?: boolean; maxNegativeBalance?: number };
+    const overdraft = policy.allowNegativeBalance ? Math.max(0, policy.maxNegativeBalance ?? 0) : 0;
+
+    if (days > balance + overdraft) {
+      const detail = overdraft
+        ? `Requested ${days}; ${balance} left plus ${overdraft} allowed in advance`
+        : `Requested ${days}, available ${balance} days`;
       return NextResponse.json(
-        { success: false, error: `Insufficient leave balance. Available: ${balance} days` },
+        {
+          success: false,
+          error: `Insufficient leave balance. ${detail}. Ask HR to adjust your allocation.`,
+        },
         { status: 400 }
       );
     }
@@ -217,8 +280,8 @@ export async function POST(request: NextRequest) {
         status: { in: ["PENDING", "APPROVED"] },
         OR: [
           {
-            startDate: { lte: new Date(data.endDate) },
-            endDate: { gte: new Date(data.startDate) },
+            startDate: { lte: dateOnlyToUtcDate(data.endDate) },
+            endDate: { gte: dateOnlyToUtcDate(data.startDate) },
           },
         ],
       },
@@ -235,9 +298,9 @@ export async function POST(request: NextRequest) {
       data: {
         userId: currentUser.id,
         leaveTypeId: data.leaveTypeId,
-        startDate: new Date(data.startDate),
-        endDate: new Date(data.endDate),
-        days: data.days,
+        startDate: dateOnlyToUtcDate(data.startDate),
+        endDate: dateOnlyToUtcDate(data.endDate),
+        days,
         isHalfDay: data.isHalfDay,
         halfDayType: data.halfDayType,
         reason: data.reason,
@@ -254,9 +317,9 @@ export async function POST(request: NextRequest) {
       userEmail: currentUser.email,
       userName: `${currentUser.firstName} ${currentUser.lastName}`,
       leaveType: leaveRequest.leaveType.name,
-      startDate: new Date(data.startDate).toLocaleDateString(),
-      endDate: new Date(data.endDate).toLocaleDateString(),
-      days: data.days,
+      startDate: formatDateOnly(data.startDate),
+      endDate: formatDateOnly(data.endDate),
+      days,
       reason: data.reason,
     });
 
@@ -379,7 +442,7 @@ export async function PATCH(request: NextRequest) {
 
     // If reverting from APPROVED, restore the used days
     if (data.status === "PENDING" && leaveRequest.status === "APPROVED") {
-      const year = leaveRequest.startDate.getFullYear();
+      const { year } = await getFiscalYearFor(leaveRequest.startDate);
       await prisma.leaveAllocation.update({
         where: {
           userId_leaveTypeId_year: {
@@ -396,7 +459,7 @@ export async function PATCH(request: NextRequest) {
 
     // If approved, update the allocation's used days
     if (data.status === "APPROVED") {
-      const year = leaveRequest.startDate.getFullYear();
+      const { year } = await getFiscalYearFor(leaveRequest.startDate);
       await prisma.leaveAllocation.update({
         where: {
           userId_leaveTypeId_year: {
@@ -413,7 +476,7 @@ export async function PATCH(request: NextRequest) {
 
     // If cancelled after approval, revert the used days
     if (data.status === "CANCELLED" && leaveRequest.status === "APPROVED") {
-      const year = leaveRequest.startDate.getFullYear();
+      const { year } = await getFiscalYearFor(leaveRequest.startDate);
       await prisma.leaveAllocation.update({
         where: {
           userId_leaveTypeId_year: {
@@ -459,8 +522,8 @@ export async function PATCH(request: NextRequest) {
           userEmail,
           userName: `${updated.user.firstName} ${updated.user.lastName}`,
           leaveType: updated.leaveType.name,
-          startDate: leaveRequest.startDate.toLocaleDateString(),
-          endDate: leaveRequest.endDate.toLocaleDateString(),
+          startDate: formatDateOnly(utcDateToDateOnly(leaveRequest.startDate)),
+          endDate: formatDateOnly(utcDateToDateOnly(leaveRequest.endDate)),
           days: leaveRequest.days,
           approverName: `${currentUser.firstName} ${currentUser.lastName}`,
           rejectionReason: data.rejectionReason,

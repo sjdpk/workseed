@@ -5,12 +5,15 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   error?: string;
   options: { value: string; label: string }[];
+  /** Classes for the wrapper — use this to size the control in a toolbar, since
+   *  the field itself fills its wrapper. */
+  wrapperClassName?: string;
 }
 
 const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, label, error, id, options, ...props }, ref) => {
+  ({ className, label, error, id, options, wrapperClassName, ...props }, ref) => {
     return (
-      <div className="w-full">
+      <div className={wrapperClassName ?? "w-full"}>
         {label && (
           <label
             htmlFor={id}

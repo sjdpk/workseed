@@ -45,7 +45,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, data: { templates } });
   } catch (error) {
     logger.error("Get templates error", { error });
-    return NextResponse.json({ success: false, error: "Failed to fetch templates" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch templates" },
+      { status: 500 }
+    );
   }
 }
 
@@ -109,6 +112,9 @@ export async function POST(request: NextRequest) {
       );
     }
     logger.error("Create template error", { error });
-    return NextResponse.json({ success: false, error: "Failed to create template" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to create template" },
+      { status: 500 }
+    );
   }
 }

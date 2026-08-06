@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, getCurrentUser } from "@/lib";
-
-const ALLOWED_ROLES = ["ADMIN", "HR", "MANAGER"];
+import { describeFiscalYear } from "@/lib/fiscal-year";
+import { getCurrentFiscalYear, getFiscalYearConfig } from "@/lib/fiscal-year-server";
+import { addZonedDays, dateOnlyToUtcDate, toDateOnly, todayInZone } from "@/lib/time";
+import { can } from "@/lib/rbac";
+import { getOrgTimeZone } from "@/lib/time-server";
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,16 +13,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!ALLOWED_ROLES.includes(currentUser.role)) {
+    if (!(await can(currentUser, "REPORT_VIEW"))) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type") || "overview";
 
+    /* Reports count in the company's own year and timezone: a yearly figure that
+       silently used January–December while leave balances reset in August was the
+       kind of mismatch nobody notices until an audit. */
+    const timeZone = await getOrgTimeZone();
+    const config = await getFiscalYearConfig();
     const today = new Date();
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const startOfYear = new Date(today.getFullYear(), 0, 1);
+    const todayDateOnly = todayInZone(timeZone, today);
+    const [tYear, tMonth] = todayDateOnly.split("-").map(Number);
+    const startOfMonth = dateOnlyToUtcDate(`${tYear}-${String(tMonth).padStart(2, "0")}-01`);
+    const runningFiscalYear = await getCurrentFiscalYear();
 
     if (type === "overview") {
       // Get counts
@@ -74,11 +84,9 @@ export async function GET(request: NextRequest) {
         },
       });
 
-      // Get attendance today
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
+      // Get attendance today, in the company's day
       const attendanceToday = await prisma.attendance.count({
-        where: { date: todayStart },
+        where: { date: dateOnlyToUtcDate(todayDateOnly) },
       });
 
       return NextResponse.json({
@@ -112,11 +120,25 @@ export async function GET(request: NextRequest) {
     }
 
     if (type === "attendance") {
-      const month = parseInt(searchParams.get("month") || String(today.getMonth()));
-      const year = parseInt(searchParams.get("year") || String(today.getFullYear()));
+      // `month` stays 0-based in the query string for backwards compatibility
+      const month = parseInt(searchParams.get("month") || String(tMonth - 1)) + 1;
+      const year = parseInt(searchParams.get("year") || String(tYear));
 
-      const startDate = new Date(year, month, 1);
-      const endDate = new Date(year, month + 1, 0);
+      const startDate = dateOnlyToUtcDate(`${year}-${String(month).padStart(2, "0")}-01`);
+      const endDate = dateOnlyToUtcDate(
+        toDateOnly(
+          addZonedDays(
+            dateOnlyToUtcDate(
+              month === 12
+                ? `${year + 1}-01-01`
+                : `${year}-${String(month + 1).padStart(2, "0")}-01`
+            ),
+            -1,
+            "UTC"
+          ),
+          "UTC"
+        )
+      );
 
       // Get attendance records for the month
       const records = await prisma.attendance.findMany({
@@ -197,13 +219,16 @@ export async function GET(request: NextRequest) {
     }
 
     if (type === "leave") {
-      const year = parseInt(searchParams.get("year") || String(today.getFullYear()));
+      const year = parseInt(searchParams.get("year") || String(runningFiscalYear.year));
+      const fiscalYear = describeFiscalYear(year, config, timeZone);
+      const startOfYear = dateOnlyToUtcDate(toDateOnly(fiscalYear.start, timeZone));
+      const endOfYear = dateOnlyToUtcDate(toDateOnly(fiscalYear.end, timeZone));
 
       // Leave requests by status
       const byStatus = await prisma.leaveRequest.groupBy({
         by: ["status"],
         where: {
-          startDate: { gte: startOfYear },
+          startDate: { gte: startOfYear, lte: endOfYear },
         },
         _count: { id: true },
         _sum: { days: true },
@@ -213,7 +238,7 @@ export async function GET(request: NextRequest) {
       const byType = await prisma.leaveRequest.groupBy({
         by: ["leaveTypeId"],
         where: {
-          startDate: { gte: startOfYear },
+          startDate: { gte: startOfYear, lte: endOfYear },
           status: "APPROVED",
         },
         _count: { id: true },

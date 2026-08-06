@@ -4,7 +4,7 @@ import { env } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { z } from "@/lib/validation";
 import { EmailService } from "@/lib/email-service";
-import crypto from "crypto";
+import { createResetToken, resetLink } from "@/lib/password-reset";
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -49,39 +49,21 @@ export async function POST(request: NextRequest) {
       return genericResponse;
     }
 
-    // Generate secure token
-    const token = crypto.randomBytes(32).toString("hex");
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-
-    // Store token
-    await prisma.passwordResetToken.create({
-      data: {
-        userId: user.id,
-        token,
-        expiresAt,
-      },
-    });
-
-    // Build reset URL
-    const resetLink = `${env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`;
+    // only the hash is stored; the raw token lives in the email alone
+    const { token } = await createResetToken(user.id);
+    const link = resetLink(env.NEXT_PUBLIC_APP_URL, token);
 
     // Send email using EmailService (uses Ethereal in dev with preview URLs)
-    await EmailService.sendPasswordResetEmail(user.email, user.firstName, resetLink);
+    await EmailService.sendPasswordResetEmail(user.email, user.firstName, link);
 
     logger.info("Password reset email queued", { email, userId: user.id });
 
     return genericResponse;
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { success: false, error: error.issues[0].message },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: error.issues[0].message }, { status: 400 });
     }
     logger.error("Forgot password error", { error, endpoint: "POST /api/auth/forgot-password" });
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

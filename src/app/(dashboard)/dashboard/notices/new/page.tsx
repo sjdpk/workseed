@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Button, Card, Input } from "@/components";
+import { Button, Card, Input, PageHeader } from "@/components";
 
 export default function NewNoticePage() {
   const router = useRouter();
@@ -49,19 +49,19 @@ export default function NewNoticePage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Create Notice</h1>
-          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-            Publish a new announcement
-          </p>
-        </div>
-        <Link href="/dashboard/notices">
-          <Button variant="outline" size="sm">
-            Cancel
-          </Button>
-        </Link>
-      </div>
+      <PageHeader
+        title="Create Notice"
+        subtitle="Publish a new announcement"
+        actions={
+          <>
+            <Link href="/dashboard/notices">
+              <Button variant="outline" size="sm">
+                Cancel
+              </Button>
+            </Link>
+          </>
+        }
+      />
 
       <Card>
         {error && (

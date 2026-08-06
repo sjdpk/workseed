@@ -6,10 +6,7 @@ import { logger } from "@/lib/logger";
 import { renderTemplate } from "@/lib/notifications";
 
 // POST /api/notifications/templates/[id]/preview - Preview a template with sample data
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -67,7 +64,7 @@ export async function POST(
       years: 5,
 
       // Asset related
-      assetName: "MacBook Pro 14\"",
+      assetName: 'MacBook Pro 14"',
       assetTag: "LAP-001",
       category: "Laptop",
       assignedBy: "IT Admin",
@@ -106,6 +103,9 @@ export async function POST(
     });
   } catch (error) {
     logger.error("Preview template error", { error });
-    return NextResponse.json({ success: false, error: "Failed to preview template" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to preview template" },
+      { status: 500 }
+    );
   }
 }

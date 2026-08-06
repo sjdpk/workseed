@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma, getCurrentUser } from "@/lib";
+import { dateOnlyToUtcDate } from "@/lib/time";
+import { getOrgToday } from "@/lib/time-server";
 
 async function canUserCheckIn(
   userId: string,
@@ -55,8 +57,9 @@ export async function POST() {
     }
 
     const now = new Date();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // the attendance day follows the company timezone, so a 00:10 check-in is
+    // filed against the day the employee is actually working
+    const today = dateOnlyToUtcDate(await getOrgToday(now));
 
     // Check if already checked in today
     const existingRecord = await prisma.attendance.findUnique({

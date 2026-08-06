@@ -1,14 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, useToast } from "@/components";
+import { Button, Card, PageHeader, useToast } from "@/components";
+import { currentFiscalYear, formatFiscalYearRange, type FiscalYear } from "@/lib/fiscal-year";
 
 const ALLOWED_ROLES = ["ADMIN", "HR"];
 
 interface LeavePolicy {
   resetPeriod: "CALENDAR_YEAR" | "FISCAL_YEAR" | "ANNIVERSARY";
-  fiscalYearStartMonth: number;
   accrualType: "ANNUAL" | "MONTHLY" | "QUARTERLY";
   proRataForNewJoiners: boolean;
   proRataMethod: "MONTHLY" | "DAILY";
@@ -23,8 +24,7 @@ interface LeavePolicy {
 }
 
 const defaultPolicy: LeavePolicy = {
-  resetPeriod: "CALENDAR_YEAR",
-  fiscalYearStartMonth: 4,
+  resetPeriod: "FISCAL_YEAR",
   accrualType: "ANNUAL",
   proRataForNewJoiners: true,
   proRataMethod: "MONTHLY",
@@ -59,6 +59,8 @@ export default function LeavePolicyPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [policy, setPolicy] = useState<LeavePolicy>(defaultPolicy);
+  /* the start date itself is an organization setting — shown here, edited there */
+  const [fiscalYear, setFiscalYear] = useState<FiscalYear | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -69,8 +71,25 @@ export default function LeavePolicyPage() {
         router.replace("/dashboard");
         return;
       }
-      if (orgData.success && orgData.data.settings.leavePolicy) {
-        setPolicy({ ...defaultPolicy, ...orgData.data.settings.leavePolicy });
+      if (orgData.success) {
+        if (orgData.data.settings.leavePolicy) {
+          const stored = orgData.data.settings.leavePolicy as Partial<LeavePolicy>;
+          setPolicy({
+            ...defaultPolicy,
+            ...stored,
+            // CALENDAR_YEAR is the old name for "the company year"
+            resetPeriod:
+              (stored.resetPeriod as string) === "CALENDAR_YEAR"
+                ? "FISCAL_YEAR"
+                : (stored.resetPeriod ?? defaultPolicy.resetPeriod),
+          });
+        }
+        setFiscalYear(
+          currentFiscalYear({
+            startMonth: orgData.data.settings.fiscalYearStart || 1,
+            startDay: orgData.data.settings.fiscalYearStartDay || 1,
+          })
+        );
       }
       setLoading(false);
     });
@@ -107,17 +126,17 @@ export default function LeavePolicyPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Leave Policy</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Configure when and how leave balances are reset and allocated
-          </p>
-        </div>
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? "Saving..." : "Save Changes"}
-        </Button>
-      </div>
+      <PageHeader
+        title="Leave Policy"
+        subtitle="Configure when and how leave balances are reset and allocated"
+        actions={
+          <>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Saving..." : "Save Changes"}
+            </Button>
+          </>
+        }
+      />
 
       {/* Reset Period */}
       <Card>
@@ -130,59 +149,34 @@ export default function LeavePolicyPage() {
 
         <div className="mt-4 space-y-3">
           <label className="flex items-start gap-3 rounded border border-gray-200 p-4 cursor-pointer hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/50">
-            <input
-              type="radio"
-              name="resetPeriod"
-              value="CALENDAR_YEAR"
-              checked={policy.resetPeriod === "CALENDAR_YEAR"}
-              onChange={(e) =>
-                setPolicy({ ...policy, resetPeriod: e.target.value as LeavePolicy["resetPeriod"] })
-              }
-              className="mt-0.5 h-4 w-4 text-gray-900 dark:text-white"
-            />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                Calendar Year (January 1st)
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Leave resets on January 1st every year for all employees
-              </p>
-            </div>
-          </label>
-
-          <label className="flex items-start gap-3 rounded border border-gray-200 p-4 cursor-pointer hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/50">
+            {/* "Calendar year" and "fiscal year" used to be separate options that
+                meant the same thing whenever the company year started on 1 January —
+                two settings, one truth, guaranteed to drift. There is now one
+                company year, defined in Settings → Organization. */}
             <input
               type="radio"
               name="resetPeriod"
               value="FISCAL_YEAR"
-              checked={policy.resetPeriod === "FISCAL_YEAR"}
-              onChange={(e) =>
-                setPolicy({ ...policy, resetPeriod: e.target.value as LeavePolicy["resetPeriod"] })
-              }
+              checked={policy.resetPeriod !== "ANNIVERSARY"}
+              onChange={() => setPolicy({ ...policy, resetPeriod: "FISCAL_YEAR" })}
               className="mt-0.5 h-4 w-4 text-gray-900 dark:text-white"
             />
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Fiscal Year</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Leave resets at the start of your fiscal year
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                Company year{fiscalYear ? ` — resets ${fiscalYear.resetsOn}` : ""}
               </p>
-              {policy.resetPeriod === "FISCAL_YEAR" && (
-                <div className="mt-3">
-                  <label className="text-xs text-gray-500">Fiscal Year Starts</label>
-                  <select
-                    value={policy.fiscalYearStartMonth}
-                    onChange={(e) =>
-                      setPolicy({ ...policy, fiscalYearStartMonth: parseInt(e.target.value) })
-                    }
-                    className="mt-1 w-full rounded border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                  >
-                    {MONTHS.map((m) => (
-                      <option key={m.value} value={m.value}>
-                        {m.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Everyone&apos;s balance resets on the same date.
+              </p>
+              {policy.resetPeriod !== "ANNIVERSARY" && fiscalYear && (
+                <p className="mt-3 text-xs text-gray-600 dark:text-gray-400">
+                  Currently {fiscalYear.label} — {formatFiscalYearRange(fiscalYear)}. Change the
+                  start date in{" "}
+                  <Link href="/dashboard/settings/organization" className="underline">
+                    Settings → Organization
+                  </Link>
+                  .
+                </p>
               )}
             </div>
           </label>
@@ -509,10 +503,11 @@ export default function LeavePolicyPage() {
           <li>
             Leave resets:{" "}
             <strong>
-              {policy.resetPeriod === "CALENDAR_YEAR" && "January 1st each year"}
-              {policy.resetPeriod === "FISCAL_YEAR" &&
-                `${MONTHS.find((m) => m.value === policy.fiscalYearStartMonth)?.label} 1st each year`}
-              {policy.resetPeriod === "ANNIVERSARY" && "On employee's work anniversary"}
+              {policy.resetPeriod === "ANNIVERSARY"
+                ? "On each employee's work anniversary"
+                : fiscalYear
+                  ? `${fiscalYear.resetsOn} each year (${fiscalYear.label})`
+                  : "At the start of the company year"}
             </strong>
           </li>
           <li>

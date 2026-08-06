@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
-import { Button, Card, useToast } from "@/components";
+import { Button, Card, FiscalYearSelect, PageHeader, useOrgSettings, useToast } from "@/components";
 import type { LeaveRequest, LeaveType, Department } from "@/types";
 
 type StatusFilter = "ALL" | "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
@@ -24,6 +24,7 @@ interface OrgPermissions {
 }
 
 export default function LeaveRequestsPage() {
+  const { formatDate } = useOrgSettings();
   const router = useRouter();
   const toast = useToast();
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
@@ -51,6 +52,9 @@ export default function LeaveRequestsPage() {
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  /* Leave is a per-year entitlement, so the list is read a year at a time. */
+  const { fiscalYear } = useOrgSettings();
+  const [selectedYear, setSelectedYear] = useState(fiscalYear.year);
   const [searchTerm, setSearchTerm] = useState("");
   const [leaveTypeFilter, setLeaveTypeFilter] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
@@ -59,7 +63,7 @@ export default function LeaveRequestsPage() {
 
   const fetchRequests = async () => {
     setLoading(true);
-    const res = await fetch("/api/leave-requests?all=true");
+    const res = await fetch(`/api/leave-requests?all=true&year=${selectedYear}`);
     const data = await res.json();
     if (data.success) {
       setRequests(data.data.leaveRequests);
@@ -127,7 +131,8 @@ export default function LeaveRequestsPage() {
 
       fetchRequests();
     });
-  }, [router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- also refetch on year change
+  }, [router, selectedYear]);
 
   const handleAction = async (id: string, action: "APPROVED" | "REJECTED", reason?: string) => {
     try {
@@ -272,8 +277,8 @@ export default function LeaveRequestsPage() {
       req.user?.employeeId || "",
       req.user?.department?.name || "",
       req.leaveType?.name || "",
-      new Date(req.startDate).toLocaleDateString(),
-      new Date(req.endDate).toLocaleDateString(),
+      formatDate(req.startDate),
+      formatDate(req.endDate),
       req.days,
       req.status,
     ]);
@@ -291,9 +296,6 @@ export default function LeaveRequestsPage() {
     URL.revokeObjectURL(url);
   };
 
-  const formatDate = (date: string) =>
-    new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-
   if (loading || !hasAccess) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -306,22 +308,36 @@ export default function LeaveRequestsPage() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Leave Requests</h1>
-          {getScopeLabel() && (
-            <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-              {getScopeLabel()}
-            </span>
-          )}
-          {counts.PENDING > 0 && (
-            <span className="rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-              {counts.PENDING} pending
-            </span>
-          )}
+        <PageHeader
+          title="Leave Requests"
+          actions={
+            <>
+              {getScopeLabel() && (
+                <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                  {getScopeLabel()}
+                </span>
+              )}
+              {counts.PENDING > 0 && (
+                <span className="rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                  {counts.PENDING} pending
+                </span>
+              )}
+            </>
+          }
+        />
+        {/* year picker and Export are one control group, same height, on the right */}
+        <div className="flex shrink-0 items-center gap-2">
+          <FiscalYearSelect
+            id="leaveRequestsYear"
+            value={selectedYear}
+            onChange={setSelectedYear}
+            wrapperClassName="w-40 shrink-0"
+            size="sm"
+          />
+          <Button variant="outline" size="sm" onClick={exportToCSV}>
+            Export
+          </Button>
         </div>
-        <Button variant="outline" size="sm" onClick={exportToCSV}>
-          Export
-        </Button>
       </div>
 
       {/* Filters */}
@@ -633,15 +649,10 @@ export default function LeaveRequestsPage() {
                     From
                   </p>
                   <p className="mt-1.5 text-sm font-medium text-gray-900 dark:text-white">
-                    {new Date(selectedRequest.startDate).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })}
+                    {formatDate(selectedRequest.startDate)}
                   </p>
                   <p className="text-[11px] text-gray-500">
-                    {new Date(selectedRequest.startDate).toLocaleDateString("en-US", {
-                      weekday: "long",
-                    })}
+                    {formatDate(selectedRequest.startDate)}
                   </p>
                 </div>
                 <div className="bg-white px-5 py-4 dark:bg-gray-900">
@@ -649,16 +660,9 @@ export default function LeaveRequestsPage() {
                     To
                   </p>
                   <p className="mt-1.5 text-sm font-medium text-gray-900 dark:text-white">
-                    {new Date(selectedRequest.endDate).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })}
+                    {formatDate(selectedRequest.endDate)}
                   </p>
-                  <p className="text-[11px] text-gray-500">
-                    {new Date(selectedRequest.endDate).toLocaleDateString("en-US", {
-                      weekday: "long",
-                    })}
-                  </p>
+                  <p className="text-[11px] text-gray-500">{formatDate(selectedRequest.endDate)}</p>
                 </div>
               </div>
 
@@ -703,11 +707,7 @@ export default function LeaveRequestsPage() {
                       </p>
                       {selectedRequest.approvedAt && (
                         <p className="text-[11px] text-gray-500">
-                          {new Date(selectedRequest.approvedAt).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
+                          {formatDate(selectedRequest.approvedAt)}
                         </p>
                       )}
                     </div>
@@ -726,11 +726,7 @@ export default function LeaveRequestsPage() {
                     <div>
                       <p className="text-sm text-gray-900 dark:text-white">Request submitted</p>
                       <p className="text-[11px] text-gray-500">
-                        {new Date(selectedRequest.createdAt).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
+                        {formatDate(selectedRequest.createdAt)}
                       </p>
                     </div>
                   </div>
@@ -744,11 +740,7 @@ export default function LeaveRequestsPage() {
                           {selectedRequest.status === "APPROVED" ? "Approved" : "Rejected"}
                         </p>
                         <p className="text-[11px] text-gray-500">
-                          {new Date(selectedRequest.approvedAt).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
+                          {formatDate(selectedRequest.approvedAt)}
                         </p>
                       </div>
                     </div>

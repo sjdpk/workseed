@@ -72,7 +72,7 @@ export default function ForgotPasswordPage() {
           <div className="flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={orgSettings?.logoUrl || "/logo.png"}
+              src={orgSettings?.logoUrl || "/logo.svg"}
               alt=""
               className="h-10 w-10 rounded-xl object-contain shadow-lg"
             />
@@ -105,7 +105,7 @@ export default function ForgotPasswordPage() {
           <div className="flex items-center gap-2.5 lg:hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={orgSettings?.logoUrl || "/logo.png"}
+              src={orgSettings?.logoUrl || "/logo.svg"}
               alt=""
               className="h-8 w-8 rounded-xl object-contain shadow-md"
             />

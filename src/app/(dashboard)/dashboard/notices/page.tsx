@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, useConfirm } from "@/components";
+import { Button, Card, PageHeader, useConfirm, useOrgSettings } from "@/components";
 
 interface Notice {
   id: string;
@@ -23,6 +23,7 @@ interface CurrentUser {
 const ALLOWED_ROLES = ["ADMIN", "HR"];
 
 export default function NoticesPage() {
+  const { formatDate } = useOrgSettings();
   const router = useRouter();
   const confirm = useConfirm();
   const [notices, setNotices] = useState<Notice[]>([]);
@@ -31,7 +32,9 @@ export default function NoticesPage() {
 
   // Filter states
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive" | "expired">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive" | "expired">(
+    "all"
+  );
   const [typeFilter, setTypeFilter] = useState<"all" | "GENERAL" | "IMPORTANT" | "URGENT">("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -102,7 +105,9 @@ export default function NoticesPage() {
       const matchesSearch =
         notice.title.toLowerCase().includes(searchLower) ||
         notice.content.toLowerCase().includes(searchLower) ||
-        `${notice.createdBy.firstName} ${notice.createdBy.lastName}`.toLowerCase().includes(searchLower);
+        `${notice.createdBy.firstName} ${notice.createdBy.lastName}`
+          .toLowerCase()
+          .includes(searchLower);
       if (!matchesSearch) return false;
     }
 
@@ -138,7 +143,8 @@ export default function NoticesPage() {
     setDateTo("");
   };
 
-  const hasActiveFilters = search || statusFilter !== "all" || typeFilter !== "all" || dateFrom || dateTo;
+  const hasActiveFilters =
+    search || statusFilter !== "all" || typeFilter !== "all" || dateFrom || dateTo;
 
   if (loading) {
     return (
@@ -150,29 +156,32 @@ export default function NoticesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Notices & Announcements
-          </h1>
-          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-            Manage company-wide announcements
-          </p>
-        </div>
-        <Link href="/dashboard/notices/new">
-          <Button>
-            <svg className="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            New Notice
-          </Button>
-        </Link>
-      </div>
+      <PageHeader
+        title="Notices & Announcements"
+        subtitle="Manage company-wide announcements"
+        actions={
+          <>
+            <Link href="/dashboard/notices/new">
+              <Button>
+                <svg
+                  className="mr-1.5 h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                New Notice
+              </Button>
+            </Link>
+          </>
+        }
+      />
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
@@ -283,11 +292,16 @@ export default function NoticesPage() {
       ) : (
         <div className="space-y-4">
           {filteredNotices.map((notice) => (
-            <Card key={notice.id} className={`${!notice.isActive || isExpired(notice) ? "opacity-60" : ""}`}>
+            <Card
+              key={notice.id}
+              className={`${!notice.isActive || isExpired(notice) ? "opacity-60" : ""}`}
+            >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{notice.title}</h3>
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                      {notice.title}
+                    </h3>
                     <span
                       className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${typeColors[notice.type]}`}
                     >
@@ -312,11 +326,11 @@ export default function NoticesPage() {
                       By {notice.createdBy.firstName} {notice.createdBy.lastName}
                     </span>
                     <span>·</span>
-                    <span>{new Date(notice.publishedAt).toLocaleDateString()}</span>
+                    <span>{formatDate(notice.publishedAt)}</span>
                     {notice.expiresAt && (
                       <>
                         <span>·</span>
-                        <span>Expires: {new Date(notice.expiresAt).toLocaleDateString()}</span>
+                        <span>Expires: {formatDate(notice.expiresAt)}</span>
                       </>
                     )}
                   </div>

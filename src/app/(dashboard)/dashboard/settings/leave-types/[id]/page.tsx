@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, use } from "react";
-import { Button, Card, Input, useToast } from "@/components";
+import { Button, Card, Input, PageHeader, useToast } from "@/components";
 
 const ALLOWED_ROLES = ["ADMIN", "HR"];
 
@@ -125,17 +125,21 @@ export default function EditLeaveTypePage({ params }: { params: Promise<{ id: st
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Edit Leave Type</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+      <PageHeader
+        title="Edit Leave Type"
+        subtitle={
+          <>
             {leaveType.name} ({leaveType.code})
-          </p>
-        </div>
-        <Button variant="outline" onClick={() => router.back()}>
-          Cancel
-        </Button>
-      </div>
+          </>
+        }
+        actions={
+          <>
+            <Button variant="outline" onClick={() => router.back()}>
+              Cancel
+            </Button>
+          </>
+        }
+      />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>

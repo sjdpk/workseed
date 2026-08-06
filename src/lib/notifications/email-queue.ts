@@ -4,12 +4,7 @@ import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import type { EmailLog, EmailStatus } from "@prisma/client";
-import {
-  type QueueProcessResult,
-  type EmailStats,
-  RETRY_CONFIG,
-  BATCH_CONFIG,
-} from "./types";
+import { type QueueProcessResult, type EmailStats, RETRY_CONFIG, BATCH_CONFIG } from "./types";
 
 const FROM_EMAIL = env.SMTP_FROM || env.SMTP_USER || "noreply@hrm.local";
 const APP_NAME = env.APP_NAME;
@@ -148,10 +143,7 @@ export async function updateEmailLogStatus(
 /**
  * Increment retry count for an email log
  */
-export async function incrementRetryCount(
-  id: string,
-  errorMessage: string
-): Promise<void> {
+export async function incrementRetryCount(id: string, errorMessage: string): Promise<void> {
   await prisma.emailLog.update({
     where: { id },
     data: {
@@ -173,11 +165,7 @@ function isValidEmail(email: string): boolean {
 /**
  * Send a single email
  */
-export async function sendSingleEmail(
-  to: string,
-  subject: string,
-  html: string
-): Promise<boolean> {
+export async function sendSingleEmail(to: string, subject: string, html: string): Promise<boolean> {
   // Validate email address
   if (!to || !isValidEmail(to)) {
     logger.error("Invalid email address", { to, subject });
@@ -438,15 +426,7 @@ export async function getEmailLogs(options: {
   startDate?: Date;
   endDate?: Date;
 }) {
-  const {
-    page = 1,
-    limit = 20,
-    status,
-    type,
-    recipientEmail,
-    startDate,
-    endDate,
-  } = options;
+  const { page = 1, limit = 20, status, type, recipientEmail, startDate, endDate } = options;
 
   const where: Record<string, unknown> = {};
 

@@ -2,7 +2,21 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, Input, Select, useToast } from "@/components";
+import { Button, Card, Combobox, Input, PageHeader, Select, useToast } from "@/components";
+import {
+  currentFiscalYear,
+  daysInMonth,
+  describeFiscalYear,
+  fiscalYearProgress,
+  formatFiscalYearRange,
+} from "@/lib/fiscal-year";
+import {
+  describeTimeZone,
+  deviceTimeZone,
+  formatDateTimeInZone,
+  formatInZone,
+  listTimeZones,
+} from "@/lib/time";
 
 const ALLOWED_ROLES = ["ADMIN"];
 
@@ -10,7 +24,9 @@ interface OrgSettings {
   id: string;
   name: string;
   logoUrl: string | null;
+  timezone: string;
   fiscalYearStart: number;
+  fiscalYearStartDay: number;
   workingDaysPerWeek: number;
   theme?: {
     accentColor: string;
@@ -28,7 +44,9 @@ export default function OrganizationSettingsPage() {
   const [formData, setFormData] = useState({
     name: "",
     logoUrl: "",
+    timezone: "UTC",
     fiscalYearStart: 1,
+    fiscalYearStartDay: 1,
     workingDaysPerWeek: 5,
     theme: {
       accentColor: "gray",
@@ -36,6 +54,13 @@ export default function OrganizationSettingsPage() {
     },
   });
   const [logoError, setLogoError] = useState(false);
+  /* ticks so the timezone preview is a live clock rather than a stale stamp */
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -52,7 +77,9 @@ export default function OrganizationSettingsPage() {
         setFormData({
           name: orgData.data.settings.name || "",
           logoUrl: orgData.data.settings.logoUrl || "",
+          timezone: orgData.data.settings.timezone || "UTC",
           fiscalYearStart: orgData.data.settings.fiscalYearStart || 1,
+          fiscalYearStartDay: orgData.data.settings.fiscalYearStartDay || 1,
           workingDaysPerWeek: orgData.data.settings.workingDaysPerWeek || 5,
           theme: {
             accentColor: themeData.accentColor || "gray",
@@ -114,6 +141,43 @@ export default function OrganizationSettingsPage() {
     { value: "12", label: "December" },
   ];
 
+  /* day list follows the chosen month, so 30 February can't be picked */
+  const fiscalConfig = {
+    startMonth: formData.fiscalYearStart,
+    startDay: formData.fiscalYearStartDay,
+  };
+  const maxDay = daysInMonth(new Date().getFullYear(), formData.fiscalYearStart);
+  const dayOptions = Array.from({ length: maxDay }, (_, i) => ({
+    value: String(i + 1),
+    label: String(i + 1),
+  }));
+  const timeZone = formData.timezone;
+  /* 400+ zones need a search box, and the device's own zone belongs at the top —
+     that is what a company setting up for the first time almost always wants. */
+  const device = deviceTimeZone();
+  const zones = listTimeZones();
+  const timeZoneOptions = [
+    ...(zones.includes(device)
+      ? [
+          {
+            value: device,
+            label: `${describeTimeZone(device)} — your device`,
+            keywords: "current device local here",
+          },
+        ]
+      : []),
+    ...zones
+      .filter((tz) => tz !== device)
+      .map((tz) => ({
+        value: tz,
+        label: describeTimeZone(tz),
+        keywords: tz.replace(/[_/]/g, " "),
+      })),
+  ];
+  const runningFiscalYear = currentFiscalYear(fiscalConfig, new Date(), timeZone);
+  const progress = fiscalYearProgress(runningFiscalYear);
+  const nextFiscalYear = describeFiscalYear(runningFiscalYear.year + 1, fiscalConfig, timeZone);
+
   const workingDaysOptions = [
     { value: "5", label: "5 days (Mon-Fri)" },
     { value: "6", label: "6 days (Mon-Sat)" },
@@ -131,14 +195,7 @@ export default function OrganizationSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Organization Settings
-        </h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Manage company-wide settings
-        </p>
-      </div>
+      <PageHeader title="Organization Settings" subtitle="Manage company-wide settings" />
 
       <form onSubmit={handleSubmit}>
         <Card className="space-y-6">
@@ -164,7 +221,7 @@ export default function OrganizationSettingsPage() {
                 id="logoUrl"
                 label="Logo URL"
                 type="url"
-                placeholder="https://example.com/logo.png"
+                placeholder="https://example.com/logo.svg"
                 value={formData.logoUrl}
                 onChange={(e) => {
                   setFormData({ ...formData, logoUrl: e.target.value });
@@ -231,13 +288,63 @@ export default function OrganizationSettingsPage() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Combobox
+                id="timezone"
+                label="Company Timezone"
+                options={timeZoneOptions}
+                value={formData.timezone}
+                placeholder="Search a city or region…"
+                onChange={(tz) => setFormData({ ...formData, timezone: tz })}
+              />
+              {formData.timezone !== device && (
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, timezone: device })}
+                  className="mt-1.5 text-xs text-gray-600 underline hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  Use my current timezone ({device.replace(/_/g, " ")})
+                </button>
+              )}
+            </div>
+            <div className="flex flex-col justify-end">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Right now it is{" "}
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {formatDateTimeInZone(now, timeZone)}
+                </span>
+              </p>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Attendance days, leave dates, reports and emails all use this zone. Times are stored
+                in UTC, so changing it re-renders history rather than rewriting it.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
             <Select
               id="fiscalYearStart"
-              label="Fiscal Year Starts"
+              label="Fiscal Year Starts — Month"
               options={monthOptions}
               value={formData.fiscalYearStart.toString()}
+              onChange={(e) => {
+                const month = parseInt(e.target.value);
+                // keep the day valid when moving to a shorter month
+                const max = daysInMonth(new Date().getFullYear(), month);
+                setFormData({
+                  ...formData,
+                  fiscalYearStart: month,
+                  fiscalYearStartDay: Math.min(formData.fiscalYearStartDay, max),
+                });
+              }}
+            />
+            <Select
+              id="fiscalYearStartDay"
+              label="Day"
+              options={dayOptions}
+              value={formData.fiscalYearStartDay.toString()}
               onChange={(e) =>
-                setFormData({ ...formData, fiscalYearStart: parseInt(e.target.value) })
+                setFormData({ ...formData, fiscalYearStartDay: parseInt(e.target.value) })
               }
             />
             <Select
@@ -249,6 +356,41 @@ export default function OrganizationSettingsPage() {
                 setFormData({ ...formData, workingDaysPerWeek: parseInt(e.target.value) })
               }
             />
+          </div>
+
+          {/* what the setting above actually means today — leave balances, reports
+              and allocations are all keyed to this year */}
+          <div className="rounded-md border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900/60">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                Current fiscal year {runningFiscalYear.label} · resets {runningFiscalYear.resetsOn}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Day {progress.dayNumber} of {progress.totalDays} · {progress.daysRemaining} left
+              </p>
+            </div>
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+              {formatFiscalYearRange(runningFiscalYear, timeZone)}
+            </p>
+            <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">
+              <div
+                className="h-full rounded-full bg-gray-900 dark:bg-white"
+                style={{ width: `${progress.percent}%` }}
+              />
+            </div>
+            <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+              Leave allocations, balances and yearly reports are keyed to this year. Next year{" "}
+              {nextFiscalYear.label} starts{" "}
+              {formatInZone(nextFiscalYear.start, timeZone, {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
+              .{" "}
+              {formData.fiscalYearStart === 1 && formData.fiscalYearStartDay === 1
+                ? "This matches the calendar year."
+                : "Records already saved keep the year they were filed under; only new ones follow a changed start date."}
+            </p>
           </div>
 
           <div className="border-t border-gray-200 pt-6 dark:border-gray-700">

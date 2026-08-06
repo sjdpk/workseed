@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, Input, Select, useToast } from "@/components";
+import { Button, Card, Input, PageHeader, Select, useToast } from "@/components";
 import type { Branch } from "@/types";
 
 const ALLOWED_ROLES = ["ADMIN", "HR"];
@@ -75,15 +75,17 @@ export default function NewDepartmentPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Add Department</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Create a new department</p>
-        </div>
-        <Button variant="outline" onClick={() => router.back()}>
-          Cancel
-        </Button>
-      </div>
+      <PageHeader
+        title="Add Department"
+        subtitle="Create a new department"
+        actions={
+          <>
+            <Button variant="outline" onClick={() => router.back()}>
+              Cancel
+            </Button>
+          </>
+        }
+      />
 
       <form onSubmit={handleSubmit}>
         <Card className="space-y-4">

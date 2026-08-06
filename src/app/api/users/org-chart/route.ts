@@ -18,6 +18,7 @@ export async function GET() {
         profilePicture: true,
         linkedIn: true,
         role: true,
+        roleRecord: { select: { name: true, color: true, rank: true } },
         designation: true,
         managerId: true,
         department: {
@@ -27,7 +28,7 @@ export async function GET() {
           select: { id: true, name: true },
         },
       },
-      orderBy: [{ role: "asc" }, { firstName: "asc" }],
+      orderBy: [{ roleRecord: { rank: "desc" } }, { firstName: "asc" }],
     });
 
     return NextResponse.json({

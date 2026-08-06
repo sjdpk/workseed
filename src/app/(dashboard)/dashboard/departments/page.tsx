@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, SearchBar } from "@/components";
+import { Button, Card, PageHeader, SearchBar } from "@/components";
 
 interface Department {
   id: string;
@@ -100,24 +100,22 @@ export default function DepartmentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Departments</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Manage organization departments
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={exportToCSV}>
-            Export CSV
-          </Button>
-          {hasPermission("CREATE") && (
-            <Button onClick={() => router.push("/dashboard/departments/new")}>
-              Add Department
+      <PageHeader
+        title="Departments"
+        subtitle="Manage organization departments"
+        actions={
+          <>
+            <Button variant="outline" onClick={exportToCSV}>
+              Export CSV
             </Button>
-          )}
-        </div>
-      </div>
+            {hasPermission("CREATE") && (
+              <Button onClick={() => router.push("/dashboard/departments/new")}>
+                Add Department
+              </Button>
+            )}
+          </>
+        }
+      />
 
       <SearchBar
         value={searchTerm}

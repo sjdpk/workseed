@@ -2,7 +2,26 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, use } from "react";
-import { Button, Card, Input, Select, useToast } from "@/components";
+import {
+  Button,
+  Card,
+  type EmergencyContactInput,
+  EmergencyContacts,
+  FiscalYearSelect,
+  Input,
+  PageHeader,
+  RoleSelect,
+  Select,
+  useOrgSettings,
+  useToast,
+} from "@/components";
+import {
+  currentFiscalYear,
+  describeFiscalYear,
+  formatFiscalYearRange,
+  resolveFiscalYear,
+  type FiscalYearConfig,
+} from "@/lib/fiscal-year";
 import type {
   Branch,
   Department,
@@ -40,8 +59,7 @@ interface UserData {
   state?: string;
   country?: string;
   postalCode?: string;
-  emergencyContact?: string;
-  emergencyContactPhone?: string;
+  emergencyContacts?: EmergencyContactInput[];
   employmentType: EmploymentType;
   joiningDate?: string;
   designation?: string;
@@ -101,10 +119,43 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
   const [allocations, setAllocations] = useState<Allocation[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  /* the company's leave year, so the picker offers fiscal years rather than
+     calendar years */
+  const [fiscalConfig, setFiscalConfig] = useState<FiscalYearConfig>({
+    startMonth: 1,
+    startDay: 1,
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingAllocation, setSavingAllocation] = useState<string | null>(null);
 
+  const { formatDate, timezone } = useOrgSettings();
+  /* role assignment is capped at the editor's own seniority, and a more senior
+     colleague's role cannot be changed at all */
+  const [roleId, setRoleId] = useState("");
+  const [sendingReset, setSendingReset] = useState(false);
+
+  /** Issues a fresh single-use link and emails it; no password crosses this UI. */
+  const sendResetLink = async () => {
+    setSendingReset(true);
+    try {
+      const res = await fetch(`/api/users/${id}/password-reset`, { method: "POST" });
+      const data = await res.json();
+      if (!data.success) {
+        toast.error(data.error || "Could not send the link");
+        return;
+      }
+      toast.success(`Reset link sent to ${data.data.sentTo}`);
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setSendingReset(false);
+    }
+  };
+  const [currentUserRank, setCurrentUserRank] = useState<number | undefined>(undefined);
+  const [userRoleRank, setUserRoleRank] = useState(0);
+  /* contacts are their own list, replaced whole on save */
+  const [contacts, setContacts] = useState<EmergencyContactInput[]>([]);
   const [formData, setFormData] = useState({
     employeeId: "",
     deviceUserId: "",
@@ -128,8 +179,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
     state: "",
     country: "",
     postalCode: "",
-    emergencyContact: "",
-    emergencyContactPhone: "",
+
     employmentType: "FULL_TIME" as EmploymentType,
     joiningDate: "",
     designation: "",
@@ -158,6 +208,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
       fetch("/api/leave-types").then((r) => r.json()),
       fetch(`/api/leave-allocations?userId=${id}&year=${selectedYear}`).then((r) => r.json()),
       fetch(`/api/assets?userId=${id}`).then((r) => r.json()),
+      fetch("/api/organization").then((r) => r.json()),
     ]).then(
       ([
         meData,
@@ -169,9 +220,21 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
         leaveTypesData,
         allocData,
         assetsData,
+        orgData,
       ]) => {
+        if (orgData?.success) {
+          const cfg = {
+            startMonth: orgData.data.settings.fiscalYearStart || 1,
+            startDay: orgData.data.settings.fiscalYearStartDay || 1,
+          };
+          setFiscalConfig(cfg);
+          if (orgData.data.settings.fiscalYear?.year) {
+            setSelectedYear(orgData.data.settings.fiscalYear.year);
+          }
+        }
         if (meData.success) {
           setCurrentUser(meData.data.user);
+          setCurrentUserRank(meData.data.user.roleRank);
           if (!ALLOWED_ROLES.includes(meData.data.user.role)) {
             router.replace("/dashboard");
             return;
@@ -180,6 +243,9 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
         if (userData.success) {
           const u = userData.data.user;
           setUser(u);
+          setRoleId(u.roleId || "");
+          setUserRoleRank(u.roleRecord?.rank ?? 0);
+          setContacts(u.emergencyContacts || []);
           setFormData({
             employeeId: u.employeeId || "",
             deviceUserId: u.deviceUserId || "",
@@ -203,8 +269,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
             state: u.state || "",
             country: u.country || "",
             postalCode: u.postalCode || "",
-            emergencyContact: u.emergencyContact || "",
-            emergencyContactPhone: u.emergencyContactPhone || "",
+
             employmentType: u.employmentType || "FULL_TIME",
             joiningDate: u.joiningDate ? u.joiningDate.split("T")[0] : "",
             designation: u.designation || "",
@@ -261,14 +326,14 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
         state: formData.state || null,
         country: formData.country || null,
         postalCode: formData.postalCode || null,
-        emergencyContact: formData.emergencyContact || null,
-        emergencyContactPhone: formData.emergencyContactPhone || null,
+        emergencyContacts: contacts,
       };
 
       if (formData.password) {
         payload.password = formData.password;
       }
 
+      if (roleId) payload.roleId = roleId;
       payload.role = formData.role;
       payload.status = formData.status;
       payload.dateOfBirth = formData.dateOfBirth || null;
@@ -369,18 +434,6 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
     return <div className="p-8 text-center text-gray-500">User not found</div>;
   }
 
-  const roleOptions = [
-    { value: "EMPLOYEE", label: "Employee" },
-    { value: "TEAM_LEAD", label: "Team Lead" },
-    { value: "MANAGER", label: "Manager" },
-    ...(currentUser.role === "ADMIN"
-      ? [
-          { value: "HR", label: "HR" },
-          { value: "ADMIN", label: "Admin" },
-        ]
-      : []),
-  ];
-
   const statusOptions = [
     { value: "ACTIVE", label: "Active" },
     { value: "INACTIVE", label: "Inactive" },
@@ -409,11 +462,13 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
     { value: "INTERN", label: "Intern" },
   ];
 
-  const currentYear = new Date().getFullYear();
-  const yearOptions = Array.from({ length: 5 }, (_, i) => ({
-    value: (currentYear - 2 + i).toString(),
-    label: (currentYear - 2 + i).toString(),
-  }));
+  /* Years before the employee joined hold nothing, so they are not offered.
+     One year ahead is, so HR can set next year's balance in advance. */
+  const runningFiscalYear = currentFiscalYear(fiscalConfig, new Date(), timezone);
+  const joiningFiscalYear = formData.joiningDate
+    ? resolveFiscalYear(formData.joiningDate, fiscalConfig).year
+    : runningFiscalYear.year - 2;
+  const selectedFiscalYear = describeFiscalYear(selectedYear, fiscalConfig, timezone);
 
   const allocatedTypeIds = allocations.map((a) => a.leaveTypeId);
   const missingLeaveTypes = leaveTypes.filter((lt) => !allocatedTypeIds.includes(lt.id));
@@ -428,17 +483,21 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Edit User</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+      <PageHeader
+        title="Edit User"
+        subtitle={
+          <>
             {user.firstName} {user.lastName} ({user.employeeId})
-          </p>
-        </div>
-        <Button variant="outline" onClick={() => router.back()}>
-          Back
-        </Button>
-      </div>
+          </>
+        }
+        actions={
+          <>
+            <Button variant="outline" onClick={() => router.back()}>
+              Back
+            </Button>
+          </>
+        }
+      />
 
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-gray-700">
@@ -488,23 +547,48 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                 onChange={(e) => setFormData({ ...formData, deviceUserId: e.target.value })}
               />
               <Input id="email" type="email" label="Email" value={user.email} disabled />
+              {/* Preferred path: email a link and never learn the password.
+                  Typing one here still works for a locked-out employee with no
+                  mailbox, but it is the fallback, not the default. */}
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Password
+                </label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={sendingReset}
+                  onClick={sendResetLink}
+                  className="w-full"
+                >
+                  {sendingReset ? "Sending…" : "Email a password reset link"}
+                </Button>
+                <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                  They choose the new password themselves; it is never shown to you.
+                </p>
+              </div>
               <Input
                 id="password"
                 type="password"
-                label="New Password"
+                label="Or set one directly"
                 value={formData.password}
+                minLength={8}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 placeholder="Leave empty to keep"
+                hint="Last resort — tell them to change it after signing in."
               />
             </div>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <Select
-                id="role"
+              <RoleSelect
+                id="roleId"
                 label="Role"
-                options={roleOptions}
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value as Role })}
-                disabled={currentUser.role !== "ADMIN" && ["ADMIN", "HR"].includes(user.role)}
+                value={roleId || formData.role}
+                maxRank={currentUserRank}
+                onChange={(id, role) => {
+                  setRoleId(id);
+                  setFormData({ ...formData, role: role.key as Role });
+                }}
+                disabled={currentUserRank !== undefined && userRoleRank > currentUserRank}
               />
               <Select
                 id="status"
@@ -671,27 +755,17 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
             </div>
           </Card>
 
-          {/* Emergency Contact */}
+          {/* Emergency contacts — as many as the employee needs */}
           <Card>
-            <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">
-              Emergency Contact
-            </h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Input
-                id="emergencyContact"
-                label="Contact Name"
-                value={formData.emergencyContact}
-                onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
-              />
-              <Input
-                id="emergencyContactPhone"
-                label="Contact Phone"
-                value={formData.emergencyContactPhone}
-                onChange={(e) =>
-                  setFormData({ ...formData, emergencyContactPhone: e.target.value })
-                }
-              />
+            <div className="mb-4">
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+                Emergency Contacts
+              </h2>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Only a name is required. Add a second contact for when the first cannot be reached.
+              </p>
             </div>
+            <EmergencyContacts contacts={contacts} onChange={setContacts} />
           </Card>
 
           <div className="flex justify-end gap-3">
@@ -804,20 +878,17 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                 Leave Allocations
               </h2>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Manage leave balance for this employee
+                {selectedFiscalYear.label} · {formatFiscalYearRange(selectedFiscalYear, timezone)}
+                {formData.joiningDate && ` · joined ${formatDate(formData.joiningDate)}`}
               </p>
             </div>
-            <select
+            <FiscalYearSelect
+              id="allocationYear"
               value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="rounded border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-            >
-              {yearOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedYear}
+              earliestYear={joiningFiscalYear}
+              wrapperClassName="w-44"
+            />
           </div>
 
           <div className="overflow-x-auto">
@@ -1050,7 +1121,7 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
                         </span>
                       </td>
                       <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400">
-                        {asset.assignedAt ? new Date(asset.assignedAt).toLocaleDateString() : "-"}
+                        {asset.assignedAt ? formatDate(asset.assignedAt) : "-"}
                       </td>
                       <td className="px-3 py-2 text-right">
                         <a

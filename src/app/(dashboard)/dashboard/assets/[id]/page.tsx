@@ -2,7 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, use } from "react";
-import { Button, Card, Input, Select, useToast, useConfirm } from "@/components";
+import {
+  Button,
+  Card,
+  Input,
+  PageHeader,
+  Select,
+  useConfirm,
+  useOrgSettings,
+  useToast,
+} from "@/components";
 
 interface User {
   id: string;
@@ -90,6 +99,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function AssetDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { formatDate, formatDateTime } = useOrgSettings();
   const { id } = use(params);
   const router = useRouter();
   const toast = useToast();
@@ -314,16 +324,6 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
     }
   };
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleDateString();
-  };
-
-  const formatDateTime = (dateStr?: string) => {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleString();
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -340,16 +340,20 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">{asset.name}</h1>
-            <span
-              className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                STATUS_COLORS[asset.status] || ""
-              }`}
-            >
-              {asset.status}
-            </span>
-          </div>
+          <PageHeader
+            title={asset.name}
+            actions={
+              <>
+                <span
+                  className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                    STATUS_COLORS[asset.status] || ""
+                  }`}
+                >
+                  {asset.status}
+                </span>
+              </>
+            }
+          />
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
             {asset.assetTag}
             {asset.serialNumber && ` • S/N: ${asset.serialNumber}`}

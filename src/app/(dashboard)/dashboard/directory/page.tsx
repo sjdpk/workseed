@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Card, Avatar, SearchBar } from "@/components";
+import { Avatar, Badge, type BadgeTone, Card, PageHeader, SearchBar, useRoles } from "@/components";
 
 interface User {
   id: string;
@@ -32,7 +32,27 @@ const LinkedInIcon = () => (
   </svg>
 );
 
+/** Role colour token → classes, shared by the avatar and the badge. */
+const AVATAR_CLASS: Record<string, string> = {
+  red: "bg-red-500",
+  purple: "bg-purple-500",
+  blue: "bg-blue-500",
+  green: "bg-green-500",
+  orange: "bg-orange-500",
+  gray: "bg-gray-500",
+};
+
+const BADGE_TONE: Record<string, BadgeTone> = {
+  red: "danger",
+  purple: "accent",
+  blue: "info",
+  green: "success",
+  orange: "warning",
+  gray: "neutral",
+};
+
 export default function DirectoryPage() {
+  const { roles } = useRoles();
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
@@ -102,35 +122,13 @@ export default function DirectoryPage() {
   const isSameDepartment = (user: User) =>
     currentUser?.departmentId && user.department?.id === currentUser.departmentId;
 
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case "ADMIN":
-        return "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300";
-      case "HR":
-        return "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300";
-      case "MANAGER":
-        return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
-      case "TEAM_LEAD":
-        return "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300";
-      default:
-        return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300";
-    }
-  };
-
-  const getRoleAvatarColor = (role: string) => {
-    switch (role) {
-      case "ADMIN":
-        return "bg-purple-500";
-      case "HR":
-        return "bg-pink-500";
-      case "MANAGER":
-        return "bg-gray-500";
-      case "TEAM_LEAD":
-        return "bg-gray-600";
-      default:
-        return "bg-gray-500";
-    }
-  };
+  /* colours come from the role roster, so a role added in Settings is not grey */
+  const roleFor = (role: string) => roles.find((r) => r.key === role || r.name === role);
+  const roleLabel = (role: string) => roleFor(role)?.name ?? role.replace(/_/g, " ");
+  const getRoleAvatarColor = (role: string) =>
+    AVATAR_CLASS[roleFor(role)?.color || "gray"] ?? "bg-gray-500";
+  const getRoleBadgeTone = (role: string): BadgeTone =>
+    BADGE_TONE[roleFor(role)?.color || "gray"] ?? "neutral";
 
   const UserCard = ({ user }: { user: User }) => {
     const sameTeam = isSameTeam(user);
@@ -181,15 +179,9 @@ export default function DirectoryPage() {
                   <LinkedInIcon />
                 </a>
               )}
-              <span
-                className={`rounded px-1 py-0.5 text-[10px] font-medium ${getRoleBadgeColor(user.role)}`}
-              >
-                {user.role
-                  .replace("_", " ")
-                  .split(" ")
-                  .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
-                  .join(" ")}
-              </span>
+              <Badge tone={getRoleBadgeTone(user.role)} className="px-1 py-0.5 text-[10px]">
+                {roleLabel(user.role)}
+              </Badge>
             </div>
             {user.designation && (
               <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
@@ -261,7 +253,7 @@ export default function DirectoryPage() {
   if (error) {
     return (
       <div className="space-y-6">
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Directory</h1>
+        <PageHeader title="Directory" />
         <Card>
           <div className="py-8 text-center">
             <p className="text-sm text-red-500">{error}</p>
@@ -273,34 +265,31 @@ export default function DirectoryPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Directory</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            View your colleagues ({users.length} total)
-          </p>
-        </div>
-
-        <div className="flex rounded border border-gray-200 dark:border-gray-700 p-1">
-          {[
-            { key: "all", label: "All" },
-            { key: "department", label: "By Department" },
-            { key: "team", label: "By Team" },
-          ].map((mode) => (
-            <button
-              key={mode.key}
-              onClick={() => setViewMode(mode.key as typeof viewMode)}
-              className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${
-                viewMode === mode.key
-                  ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
-                  : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-              }`}
-            >
-              {mode.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <PageHeader
+        title="Directory"
+        subtitle={`View your colleagues (${users.length} total)`}
+        actions={
+          <div className="flex rounded border border-gray-200 p-1 dark:border-gray-700">
+            {[
+              { key: "all", label: "All" },
+              { key: "department", label: "By Department" },
+              { key: "team", label: "By Team" },
+            ].map((mode) => (
+              <button
+                key={mode.key}
+                onClick={() => setViewMode(mode.key as typeof viewMode)}
+                className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${
+                  viewMode === mode.key
+                    ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
+                    : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                }`}
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
+        }
+      />
 
       <div className="flex flex-wrap gap-4 text-xs">
         <div className="flex items-center gap-1.5">

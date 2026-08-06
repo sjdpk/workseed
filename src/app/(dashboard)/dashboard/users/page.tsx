@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card } from "@/components";
+import { Button, Card, PageHeader, useRoles } from "@/components";
 import type { Role } from "@/types";
 
 interface User {
@@ -41,15 +41,6 @@ const PERMISSIONS = {
   EDIT: ["ADMIN", "HR"],
 };
 
-const ROLE_OPTIONS = [
-  { value: "", label: "All Roles" },
-  { value: "ADMIN", label: "Admin" },
-  { value: "HR", label: "HR" },
-  { value: "MANAGER", label: "Manager" },
-  { value: "TEAM_LEAD", label: "Team Lead" },
-  { value: "EMPLOYEE", label: "Employee" },
-];
-
 const STATUS_OPTIONS = [
   { value: "", label: "All Status" },
   { value: "ACTIVE", label: "Active" },
@@ -58,6 +49,8 @@ const STATUS_OPTIONS = [
 ];
 
 export default function UsersPage() {
+  /* the filter offers whatever roles the company actually has */
+  const { roles } = useRoles();
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -188,24 +181,22 @@ export default function UsersPage() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Users</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            {pagination.total} employees
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={exportToCSV}>
-            Export
-          </Button>
-          {hasPermission("CREATE") && (
-            <Button size="sm" onClick={() => router.push("/dashboard/users/new")}>
-              Add User
+      <PageHeader
+        title="Users"
+        subtitle={<>{pagination.total} employees</>}
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={exportToCSV}>
+              Export
             </Button>
-          )}
-        </div>
-      </div>
+            {hasPermission("CREATE") && (
+              <Button size="sm" onClick={() => router.push("/dashboard/users/new")}>
+                Add User
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {/* Filters */}
       <Card className="p-3">
@@ -228,8 +219,11 @@ export default function UsersPage() {
             }}
             className="h-9 rounded border border-gray-300 bg-white px-3 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           >
-            {ROLE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            <option value="">All roles</option>
+            {roles.map((role) => (
+              <option key={role.id} value={role.key}>
+                {role.name}
+              </option>
             ))}
           </select>
           <select
@@ -241,7 +235,9 @@ export default function UsersPage() {
             className="h-9 rounded border border-gray-300 bg-white px-3 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white"
           >
             {STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
             ))}
           </select>
           <select
@@ -254,10 +250,14 @@ export default function UsersPage() {
           >
             <option value="">All Departments</option>
             {departments.map((dept) => (
-              <option key={dept.id} value={dept.id}>{dept.name}</option>
+              <option key={dept.id} value={dept.id}>
+                {dept.name}
+              </option>
             ))}
           </select>
-          <Button size="sm" onClick={handleSearch}>Search</Button>
+          <Button size="sm" onClick={handleSearch}>
+            Search
+          </Button>
           {(filters.search || filters.role || filters.status || filters.departmentId) && (
             <Button
               variant="outline"
@@ -385,7 +385,8 @@ export default function UsersPage() {
               <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3 dark:border-gray-700">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   {(pagination.page - 1) * pagination.limit + 1}-
-                  {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
+                  {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
+                  {pagination.total}
                 </p>
                 <div className="flex gap-2">
                   <Button

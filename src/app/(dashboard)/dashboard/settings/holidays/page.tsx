@@ -1,7 +1,17 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Button, Card, Input, useConfirm } from "@/components";
+import {
+  Button,
+  Card,
+  FiscalYearSelect,
+  HolidayCalendar,
+  Input,
+  NextHoliday,
+  PageHeader,
+  useConfirm,
+  useOrgSettings,
+} from "@/components";
 
 interface Holiday {
   id: string;
@@ -25,8 +35,13 @@ export default function HolidaysPage() {
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSidebar, setShowSidebar] = useState(false);
+  /* Calendar first: the usual question is "when is the next day off". */
+  const [view, setView] = useState<"calendar" | "list">("calendar");
   const [editingHoliday, setEditingHoliday] = useState<Holiday | null>(null);
-  const [year, setYear] = useState(new Date().getFullYear());
+  const { fiscalYear, fiscalYearOf, formatDate } = useOrgSettings();
+
+  /* the calendar follows the company's leave year, like every other year picker */
+  const [year, setYear] = useState(fiscalYear.year);
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -110,9 +125,9 @@ export default function HolidaysPage() {
     setForm({ name: "", date: "", type: "PUBLIC", description: "" });
   };
 
-  const openAddSidebar = () => {
+  const openAddSidebar = (date = "") => {
     setEditingHoliday(null);
-    setForm({ name: "", date: "", type: "PUBLIC", description: "" });
+    setForm({ name: "", date, type: "PUBLIC", description: "" });
     setShowSidebar(true);
   };
 
@@ -220,74 +235,99 @@ export default function HolidaysPage() {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Holiday Calendar</h1>
-          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-            Company holidays for {year}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <select
-            value={year}
-            onChange={(e) => setYear(parseInt(e.target.value))}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-          >
-            {[year - 1, year, year + 1].map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
-          {canManage && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportCSV}
-                disabled={holidays.length === 0}
-              >
-                <DownloadIcon className="mr-1.5 h-4 w-4" />
-                Export
-              </Button>
-              <label
-                className={`inline-flex cursor-pointer items-center justify-center rounded px-3 py-1.5 text-xs font-medium transition-colors border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-transparent dark:text-gray-200 dark:hover:bg-gray-800 ${importing ? "opacity-50 pointer-events-none" : ""}`}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".csv"
-                  onChange={handleImportCSV}
-                  className="hidden"
-                />
-                <UploadIcon className="mr-1.5 h-4 w-4" />
-                {importing ? "Importing..." : "Import"}
-              </label>
-              <Button size="sm" onClick={openAddSidebar}>
-                Add Holiday
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="Holiday Calendar"
+        subtitle={<>Company holidays for {fiscalYearOf(year).label}</>}
+        actions={
+          <>
+            <div className="flex shrink-0 rounded border border-gray-200 p-1 dark:border-gray-700">
+              {(["calendar", "list"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setView(mode)}
+                  className={`rounded px-3 py-1 text-sm font-medium capitalize transition-colors ${
+                    view === mode
+                      ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
+                      : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+            <FiscalYearSelect
+              id="holidayYear"
+              value={year}
+              onChange={setYear}
+              wrapperClassName="w-36 shrink-0"
+              size="sm"
+            />
+            {canManage && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportCSV}
+                  disabled={holidays.length === 0}
+                >
+                  <DownloadIcon className="mr-1.5 h-4 w-4" />
+                  Export
+                </Button>
+                <label
+                  className={`inline-flex cursor-pointer items-center justify-center rounded px-3 py-1.5 text-xs font-medium transition-colors border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-transparent dark:text-gray-200 dark:hover:bg-gray-800 ${importing ? "opacity-50 pointer-events-none" : ""}`}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv"
+                    onChange={handleImportCSV}
+                    className="hidden"
+                  />
+                  <UploadIcon className="mr-1.5 h-4 w-4" />
+                  {importing ? "Importing..." : "Import"}
+                </label>
+                <Button size="sm" onClick={() => openAddSidebar()}>
+                  Add Holiday
+                </Button>
+              </>
+            )}
+          </>
+        }
+      />
 
       {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-900 border-t-transparent dark:border-white" />
         </div>
+      ) : view === "calendar" ? (
+        <Card className="space-y-4">
+          {holidays.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 pb-3 dark:border-gray-800">
+              <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                Next holiday
+              </span>
+              <NextHoliday holidays={holidays} />
+            </div>
+          )}
+          <HolidayCalendar
+            holidays={holidays}
+            startMonth={fiscalYearOf(year).start.getUTCMonth() + 1}
+            startYear={fiscalYearOf(year).start.getUTCFullYear()}
+            canManage={canManage}
+            onPickDate={(date) => openAddSidebar(date)}
+          />
+          {holidays.length === 0 && (
+            <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+              No holidays for {fiscalYearOf(year).label} yet
+              {canManage ? " — click a day to add one" : ""}.
+            </p>
+          )}
+        </Card>
       ) : holidays.length === 0 ? (
         <Card>
           <div className="py-16 text-center">
@@ -297,7 +337,7 @@ export default function HolidaysPage() {
             <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">No holidays for {year}</p>
             {canManage && (
               <button
-                onClick={openAddSidebar}
+                onClick={() => openAddSidebar()}
                 className="mt-4 text-sm font-medium text-gray-900 hover:underline dark:text-white"
               >
                 Add your first holiday
@@ -315,7 +355,7 @@ export default function HolidaysPage() {
               <div className="flex items-center gap-4">
                 <div className="flex h-10 w-10 flex-col items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700">
                   <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                    {new Date(holiday.date).toLocaleDateString("en-US", { month: "short" })}
+                    {formatDate(holiday.date)}
                   </span>
                   <span className="text-sm font-semibold text-gray-900 dark:text-white">
                     {new Date(holiday.date).getDate()}

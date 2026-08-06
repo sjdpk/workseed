@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Button, Card, useToast, useConfirm } from "@/components";
+import { Button, Card, PageHeader, useConfirm, useOrgSettings, useToast } from "@/components";
 
 interface EmailTemplate {
   id: string;
@@ -37,6 +37,7 @@ const TYPE_OPTIONS = [
 ];
 
 export default function TemplatesPage() {
+  const { formatDate } = useOrgSettings();
   const toast = useToast();
   const confirm = useConfirm();
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
@@ -111,17 +112,11 @@ export default function TemplatesPage() {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
   const getTypeBadgeColor = (type: string) => {
-    if (type.includes("APPROVED")) return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
-    if (type.includes("REJECTED")) return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+    if (type.includes("APPROVED"))
+      return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+    if (type.includes("REJECTED"))
+      return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
     if (type.includes("PENDING") || type.includes("SUBMITTED"))
       return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
     return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
@@ -143,17 +138,17 @@ export default function TemplatesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Email Templates</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Manage email templates for notifications
-          </p>
-        </div>
-        <Link href="/dashboard/notifications/templates/new">
-          <Button>Create Template</Button>
-        </Link>
-      </div>
+      <PageHeader
+        title="Email Templates"
+        subtitle="Manage email templates for notifications"
+        actions={
+          <>
+            <Link href="/dashboard/notifications/templates/new">
+              <Button>Create Template</Button>
+            </Link>
+          </>
+        }
+      />
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">

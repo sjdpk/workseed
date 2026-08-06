@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  prisma,
-  hashPassword,
-  getCurrentUser,
-  isHROrAbove,
-  createAuditLog,
-  getRequestMeta,
-} from "@/lib";
+import { prisma, hashPassword, getCurrentUser, createAuditLog, getRequestMeta } from "@/lib";
+import { getCurrentFiscalYear } from "@/lib/fiscal-year-server";
+import { can } from "@/lib/rbac";
 
 interface UserImportRow {
   email: string;
@@ -44,7 +39,7 @@ async function allocateDefaultLeaves(userId: string) {
     where: { isActive: true },
   });
 
-  const currentYear = new Date().getFullYear();
+  const { year: currentYear } = await getCurrentFiscalYear();
 
   for (const leaveType of leaveTypes) {
     await prisma.leaveAllocation.create({
@@ -136,7 +131,7 @@ const VALID_EMPLOYMENT_TYPES = ["FULL_TIME", "PART_TIME", "CONTRACT", "INTERN"];
 export async function POST(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
-    if (!currentUser || !isHROrAbove(currentUser.role)) {
+    if (!currentUser || !(await can(currentUser, "USER_CREATE"))) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 

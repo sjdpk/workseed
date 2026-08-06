@@ -27,10 +27,7 @@ const ruleUpdateSchema = z.object({
 });
 
 // GET /api/notifications/rules/[id] - Get a rule by ID
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -59,10 +56,7 @@ export async function GET(
 }
 
 // PUT /api/notifications/rules/[id] - Update a rule
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getCurrentUser();
     if (!user) {

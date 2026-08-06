@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
+import { describeFiscalYear } from "@/lib/fiscal-year";
+import { getCurrentFiscalYear, getFiscalYearConfig } from "@/lib/fiscal-year-server";
 import { prisma } from "@/lib/prisma";
+import { dateOnlyToUtcDate, utcDateToDateOnly } from "@/lib/time";
+import { getOrgTimeZone } from "@/lib/time-server";
 
 // GET - Fetch holidays
 export async function GET(request: NextRequest) {
@@ -15,11 +19,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Invalid token" }, { status: 401 });
     }
 
+    /* Holidays are listed by the company's leave year — the same year every other
+       screen counts in — so `?year=2026` means 2026/27 when the company does not
+       start on 1 January. */
     const { searchParams } = new URL(request.url);
-    const year = searchParams.get("year") || new Date().getFullYear().toString();
-
-    const startDate = new Date(`${year}-01-01`);
-    const endDate = new Date(`${year}-12-31`);
+    const requested = searchParams.get("year");
+    const [config, timeZone] = await Promise.all([getFiscalYearConfig(), getOrgTimeZone()]);
+    const fiscalYear = requested
+      ? describeFiscalYear(parseInt(requested, 10), config, timeZone)
+      : await getCurrentFiscalYear();
+    const startDate = dateOnlyToUtcDate(utcDateToDateOnly(fiscalYear.start));
+    const endDate = dateOnlyToUtcDate(utcDateToDateOnly(fiscalYear.end));
 
     const holidays = await prisma.holiday.findMany({
       where: {
@@ -76,7 +86,7 @@ export async function POST(request: NextRequest) {
     const holiday = await prisma.holiday.create({
       data: {
         name,
-        date: new Date(date),
+        date: dateOnlyToUtcDate(date),
         type: type || "PUBLIC",
         description,
       },

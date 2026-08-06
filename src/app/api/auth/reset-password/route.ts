@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, hashPassword, createAuditLog, getRequestMeta } from "@/lib";
 import { logger } from "@/lib/logger";
+import { consumeResetToken } from "@/lib/password-reset";
 import { z } from "@/lib/validation";
 
 const resetPasswordSchema = z
   .object({
     token: z.string().min(1, "Token is required"),
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -21,32 +20,16 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { token, password } = resetPasswordSchema.parse(body);
 
-    // Find valid token
-    const resetToken = await prisma.passwordResetToken.findUnique({
-      where: { token },
-      include: { user: { select: { id: true, email: true } } },
-    });
-
-    if (!resetToken) {
-      return NextResponse.json(
-        { success: false, error: "Invalid or expired reset link" },
-        { status: 400 }
-      );
+    const checked = await consumeResetToken(token);
+    if (!checked.ok) {
+      const message = {
+        used: "This link has already been used. Ask for a new one.",
+        expired: "This link has expired. Ask for a new one.",
+        unknown: "Invalid or expired link",
+      }[checked.reason];
+      return NextResponse.json({ success: false, error: message }, { status: 400 });
     }
-
-    if (resetToken.usedAt) {
-      return NextResponse.json(
-        { success: false, error: "This reset link has already been used" },
-        { status: 400 }
-      );
-    }
-
-    if (resetToken.expiresAt < new Date()) {
-      return NextResponse.json(
-        { success: false, error: "This reset link has expired" },
-        { status: 400 }
-      );
-    }
+    const resetToken = checked.row;
 
     // Hash new password
     const hashedPassword = await hashPassword(password);
@@ -92,15 +75,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { success: false, error: error.issues[0].message },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: error.issues[0].message }, { status: 400 });
     }
     logger.error("Reset password error", { error, endpoint: "POST /api/auth/reset-password" });
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

@@ -61,10 +61,7 @@ export function baseTemplate(content: string): string {
  * Replace template variables in a string
  * Supports {{variableName}} syntax
  */
-export function replaceVariables(
-  template: string,
-  variables: TemplateVariables
-): string {
+export function replaceVariables(template: string, variables: TemplateVariables): string {
   return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
     const value = variables[key];
     if (value === undefined || value === null) {
@@ -113,9 +110,7 @@ export function validateTemplate(template: string): {
 /**
  * Get template by notification type
  */
-export async function getTemplate(
-  type: NotificationType
-): Promise<EmailTemplate | null> {
+export async function getTemplate(type: NotificationType): Promise<EmailTemplate | null> {
   try {
     const template = await prisma.emailTemplate.findFirst({
       where: {
@@ -138,9 +133,7 @@ export async function getTemplate(
 /**
  * Get template by ID
  */
-export async function getTemplateById(
-  id: string
-): Promise<EmailTemplate | null> {
+export async function getTemplateById(id: string): Promise<EmailTemplate | null> {
   try {
     return await prisma.emailTemplate.findUnique({
       where: { id },

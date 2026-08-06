@@ -2,10 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
-import { Button, useToast } from "@/components";
+import { Button, PageHeader, useOrgSettings, useToast } from "@/components";
 import type { LeaveType, LeaveAllocation } from "@/types";
 
 export default function ApplyLeavePage() {
+  const { formatDate } = useOrgSettings();
   const router = useRouter();
   const toast = useToast();
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
@@ -143,17 +144,17 @@ export default function ApplyLeavePage() {
   return (
     <div className="mx-auto max-w-xl">
       {/* Header */}
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Apply for Leave</h1>
-          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-            Submit a new leave request
-          </p>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => router.push("/dashboard/leaves")}>
-          Cancel
-        </Button>
-      </div>
+      <PageHeader
+        title="Apply for Leave"
+        subtitle="Submit a new leave request"
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={() => router.push("/dashboard/leaves")}>
+              Cancel
+            </Button>
+          </>
+        }
+      />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Leave Type */}
@@ -380,19 +381,9 @@ export default function ApplyLeavePage() {
                 </span>
                 <span className="text-gray-400">·</span>
                 <span className="text-sm text-gray-600 dark:text-gray-400">
-                  {new Date(formData.startDate).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                  })}
+                  {formatDate(formData.startDate)}
                   {formData.startDate !== formData.endDate && (
-                    <>
-                      {" "}
-                      -{" "}
-                      {new Date(formData.endDate).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </>
+                    <> - {formatDate(formData.endDate)}</>
                   )}
                 </span>
                 <span className="text-gray-400">·</span>

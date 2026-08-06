@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, getCurrentUser } from "@/lib";
 import { readDevice } from "@/lib/attendance/readers";
+import { dateOnlyToUtcDate, toDateOnly, utcDateToDateOnly } from "@/lib/time";
+import { getOrgTimeZone } from "@/lib/time-server";
 import { logger } from "@/lib/logger";
+import { can } from "@/lib/rbac";
 
-const ALLOWED_ROLES = ["ADMIN", "HR"];
 const DEFAULT_LIMIT = 200;
 const MAX_LIMIT = 1000;
 
@@ -20,7 +22,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!currentUser) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
-    if (!ALLOWED_ROLES.includes(currentUser.role)) {
+    if (!(await can(currentUser, "ATTENDANCE_DEVICE_MANAGE"))) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
@@ -48,7 +50,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const limitParam = Number(new URL(request.url).searchParams.get("limit"));
     const limit =
-      Number.isInteger(limitParam) && limitParam > 0 ? Math.min(limitParam, MAX_LIMIT) : DEFAULT_LIMIT;
+      Number.isInteger(limitParam) && limitParam > 0
+        ? Math.min(limitParam, MAX_LIMIT)
+        : DEFAULT_LIMIT;
 
     let punches;
     try {
@@ -75,7 +79,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const mapped = pins.length
       ? await prisma.user.findMany({
           where: { deviceUserId: { in: pins } },
-          select: { id: true, deviceUserId: true, firstName: true, lastName: true, employeeId: true },
+          select: {
+            id: true,
+            deviceUserId: true,
+            firstName: true,
+            lastName: true,
+            employeeId: true,
+          },
         })
       : [];
     const byPin = new Map(mapped.map((m) => [m.deviceUserId, m]));
@@ -84,24 +94,23 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // "synced" when its matched employee has an attendance row for the punch's
     // day (attendance is unique per [userId, date]). Fetch all relevant rows in
     // one query, keyed by `${userId}|${YYYY-MM-DD}`.
-    const dayKey = (userId: string, time: Date) =>
-      `${userId}|${time.toISOString().slice(0, 10)}`;
+    /* Must agree with applyPunches(): the day is the company-timezone day, not
+       the UTC day — otherwise a late-evening punch looks unsynced. */
+    const timeZone = await getOrgTimeZone();
+    const punchKey = (userId: string, time: Date) => `${userId}|${toDateOnly(time, timeZone)}`;
+    const rowKey = (userId: string, date: Date) => `${userId}|${utcDateToDateOnly(date)}`;
 
     const matchedUserIds = [...new Set(mapped.map((m) => m.id))];
     const syncedKeys = new Set<string>();
     if (matchedUserIds.length) {
-      const times = recent
-        .filter((p) => byPin.has(p.pin))
-        .map((p) => p.time.getTime());
-      const minDate = new Date(Math.min(...times));
-      const maxDate = new Date(Math.max(...times));
-      minDate.setHours(0, 0, 0, 0);
-      maxDate.setHours(23, 59, 59, 999);
+      const times = recent.filter((p) => byPin.has(p.pin)).map((p) => p.time.getTime());
+      const minDate = dateOnlyToUtcDate(toDateOnly(new Date(Math.min(...times)), timeZone));
+      const maxDate = dateOnlyToUtcDate(toDateOnly(new Date(Math.max(...times)), timeZone));
       const existing = await prisma.attendance.findMany({
         where: { userId: { in: matchedUserIds }, date: { gte: minDate, lte: maxDate } },
         select: { userId: true, date: true },
       });
-      for (const a of existing) syncedKeys.add(dayKey(a.userId, a.date));
+      for (const a of existing) syncedKeys.add(rowKey(a.userId, a.date));
     }
 
     const logs = recent.map((p) => {
@@ -115,7 +124,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           : null,
         // true = already in attendance, false = mapped but not yet imported,
         // null = no matching employee (can't be synced until the PIN is linked).
-        synced: emp ? syncedKeys.has(dayKey(emp.id, p.time)) : null,
+        synced: emp ? syncedKeys.has(punchKey(emp.id, p.time)) : null,
       };
     });
 

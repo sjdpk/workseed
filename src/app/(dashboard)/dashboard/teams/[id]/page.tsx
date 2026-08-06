@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, use } from "react";
-import { Button, Card, Input, Select, useToast } from "@/components";
+import { Button, Card, Input, PageHeader, Select, useToast } from "@/components";
 
 interface Department {
   id: string;
@@ -118,17 +118,17 @@ export default function EditTeamPage({ params }: { params: Promise<{ id: string 
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Edit Team</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Update team details and assign team lead
-          </p>
-        </div>
-        <Button variant="outline" onClick={() => router.push("/dashboard/teams")}>
-          Back
-        </Button>
-      </div>
+      <PageHeader
+        title="Edit Team"
+        subtitle="Update team details and assign team lead"
+        actions={
+          <>
+            <Button variant="outline" onClick={() => router.push("/dashboard/teams")}>
+              Back
+            </Button>
+          </>
+        }
+      />
 
       <form onSubmit={handleSubmit}>
         <Card className="space-y-4">

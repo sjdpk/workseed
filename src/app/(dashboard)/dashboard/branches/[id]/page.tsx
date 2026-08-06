@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, use } from "react";
-import { Button, Card, Input, useToast, useConfirm } from "@/components";
+import { Button, Card, Input, PageHeader, useConfirm, useToast } from "@/components";
 
 const ALLOWED_ROLES = ["ADMIN", "HR"];
 
@@ -117,15 +117,17 @@ export default function EditBranchPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Edit Branch</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Update branch details</p>
-        </div>
-        <Button variant="outline" onClick={() => router.push("/dashboard/branches")}>
-          Back
-        </Button>
-      </div>
+      <PageHeader
+        title="Edit Branch"
+        subtitle="Update branch details"
+        actions={
+          <>
+            <Button variant="outline" onClick={() => router.push("/dashboard/branches")}>
+              Back
+            </Button>
+          </>
+        }
+      />
 
       <form onSubmit={handleSubmit}>
         <Card className="space-y-4">

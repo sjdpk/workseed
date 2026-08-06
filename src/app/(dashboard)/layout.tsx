@@ -2,8 +2,17 @@
 
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { ThemeToggle, Button, ToastProvider, ConfirmProvider } from "@/components";
+import { useEffect, useState, type ComponentType, type ReactNode } from "react";
+import {
+  Button,
+  ConfirmProvider,
+  NavSearch,
+  OrgSettingsProvider,
+  ThemeToggle,
+  ToastProvider,
+  useOrgSettings,
+} from "@/components";
+import type { NavSearchItem } from "@/components";
 import type { SessionUser } from "@/types";
 
 interface OrgSettings {
@@ -37,12 +46,17 @@ interface OrgSettings {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { formatDate } = useOrgSettings();
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<SessionUser | null>(null);
   const [orgSettings, setOrgSettings] = useState<OrgSettings | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [navSearchOpen, setNavSearchOpen] = useState(false);
+  /* Starts as the PC modifier so the server and the first client render agree; a Mac
+     is corrected after mount. Guessing during render would be a hydration mismatch. */
+  const [modKey, setModKey] = useState("Ctrl");
   const [showNotifications, setShowNotifications] = useState(false);
 
   // Refetch notifications when sidebar opens
@@ -53,7 +67,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [notificationData, setNotificationData] = useState<{
     pendingLeaves: { id: string; user: string; type: string; days: number }[];
     upcomingBirthdays: { id: string; name: string; department: string; daysUntil: number }[];
-    upcomingAnniversaries: { id: string; name: string; department: string; years: number; daysUntil: number }[];
+    upcomingAnniversaries: {
+      id: string;
+      name: string;
+      department: string;
+      years: number;
+      daysUntil: number;
+    }[];
     recentHires: { id: string; name: string; department: string; joiningDate: string | null }[];
   }>({
     pendingLeaves: [],
@@ -168,32 +188,53 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [user, pathname]);
 
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      if (/Mac|iPhone|iPad/.test(navigator.userAgent)) setModKey("⌘");
+    });
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  // mod+K searches pages, mod+B collapses or expands the sidebar
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!e.metaKey && !e.ctrlKey) return;
+      const key = e.key.toLowerCase();
+      if (key === "k") {
+        e.preventDefault();
+        setNavSearchOpen((open) => !open);
+      } else if (key === "b") {
+        e.preventDefault();
+        setCollapsed((value) => !value);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
   };
 
-  // Check role access from organization settings
+  /* The sidebar shows exactly what the API would allow: `/api/auth/me` returns the
+     role's permission list, so a custom role gets the right menu without anyone
+     hardcoding its name here. */
+  const may = (permission: string) => !!user?.permissions?.includes(permission);
+
   const hasRoleAccess = (feature: string) => {
-    if (!user) return false;
-
-    // Default permissions if not configured
-    const defaults: Record<string, string[]> = {
-      users: ["ADMIN", "HR"],
-      departments: ["ADMIN", "HR"],
-      teams: ["ADMIN", "HR"],
-      branches: ["ADMIN", "HR"],
-      leaveTypes: ["ADMIN", "HR"],
-      leaveRequests: ["ADMIN", "HR", "MANAGER", "TEAM_LEAD"],
-      auditLogs: ["ADMIN"],
-      reports: ["ADMIN", "HR", "MANAGER"],
+    const byFeature: Record<string, string> = {
+      users: "USER_VIEW_ALL",
+      departments: "DEPARTMENT_VIEW",
+      teams: "TEAM_VIEW",
+      branches: "BRANCH_VIEW",
+      leaveTypes: "LEAVE_TYPE_VIEW",
+      leaveRequests: "LEAVE_REQUEST_VIEW_TEAM",
+      auditLogs: "AUDIT_LOG_VIEW",
+      reports: "REPORT_VIEW",
     };
-
-    const roleAccess = orgSettings?.permissions?.roleAccess;
-    // Use configured roles if available, otherwise use defaults
-    const allowedRoles =
-      roleAccess?.[feature as keyof typeof roleAccess] ?? defaults[feature] ?? [];
-    return allowedRoles.includes(user.role);
+    const permission = byFeature[feature];
+    return permission ? may(permission) : false;
   };
 
   if (!user) {
@@ -204,8 +245,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  // Build navigation based on permissions
-  const isHROrAbove = ["ADMIN", "HR"].includes(user?.role || "");
+  /* "manages other people" rather than "is called HR" — a custom role with these
+     grants gets the management sidebar. */
+  const isHROrAbove = may("USER_EDIT") || may("USER_VIEW_ALL");
 
   // Check if online attendance is enabled for current user
   const hasOnlineAttendance = () => {
@@ -342,8 +384,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // NOTIFICATIONS - Email notifications (HR only)
   const notificationsNavigation = [
     { name: "Overview", href: "/dashboard/notifications", icon: EmailIcon, show: isHROrAbove },
-    { name: "Templates", href: "/dashboard/notifications/templates", icon: FileIcon, show: isHROrAbove },
-    { name: "Rules", href: "/dashboard/notifications/rules", icon: SettingsIcon, show: isHROrAbove },
+    {
+      name: "Templates",
+      href: "/dashboard/notifications/templates",
+      icon: FileIcon,
+      show: isHROrAbove,
+    },
+    {
+      name: "Rules",
+      href: "/dashboard/notifications/rules",
+      icon: SettingsIcon,
+      show: isHROrAbove,
+    },
     { name: "Logs", href: "/dashboard/notifications/logs", icon: LogIcon, show: isHROrAbove },
   ].filter((item) => item.show);
 
@@ -353,13 +405,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       name: "Organization",
       href: "/dashboard/settings/organization",
       icon: BuildingIcon,
-      show: user?.role === "ADMIN",
+      show: may("SETTINGS_EDIT"),
+    },
+    {
+      name: "Home Page",
+      href: "/dashboard/settings/homepage",
+      icon: BuildingIcon,
+      show: may("SETTINGS_EDIT"),
+    },
+    {
+      name: "Roles",
+      href: "/dashboard/settings/roles",
+      icon: ShieldIcon,
+      show: may("SETTINGS_EDIT"),
     },
     {
       name: "Permissions",
       href: "/dashboard/settings/permissions",
       icon: ShieldIcon,
-      show: user?.role === "ADMIN",
+      show: may("SETTINGS_EDIT"),
     },
     {
       name: "Holidays",
@@ -385,7 +449,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       icon: CalendarIcon,
       show: hasRoleAccess("leaveTypes"),
     },
-        { name: "Import Data", href: "/dashboard/import", icon: UploadIcon, show: isHROrAbove },
+    { name: "Import Data", href: "/dashboard/import", icon: UploadIcon, show: isHROrAbove },
     {
       name: "Audit Logs",
       href: "/dashboard/settings/audit-logs",
@@ -394,587 +458,723 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     },
   ].filter((item) => item.show);
 
+  /* Built from the same arrays the sidebar renders, so search can never offer a page
+     this user's role has already had hidden. */
+  const inSection = (
+    section: string,
+    items: { name: string; href: string; icon: ComponentType<{ className?: string }> }[]
+  ): NavSearchItem[] => items.map((i) => ({ name: i.name, href: i.href, icon: i.icon, section }));
+
+  const searchableNav: NavSearchItem[] = [
+    ...inSection("Main", mainNavigation),
+    ...inSection("Self service", selfServiceNavigation),
+    ...inSection("Company", companyNavigation),
+    ...inSection("Organization", orgNavigation),
+    ...inSection("Leave", leaveNavigation),
+    ...inSection("Manage", manageNavigation),
+    ...inSection("Notifications", notificationsNavigation),
+    ...inSection("Settings", settingsNavigation),
+  ];
+
   return (
-    <ToastProvider>
-      <ConfirmProvider>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-
-        <aside
-          className={`fixed inset-y-0 left-0 z-50 transform bg-white border-r border-gray-200 transition-all duration-200 dark:bg-gray-900 dark:border-gray-800 lg:translate-x-0 ${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          } ${collapsed ? "lg:w-16" : "lg:w-60"} w-60`}
-        >
-          <div
-            className={`flex h-12 items-center border-b border-gray-200 dark:border-gray-800 ${collapsed ? "justify-center px-2" : "justify-between px-3"}`}
-          >
-            <Link
-              href="/dashboard"
-              className={`flex items-center min-w-0 ${collapsed ? "justify-center" : "gap-2.5"}`}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic URL from org settings */}
-              <img
-                src={orgSettings?.logoUrl || "/logo.png"}
-                alt={orgSettings?.name || "Workseed"}
-                className="h-7 w-7 rounded object-contain flex-shrink-0"
-              />
-              {!collapsed && (
-                <div className="min-w-0">
-                  <span className="text-sm font-semibold text-gray-900 dark:text-white truncate block">
-                    {orgSettings?.name || "Workseed"}
-                  </span>
-                </div>
-              )}
-            </Link>
-            <button className="lg:hidden" onClick={() => setSidebarOpen(false)}>
-              <svg
-                className="h-4 w-4 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-
-          <div className="flex flex-col h-[calc(100vh-3rem)]">
-            <nav
-              className={`flex-1 py-3 space-y-4 overflow-y-auto scrollbar-hide ${collapsed ? "px-2" : "px-2"}`}
-            >
-              {/* MAIN - Core daily work */}
-              <div>
-                {!collapsed && (
-                  <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
-                    Main
-                  </p>
-                )}
-                <div className="space-y-0.5">
-                  {mainNavigation.map((item) => {
-                    const isActive =
-                      pathname === item.href ||
-                      (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
-                    return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        onMouseEnter={collapsed ? handleTooltipPosition : undefined}
-                        className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
-                          isActive
-                            ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
-                            : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
-                        }`}
-                      >
-                        <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
-                        {!collapsed && <span className="text-[13px]">{item.name}</span>}
-                        {collapsed && <span className="sidebar-tooltip">{item.name}</span>}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* ORGANIZATION - Structure (HR only) */}
-              {orgNavigation.length > 0 && (
-                <div>
-                  {!collapsed && (
-                    <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
-                      Organization
-                    </p>
-                  )}
-                  <div className="space-y-0.5">
-                    {orgNavigation.map((item) => {
-                      const isActive =
-                        pathname === item.href || pathname.startsWith(item.href + "/");
-                      return (
-                        <Link
-                          key={item.name}
-                          href={item.href}
-                          onMouseEnter={collapsed ? handleTooltipPosition : undefined}
-                          className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
-                            isActive
-                              ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
-                              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
-                          }`}
-                        >
-                          <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
-                          {!collapsed && <span className="text-[13px]">{item.name}</span>}
-                          {collapsed && <span className="sidebar-tooltip">{item.name}</span>}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* SELF SERVICE - Employee only */}
-              {selfServiceNavigation.length > 0 && (
-                <div>
-                  {!collapsed && (
-                    <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
-                      Self Service
-                    </p>
-                  )}
-                  <div className="space-y-0.5">
-                    {selfServiceNavigation.map((item) => {
-                      const isActive =
-                        pathname === item.href || pathname.startsWith(item.href + "/");
-                      return (
-                        <Link
-                          key={item.name}
-                          href={item.href}
-                          onMouseEnter={collapsed ? handleTooltipPosition : undefined}
-                          className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
-                            isActive
-                              ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
-                              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
-                          }`}
-                        >
-                          <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
-                          {!collapsed && <span className="text-[13px]">{item.name}</span>}
-                          {collapsed && <span className="sidebar-tooltip">{item.name}</span>}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* LEAVE */}
-              <div>
-                {!collapsed && (
-                  <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
-                    Leave
-                  </p>
-                )}
-                <div className="space-y-0.5">
-                  {leaveNavigation.map((item) => {
-                    const isActive = pathname === item.href;
-                    return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        onMouseEnter={collapsed ? handleTooltipPosition : undefined}
-                        className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
-                          isActive
-                            ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
-                            : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
-                        }`}
-                      >
-                        <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
-                        {!collapsed && <span className="text-[13px]">{item.name}</span>}
-                        {collapsed && <span className="sidebar-tooltip">{item.name}</span>}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* COMPANY - Employee only */}
-              {companyNavigation.length > 0 && (
-                <div>
-                  {!collapsed && (
-                    <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
-                      Company
-                    </p>
-                  )}
-                  <div className="space-y-0.5">
-                    {companyNavigation.map((item) => {
-                      const isActive =
-                        pathname === item.href || pathname.startsWith(item.href + "/");
-                      return (
-                        <Link
-                          key={item.name}
-                          href={item.href}
-                          onMouseEnter={collapsed ? handleTooltipPosition : undefined}
-                          className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
-                            isActive
-                              ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
-                              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
-                          }`}
-                        >
-                          <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
-                          {!collapsed && <span className="text-[13px]">{item.name}</span>}
-                          {collapsed && <span className="sidebar-tooltip">{item.name}</span>}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* MANAGE - Less frequent (HR only) */}
-              {manageNavigation.length > 0 && (
-                <div>
-                  {!collapsed && (
-                    <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
-                      Manage
-                    </p>
-                  )}
-                  <div className="space-y-0.5">
-                    {manageNavigation.map((item) => {
-                      const isActive =
-                        pathname === item.href || pathname.startsWith(item.href + "/");
-                      return (
-                        <Link
-                          key={item.name}
-                          href={item.href}
-                          onMouseEnter={collapsed ? handleTooltipPosition : undefined}
-                          className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
-                            isActive
-                              ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
-                              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
-                          }`}
-                        >
-                          <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
-                          {!collapsed && <span className="text-[13px]">{item.name}</span>}
-                          {collapsed && <span className="sidebar-tooltip">{item.name}</span>}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* NOTIFICATIONS */}
-              {notificationsNavigation.length > 0 && (
-                <div>
-                  {!collapsed && (
-                    <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
-                      Notifications
-                    </p>
-                  )}
-                  <div className="space-y-0.5">
-                    {notificationsNavigation.map((item) => {
-                      const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-                      return (
-                        <Link
-                          key={item.name}
-                          href={item.href}
-                          onMouseEnter={collapsed ? handleTooltipPosition : undefined}
-                          className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
-                            isActive
-                              ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
-                              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
-                          }`}
-                        >
-                          <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
-                          {!collapsed && <span className="text-[13px]">{item.name}</span>}
-                          {collapsed && <span className="sidebar-tooltip">{item.name}</span>}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* SETTINGS */}
-              {settingsNavigation.length > 0 && (
-                <div>
-                  {!collapsed && (
-                    <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
-                      Settings
-                    </p>
-                  )}
-                  <div className="space-y-0.5">
-                    {settingsNavigation.map((item) => {
-                      const isActive = pathname.startsWith(item.href);
-                      return (
-                        <Link
-                          key={item.name}
-                          href={item.href}
-                          onMouseEnter={collapsed ? handleTooltipPosition : undefined}
-                          className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
-                            isActive
-                              ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
-                              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
-                          }`}
-                        >
-                          <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
-                          {!collapsed && <span className="text-[13px]">{item.name}</span>}
-                          {collapsed && <span className="sidebar-tooltip">{item.name}</span>}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </nav>
-
-            <div className={`${collapsed ? "p-2" : "p-3"}`}>
-              {collapsed ? (
-                <div className="flex flex-col items-center gap-2">
-                  <div
-                    className="nav-item flex h-8 w-8 items-center justify-center rounded-md bg-gray-100 text-[11px] font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300 cursor-default"
-                    onMouseEnter={handleTooltipPosition}
-                  >
-                    {user.firstName[0]}
-                    {user.lastName[0]}
-                    <span className="sidebar-tooltip">
-                      {user.firstName} {user.lastName}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setCollapsed(false)}
-                    onMouseEnter={handleTooltipPosition}
-                    className="nav-item flex h-8 w-8 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-                  >
-                    <SidebarExpandIcon className="h-[18px] w-[18px]" />
-                    <span className="sidebar-tooltip">Expand</span>
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-md bg-gray-100 text-[11px] font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300 flex-shrink-0">
-                      {user.firstName[0]}
-                      {user.lastName[0]}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-[13px] font-medium text-gray-900 dark:text-white">
-                        {user.firstName} {user.lastName}
-                      </p>
-                      <p className="truncate text-[11px] text-gray-500 dark:text-gray-400">
-                        {user.role}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setCollapsed(true)}
-                    className="hidden lg:flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-                  >
-                    <SidebarCollapseIcon className="h-[18px] w-[18px]" />
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </aside>
-
-        <div className={`transition-all duration-200 ${collapsed ? "lg:pl-16" : "lg:pl-60"}`}>
-          <header className="sticky top-0 z-30 flex h-12 items-center justify-between border-b border-gray-200 bg-white px-4 dark:border-gray-800 dark:bg-gray-900 lg:px-6">
-            <button className="lg:hidden" onClick={() => setSidebarOpen(true)}>
-              <svg
-                className="h-5 w-5 text-gray-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
-            </button>
-
-            <div className="flex items-center gap-3 ml-auto">
-              <button
-                onClick={openNotifications}
-                className="relative flex h-9 w-9 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-              >
-                <BellIcon className="h-5 w-5" />
-                {notificationCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
-                    {notificationCount > 99 ? "99+" : notificationCount}
-                  </span>
-                )}
-              </button>
-              <ThemeToggle />
-              <Button variant="outline" size="sm" onClick={handleLogout}>
-                Logout
-              </Button>
-            </div>
-          </header>
-
-          <main className="p-4 lg:p-6">{children}</main>
-        </div>
-
-        {/* Notifications Sidebar */}
-        {showNotifications && (
-          <div className="fixed inset-0 z-50 overflow-hidden">
-            <div
-              className="absolute inset-0 bg-black/20"
-              onClick={() => setShowNotifications(false)}
+    <OrgSettingsProvider>
+      <ToastProvider>
+        <ConfirmProvider>
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+            <NavSearch
+              items={searchableNav}
+              open={navSearchOpen}
+              onClose={() => setNavSearchOpen(false)}
             />
-            <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl dark:bg-gray-900">
-              <div className="flex h-full flex-col">
-                <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-800">
-                  <div className="flex items-center gap-2">
-                    <BellIcon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                    <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Notifications</h2>
+            {sidebarOpen && (
+              <div
+                className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+                onClick={() => setSidebarOpen(false)}
+              />
+            )}
+
+            <aside
+              className={`fixed inset-y-0 left-0 z-50 transform bg-white border-r border-gray-200 transition-all duration-200 dark:bg-gray-900 dark:border-gray-800 lg:translate-x-0 ${
+                sidebarOpen ? "translate-x-0" : "-translate-x-full"
+              } ${collapsed ? "lg:w-16" : "lg:w-60"} w-60`}
+            >
+              <div
+                className={`flex h-12 items-center border-b border-gray-200 dark:border-gray-800 ${collapsed ? "justify-center px-2" : "justify-between px-3"}`}
+              >
+                <Link
+                  href="/dashboard"
+                  className={`flex items-center min-w-0 ${collapsed ? "justify-center" : "gap-2.5"}`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic URL from org settings */}
+                  <img
+                    src={orgSettings?.logoUrl || "/logo.svg"}
+                    alt={orgSettings?.name || "Workseed"}
+                    className="h-7 w-7 rounded object-contain flex-shrink-0"
+                  />
+                  {!collapsed && (
+                    <div className="min-w-0">
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white truncate block">
+                        {orgSettings?.name || "Workseed"}
+                      </span>
+                    </div>
+                  )}
+                </Link>
+
+                {/* company name on the left, panel toggle and search on the right */}
+                {!collapsed && (
+                  <div className="flex items-center gap-0.5">
+                    <HeaderTooltip label="Collapse sidebar" shortcut={`${modKey} B`}>
+                      <button
+                        type="button"
+                        onClick={() => setCollapsed(true)}
+                        aria-label={`Collapse sidebar (${modKey} B)`}
+                        className="hidden h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 lg:flex dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                      >
+                        <SidebarCollapseIcon className="h-[18px] w-[18px]" />
+                      </button>
+                    </HeaderTooltip>
+                    <HeaderTooltip label="Search pages" shortcut={`${modKey} K`}>
+                      <button
+                        type="button"
+                        onClick={() => setNavSearchOpen(true)}
+                        aria-label={`Search pages (${modKey} K)`}
+                        className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                      >
+                        <NavSearchIcon className="h-[18px] w-[18px]" />
+                      </button>
+                    </HeaderTooltip>
+                    <button
+                      className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 lg:hidden dark:hover:bg-gray-800"
+                      onClick={() => setSidebarOpen(false)}
+                      aria-label="Close menu"
+                    >
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.5}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col h-[calc(100vh-3rem)]">
+                <nav
+                  className={`flex-1 py-3 space-y-4 overflow-y-auto scrollbar-hide ${collapsed ? "px-2" : "px-2"}`}
+                >
+                  {/* MAIN - Core daily work */}
+                  <div>
+                    {!collapsed && (
+                      <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
+                        Main
+                      </p>
+                    )}
+                    <div className="space-y-0.5">
+                      {mainNavigation.map((item) => {
+                        const isActive =
+                          pathname === item.href ||
+                          (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
+                        return (
+                          <Link
+                            key={item.name}
+                            href={item.href}
+                            onMouseEnter={collapsed ? handleTooltipPosition : undefined}
+                            className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
+                              isActive
+                                ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
+                                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+                            }`}
+                          >
+                            <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+                            {!collapsed && <span className="text-[13px]">{item.name}</span>}
+                            {collapsed && <span className="sidebar-tooltip">{item.name}</span>}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* ORGANIZATION - Structure (HR only) */}
+                  {orgNavigation.length > 0 && (
+                    <div>
+                      {!collapsed && (
+                        <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
+                          Organization
+                        </p>
+                      )}
+                      <div className="space-y-0.5">
+                        {orgNavigation.map((item) => {
+                          const isActive =
+                            pathname === item.href || pathname.startsWith(item.href + "/");
+                          return (
+                            <Link
+                              key={item.name}
+                              href={item.href}
+                              onMouseEnter={collapsed ? handleTooltipPosition : undefined}
+                              className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
+                                isActive
+                                  ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
+                                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+                              }`}
+                            >
+                              <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+                              {!collapsed && <span className="text-[13px]">{item.name}</span>}
+                              {collapsed && <span className="sidebar-tooltip">{item.name}</span>}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SELF SERVICE - Employee only */}
+                  {selfServiceNavigation.length > 0 && (
+                    <div>
+                      {!collapsed && (
+                        <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
+                          Self Service
+                        </p>
+                      )}
+                      <div className="space-y-0.5">
+                        {selfServiceNavigation.map((item) => {
+                          const isActive =
+                            pathname === item.href || pathname.startsWith(item.href + "/");
+                          return (
+                            <Link
+                              key={item.name}
+                              href={item.href}
+                              onMouseEnter={collapsed ? handleTooltipPosition : undefined}
+                              className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
+                                isActive
+                                  ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
+                                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+                              }`}
+                            >
+                              <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+                              {!collapsed && <span className="text-[13px]">{item.name}</span>}
+                              {collapsed && <span className="sidebar-tooltip">{item.name}</span>}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* LEAVE */}
+                  <div>
+                    {!collapsed && (
+                      <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
+                        Leave
+                      </p>
+                    )}
+                    <div className="space-y-0.5">
+                      {leaveNavigation.map((item) => {
+                        const isActive = pathname === item.href;
+                        return (
+                          <Link
+                            key={item.name}
+                            href={item.href}
+                            onMouseEnter={collapsed ? handleTooltipPosition : undefined}
+                            className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
+                              isActive
+                                ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
+                                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+                            }`}
+                          >
+                            <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+                            {!collapsed && <span className="text-[13px]">{item.name}</span>}
+                            {collapsed && <span className="sidebar-tooltip">{item.name}</span>}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* COMPANY - Employee only */}
+                  {companyNavigation.length > 0 && (
+                    <div>
+                      {!collapsed && (
+                        <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
+                          Company
+                        </p>
+                      )}
+                      <div className="space-y-0.5">
+                        {companyNavigation.map((item) => {
+                          const isActive =
+                            pathname === item.href || pathname.startsWith(item.href + "/");
+                          return (
+                            <Link
+                              key={item.name}
+                              href={item.href}
+                              onMouseEnter={collapsed ? handleTooltipPosition : undefined}
+                              className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
+                                isActive
+                                  ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
+                                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+                              }`}
+                            >
+                              <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+                              {!collapsed && <span className="text-[13px]">{item.name}</span>}
+                              {collapsed && <span className="sidebar-tooltip">{item.name}</span>}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* MANAGE - Less frequent (HR only) */}
+                  {manageNavigation.length > 0 && (
+                    <div>
+                      {!collapsed && (
+                        <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
+                          Manage
+                        </p>
+                      )}
+                      <div className="space-y-0.5">
+                        {manageNavigation.map((item) => {
+                          const isActive =
+                            pathname === item.href || pathname.startsWith(item.href + "/");
+                          return (
+                            <Link
+                              key={item.name}
+                              href={item.href}
+                              onMouseEnter={collapsed ? handleTooltipPosition : undefined}
+                              className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
+                                isActive
+                                  ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
+                                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+                              }`}
+                            >
+                              <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+                              {!collapsed && <span className="text-[13px]">{item.name}</span>}
+                              {collapsed && <span className="sidebar-tooltip">{item.name}</span>}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* NOTIFICATIONS */}
+                  {notificationsNavigation.length > 0 && (
+                    <div>
+                      {!collapsed && (
+                        <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
+                          Notifications
+                        </p>
+                      )}
+                      <div className="space-y-0.5">
+                        {notificationsNavigation.map((item) => {
+                          const isActive =
+                            pathname === item.href || pathname.startsWith(item.href + "/");
+                          return (
+                            <Link
+                              key={item.name}
+                              href={item.href}
+                              onMouseEnter={collapsed ? handleTooltipPosition : undefined}
+                              className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
+                                isActive
+                                  ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
+                                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+                              }`}
+                            >
+                              <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+                              {!collapsed && <span className="text-[13px]">{item.name}</span>}
+                              {collapsed && <span className="sidebar-tooltip">{item.name}</span>}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SETTINGS */}
+                  {settingsNavigation.length > 0 && (
+                    <div>
+                      {!collapsed && (
+                        <p className="px-3 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
+                          Settings
+                        </p>
+                      )}
+                      <div className="space-y-0.5">
+                        {settingsNavigation.map((item) => {
+                          const isActive = pathname.startsWith(item.href);
+                          return (
+                            <Link
+                              key={item.name}
+                              href={item.href}
+                              onMouseEnter={collapsed ? handleTooltipPosition : undefined}
+                              className={`nav-item flex items-center rounded-md transition-colors ${collapsed ? "justify-center p-2" : "gap-3 px-3 py-1.5"} ${
+                                isActive
+                                  ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
+                                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+                              }`}
+                            >
+                              <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+                              {!collapsed && <span className="text-[13px]">{item.name}</span>}
+                              {collapsed && <span className="sidebar-tooltip">{item.name}</span>}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </nav>
+
+                <div className={`${collapsed ? "p-2" : "p-3"}`}>
+                  {collapsed ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <div
+                        className="nav-item flex h-8 w-8 items-center justify-center rounded-md bg-gray-100 text-[11px] font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300 cursor-default"
+                        onMouseEnter={handleTooltipPosition}
+                      >
+                        {user.firstName[0]}
+                        {user.lastName[0]}
+                        <span className="sidebar-tooltip">
+                          {user.firstName} {user.lastName}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => setNavSearchOpen(true)}
+                        onMouseEnter={handleTooltipPosition}
+                        aria-label="Search pages"
+                        className="nav-item flex h-8 w-8 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                      >
+                        <NavSearchIcon className="h-[18px] w-[18px]" />
+                        <span className="sidebar-tooltip">Search · {modKey} K</span>
+                      </button>
+                      <button
+                        onClick={() => setCollapsed(false)}
+                        onMouseEnter={handleTooltipPosition}
+                        aria-label="Expand sidebar"
+                        className="nav-item flex h-8 w-8 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                      >
+                        <SidebarExpandIcon className="h-[18px] w-[18px]" />
+                        <span className="sidebar-tooltip">Expand · {modKey} B</span>
+                      </button>
+                    </div>
+                  ) : (
+                    /* the collapse control now lives in the sidebar header, next to
+                       the company name — the footer is identity only */
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-gray-100 text-[11px] font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300 flex-shrink-0">
+                        {user.firstName[0]}
+                        {user.lastName[0]}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-[13px] font-medium text-gray-900 dark:text-white">
+                          {user.firstName} {user.lastName}
+                        </p>
+                        <p className="truncate text-[11px] text-gray-500 dark:text-gray-400">
+                          {user.role}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </aside>
+
+            <div className={`transition-all duration-200 ${collapsed ? "lg:pl-16" : "lg:pl-60"}`}>
+              <header className="sticky top-0 z-30 flex h-12 items-center justify-between border-b border-gray-200 bg-white px-4 dark:border-gray-800 dark:bg-gray-900 lg:px-6">
+                <button className="lg:hidden" onClick={() => setSidebarOpen(true)}>
+                  <svg
+                    className="h-5 w-5 text-gray-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M4 6h16M4 12h16M4 18h16"
+                    />
+                  </svg>
+                </button>
+
+                <div className="flex items-center gap-3 ml-auto">
+                  <button
+                    onClick={openNotifications}
+                    className="relative flex h-9 w-9 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                  >
+                    <BellIcon className="h-5 w-5" />
                     {notificationCount > 0 && (
-                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-medium text-white">
-                        {notificationCount}
+                      <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
+                        {notificationCount > 99 ? "99+" : notificationCount}
                       </span>
                     )}
-                  </div>
-                  <button
-                    onClick={() => setShowNotifications(false)}
-                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  >
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
                   </button>
+                  <ThemeToggle />
+                  <Button variant="outline" size="sm" onClick={handleLogout}>
+                    Logout
+                  </Button>
                 </div>
+              </header>
 
-                <div className="flex-1 overflow-y-auto">
-                  {/* Pending Leave Requests */}
-                  {notificationData.pendingLeaves.length > 0 && (
-                    <div className="border-b border-gray-100 dark:border-gray-800">
-                      <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-800/50">
-                        <ClockIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Pending Leaves</span>
-                        <span className="text-xs text-gray-400">({notificationData.pendingLeaves.length})</span>
+              <main className="p-4 lg:p-6">{children}</main>
+            </div>
+
+            {/* Notifications Sidebar */}
+            {showNotifications && (
+              <div className="fixed inset-0 z-50 overflow-hidden">
+                <div
+                  className="absolute inset-0 bg-black/20"
+                  onClick={() => setShowNotifications(false)}
+                />
+                <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl dark:bg-gray-900">
+                  <div className="flex h-full flex-col">
+                    <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-800">
+                      <div className="flex items-center gap-2">
+                        <BellIcon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+                          Notifications
+                        </h2>
+                        {notificationCount > 0 && (
+                          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-medium text-white">
+                            {notificationCount}
+                          </span>
+                        )}
                       </div>
-                      <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                        {notificationData.pendingLeaves.map((leave) => (
-                          <Link
-                            key={leave.id}
-                            href="/dashboard/leaves/requests"
-                            onClick={() => setShowNotifications(false)}
-                            className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-                          >
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-300">
-                              {leave.user.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{leave.user}</p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">{leave.type} · {leave.days}d</p>
-                            </div>
-                            <ChevronRightIcon className="h-4 w-4 text-gray-300 dark:text-gray-600" />
-                          </Link>
-                        ))}
-                      </div>
+                      <button
+                        onClick={() => setShowNotifications(false)}
+                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      >
+                        <svg
+                          className="h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
                     </div>
-                  )}
 
-                  {/* Upcoming Birthdays */}
-                  {notificationData.upcomingBirthdays.length > 0 && (
-                    <div className="border-b border-gray-100 dark:border-gray-800">
-                      <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-800/50">
-                        <CakeIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Birthdays</span>
-                        <span className="text-xs text-gray-400">({notificationData.upcomingBirthdays.length})</span>
-                      </div>
-                      <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                        {notificationData.upcomingBirthdays.map((b) => (
-                          <div key={b.id} className="flex items-center gap-3 px-4 py-3">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-300">
-                              {b.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{b.name}</p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">{b.department}</p>
-                            </div>
-                            <span className={`text-xs px-2 py-0.5 rounded ${
-                              b.daysUntil === 0
-                                ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
-                                : "text-gray-500 dark:text-gray-400"
-                            }`}>
-                              {b.daysUntil === 0 ? "Today" : b.daysUntil === 1 ? "Tomorrow" : `${b.daysUntil}d`}
+                    <div className="flex-1 overflow-y-auto">
+                      {/* Pending Leave Requests */}
+                      {notificationData.pendingLeaves.length > 0 && (
+                        <div className="border-b border-gray-100 dark:border-gray-800">
+                          <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-800/50">
+                            <ClockIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                              Pending Leaves
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              ({notificationData.pendingLeaves.length})
                             </span>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                          <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                            {notificationData.pendingLeaves.map((leave) => (
+                              <Link
+                                key={leave.id}
+                                href="/dashboard/leaves/requests"
+                                onClick={() => setShowNotifications(false)}
+                                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                              >
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-300">
+                                  {leave.user
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")
+                                    .slice(0, 2)}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                    {leave.user}
+                                  </p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    {leave.type} · {leave.days}d
+                                  </p>
+                                </div>
+                                <ChevronRightIcon className="h-4 w-4 text-gray-300 dark:text-gray-600" />
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
-                  {/* Work Anniversaries */}
-                  {notificationData.upcomingAnniversaries.length > 0 && (
-                    <div className="border-b border-gray-100 dark:border-gray-800">
-                      <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-800/50">
-                        <TrophyIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Anniversaries</span>
-                        <span className="text-xs text-gray-400">({notificationData.upcomingAnniversaries.length})</span>
-                      </div>
-                      <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                        {notificationData.upcomingAnniversaries.map((a) => (
-                          <div key={a.id} className="flex items-center gap-3 px-4 py-3">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-300">
-                              {a.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{a.name}</p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">{a.years}yr · {a.department}</p>
-                            </div>
-                            <span className={`text-xs px-2 py-0.5 rounded ${
-                              a.daysUntil === 0
-                                ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
-                                : "text-gray-500 dark:text-gray-400"
-                            }`}>
-                              {a.daysUntil === 0 ? "Today" : a.daysUntil === 1 ? "Tomorrow" : `${a.daysUntil}d`}
+                      {/* Upcoming Birthdays */}
+                      {notificationData.upcomingBirthdays.length > 0 && (
+                        <div className="border-b border-gray-100 dark:border-gray-800">
+                          <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-800/50">
+                            <CakeIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                              Birthdays
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              ({notificationData.upcomingBirthdays.length})
                             </span>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                          <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                            {notificationData.upcomingBirthdays.map((b) => (
+                              <div key={b.id} className="flex items-center gap-3 px-4 py-3">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-300">
+                                  {b.name
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")
+                                    .slice(0, 2)}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                    {b.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    {b.department}
+                                  </p>
+                                </div>
+                                <span
+                                  className={`text-xs px-2 py-0.5 rounded ${
+                                    b.daysUntil === 0
+                                      ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
+                                      : "text-gray-500 dark:text-gray-400"
+                                  }`}
+                                >
+                                  {b.daysUntil === 0
+                                    ? "Today"
+                                    : b.daysUntil === 1
+                                      ? "Tomorrow"
+                                      : `${b.daysUntil}d`}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
-                  {/* Recent Hires */}
-                  {notificationData.recentHires.length > 0 && (
-                    <div>
-                      <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-800/50">
-                        <UserPlusIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">New Hires</span>
-                        <span className="text-xs text-gray-400">({notificationData.recentHires.length})</span>
-                      </div>
-                      <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                        {notificationData.recentHires.slice(0, 5).map((h) => (
-                          <Link
-                            key={h.id}
-                            href={`/dashboard/users/${h.id}/view`}
-                            onClick={() => setShowNotifications(false)}
-                            className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-                          >
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-300">
-                              {h.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{h.name}</p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">{h.department || "No department"}</p>
-                            </div>
-                            {h.joiningDate && (
-                              <span className="text-xs text-gray-400">
-                                {new Date(h.joiningDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                              </span>
-                            )}
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                      {/* Work Anniversaries */}
+                      {notificationData.upcomingAnniversaries.length > 0 && (
+                        <div className="border-b border-gray-100 dark:border-gray-800">
+                          <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-800/50">
+                            <TrophyIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                              Anniversaries
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              ({notificationData.upcomingAnniversaries.length})
+                            </span>
+                          </div>
+                          <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                            {notificationData.upcomingAnniversaries.map((a) => (
+                              <div key={a.id} className="flex items-center gap-3 px-4 py-3">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-300">
+                                  {a.name
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")
+                                    .slice(0, 2)}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                    {a.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    {a.years}yr · {a.department}
+                                  </p>
+                                </div>
+                                <span
+                                  className={`text-xs px-2 py-0.5 rounded ${
+                                    a.daysUntil === 0
+                                      ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
+                                      : "text-gray-500 dark:text-gray-400"
+                                  }`}
+                                >
+                                  {a.daysUntil === 0
+                                    ? "Today"
+                                    : a.daysUntil === 1
+                                      ? "Tomorrow"
+                                      : `${a.daysUntil}d`}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
-                  {/* Empty State */}
-                  {notificationCount === 0 && notificationData.recentHires.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-16 text-center">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 mb-3">
-                        <BellIcon className="h-6 w-6 text-gray-400 dark:text-gray-500" />
-                      </div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">All caught up!</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">No new notifications</p>
+                      {/* Recent Hires */}
+                      {notificationData.recentHires.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-800/50">
+                            <UserPlusIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                              New Hires
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              ({notificationData.recentHires.length})
+                            </span>
+                          </div>
+                          <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                            {notificationData.recentHires.slice(0, 5).map((h) => (
+                              <Link
+                                key={h.id}
+                                href={`/dashboard/users/${h.id}/view`}
+                                onClick={() => setShowNotifications(false)}
+                                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                              >
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-medium text-gray-600 dark:text-gray-300">
+                                  {h.name
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")
+                                    .slice(0, 2)}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                    {h.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    {h.department || "No department"}
+                                  </p>
+                                </div>
+                                {h.joiningDate && (
+                                  <span className="text-xs text-gray-400">
+                                    {formatDate(h.joiningDate)}
+                                  </span>
+                                )}
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Empty State */}
+                      {notificationCount === 0 && notificationData.recentHires.length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-16 text-center">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 mb-3">
+                            <BellIcon className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+                          </div>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            All caught up!
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            No new notifications
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
-        )}
-      </div>
-      </ConfirmProvider>
-    </ToastProvider>
+        </ConfirmProvider>
+      </ToastProvider>
+    </OrgSettingsProvider>
   );
 }
 
@@ -1198,28 +1398,85 @@ function PackageIcon({ className }: { className?: string }) {
   );
 }
 
+/* A panel with a side column — the standard "toggle sidebar" mark. The three-bar
+   icon it replaces read as a menu, which is a different action. The divider sits on
+   the side the panel will move toward, so the two states mirror each other. */
 function SidebarCollapseIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.5}
-        d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12"
-      />
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      viewBox="0 0 24 24"
+    >
+      <rect x="3" y="5" width="18" height="14" rx="2.5" />
+      <path d="M9.5 5v14" />
+    </svg>
+  );
+}
+
+/**
+ * Hover label for the sidebar header icons. It names the action and, where one
+ * exists, spells out the keyboard shortcut — a shortcut nobody is told about is a
+ * shortcut nobody uses.
+ */
+function HeaderTooltip({
+  label,
+  shortcut,
+  children,
+}: {
+  label: string;
+  shortcut?: string;
+  children: ReactNode;
+}) {
+  return (
+    <span className="group relative flex">
+      {children}
+      <span className="pointer-events-none absolute right-0 top-full z-50 mt-1.5 flex items-center gap-1.5 whitespace-nowrap rounded-md bg-gray-800 px-2 py-1 text-[11px] font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 dark:bg-gray-700">
+        {label}
+        {shortcut && (
+          <kbd className="rounded border border-white/25 px-1 font-sans text-[10px] tracking-wide text-white/80">
+            {shortcut}
+          </kbd>
+        )}
+      </span>
+    </span>
+  );
+}
+
+function NavSearchIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      viewBox="0 0 24 24"
+    >
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" />
     </svg>
   );
 }
 
 function SidebarExpandIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.5}
-        d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"
-      />
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      viewBox="0 0 24 24"
+    >
+      <rect x="3" y="5" width="18" height="14" rx="2.5" />
+      <path d="M14.5 5v14" />
     </svg>
   );
 }
@@ -1376,7 +1633,12 @@ function UserPlusIcon({ className }: { className?: string }) {
 function ChevronRightIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M8.25 4.5l7.5 7.5-7.5 7.5"
+      />
     </svg>
   );
 }

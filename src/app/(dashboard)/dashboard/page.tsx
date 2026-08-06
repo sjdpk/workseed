@@ -15,7 +15,15 @@ import {
   AreaChart,
   Area,
 } from "recharts";
-import { Card } from "@/components";
+import {
+  Card,
+  EmptyState,
+  FiscalYearSelect,
+  PageHeader,
+  StatCard,
+  useOrgSettings,
+} from "@/components";
+import { fiscalYearProgress, formatFiscalYearRange } from "@/lib/fiscal-year";
 
 interface DashboardData {
   stats?: {
@@ -25,6 +33,8 @@ interface DashboardData {
     totalTeams: number;
     pendingLeaves: number;
     presentToday: number;
+    /** Hires within the selected fiscal year. */
+    joinedInYear?: number;
   };
   employeesByDepartment?: { name: string; count: number }[];
   employeesByRole?: { name: string; count: number }[];
@@ -75,6 +85,17 @@ interface DashboardData {
     type: string;
     daysUntil: number;
   }[];
+  timezone?: string;
+  today?: string;
+  /** False when a past fiscal year is selected: live widgets are hidden then. */
+  isCurrentFiscalYear?: boolean;
+  fiscalYear?: {
+    year: number;
+    label: string;
+    start: string;
+    end: string;
+    resetsOn: string;
+  };
 }
 
 interface UserInfo {
@@ -107,6 +128,10 @@ const LEAVE_STATUS_COLORS: Record<string, string> = {
 };
 
 export default function DashboardPage() {
+  const { formatDate, fiscalYearOf, fiscalYear: runningFiscalYear } = useOrgSettings();
+  /* Everything year-shaped on this page follows this selector, so "pending leave"
+     and "leave taken" always state which year they mean. */
+  const [selectedYear, setSelectedYear] = useState(runningFiscalYear.year);
   const [data, setData] = useState<DashboardData>({});
   const [user, setUser] = useState<UserInfo | null>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
@@ -120,7 +145,7 @@ export default function DashboardPage() {
   useEffect(() => {
     Promise.all([
       fetch("/api/auth/me").then((r) => r.json()),
-      fetch("/api/dashboard").then((r) => r.json()),
+      fetch(`/api/dashboard?year=${selectedYear}`).then((r) => r.json()),
       fetch("/api/notices").then((r) => r.json()),
     ]).then(([meData, dashboardData, noticesData]) => {
       if (meData.success) {
@@ -134,7 +159,12 @@ export default function DashboardPage() {
       }
       setLoading(false);
     });
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch when the year changes
+  }, [selectedYear]);
+
+  const yearLabel = fiscalYearOf(selectedYear).label;
+  /* A past year's figures are period figures, so several tiles change meaning. */
+  const isPastYear = data.isCurrentFiscalYear === false;
 
   const typeConfig = {
     URGENT: {
@@ -169,12 +199,24 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Dashboard</h1>
-        <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-          Welcome back, {user?.firstName}!
-        </p>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        subtitle={<>Welcome back, {user?.firstName}!</>}
+        actions={
+          <div className="flex items-center gap-2">
+            <span className="hidden text-xs uppercase tracking-wide text-gray-500 sm:inline dark:text-gray-400">
+              Fiscal year
+            </span>
+            <FiscalYearSelect
+              id="dashboardYear"
+              value={selectedYear}
+              onChange={setSelectedYear}
+              wrapperClassName="w-40 shrink-0"
+              size="sm"
+            />
+          </div>
+        }
+      />
 
       {/* Notices Section */}
       {notices.length > 0 && (
@@ -220,7 +262,7 @@ export default function DashboardPage() {
                       </p>
                       <p className="mt-1.5 text-[11px] text-gray-400 dark:text-gray-500">
                         {notice.createdBy.firstName} {notice.createdBy.lastName} ·{" "}
-                        {new Date(notice.publishedAt).toLocaleDateString()}
+                        {formatDate(notice.publishedAt)}
                       </p>
                     </div>
                   </div>
@@ -235,23 +277,23 @@ export default function DashboardPage() {
       {hasPermission("VIEW_STATS") && stats && (
         <>
           {/* Stats Cards */}
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
             <StatCard
-              label="Total Employees"
+              label={isPastYear ? "Employees then" : "Employees"}
               value={stats.totalEmployees}
               icon={<UsersIcon className="h-5 w-5" />}
               color="bg-gray-900 dark:bg-white dark:text-gray-900"
               href="/dashboard/users"
             />
             <StatCard
-              label="Active"
-              value={stats.activeEmployees}
+              label={isPastYear ? "Joined" : "Active"}
+              value={isPastYear ? (stats.joinedInYear ?? 0) : stats.activeEmployees}
               icon={<CheckIcon className="h-5 w-5" />}
               color="bg-green-600"
               href="/dashboard/users"
             />
             <StatCard
-              label="Present Today"
+              label={isPastYear ? "Attendance days" : "Present Today"}
               value={stats.presentToday}
               icon={<ClockIcon className="h-5 w-5" />}
               color="bg-blue-600"
@@ -282,59 +324,72 @@ export default function DashboardPage() {
 
           {/* Charts Row */}
           <div className="grid gap-4 lg:grid-cols-2">
-            {/* Weekly Attendance Chart */}
-            <Card className="p-4">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">
-                Weekly Attendance
-              </h3>
-              <div className="h-48">
-                {data.weeklyAttendance && data.weeklyAttendance.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={data.weeklyAttendance}>
-                      <defs>
-                        <linearGradient id="colorAttendance" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <XAxis
-                        dataKey="day"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 11, fill: "#9CA3AF" }}
-                      />
-                      <YAxis
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 11, fill: "#9CA3AF" }}
-                        width={30}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "rgba(17, 24, 39, 0.9)",
-                          border: "none",
-                          borderRadius: "6px",
-                          fontSize: "12px",
-                          color: "#fff",
-                        }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="count"
-                        stroke="#3B82F6"
-                        strokeWidth={2}
-                        fill="url(#colorAttendance)"
-                        name="Check-ins"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
-                    No attendance data
-                  </div>
-                )}
-              </div>
-            </Card>
+            {/* Weekly attendance is a live view, so it is only shown for the
+                running year — for a past year it would always be empty. */}
+            {data.isCurrentFiscalYear !== false ? (
+              <Card className="p-4">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">
+                  Weekly Attendance
+                </h3>
+                <div className="h-48">
+                  {data.weeklyAttendance && data.weeklyAttendance.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={data.weeklyAttendance}>
+                        <defs>
+                          <linearGradient id="colorAttendance" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <XAxis
+                          dataKey="day"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 11, fill: "#9CA3AF" }}
+                        />
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 11, fill: "#9CA3AF" }}
+                          width={30}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "rgba(17, 24, 39, 0.9)",
+                            border: "none",
+                            borderRadius: "6px",
+                            fontSize: "12px",
+                            color: "#fff",
+                          }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="count"
+                          stroke="#3B82F6"
+                          strokeWidth={2}
+                          fill="url(#colorAttendance)"
+                          name="Check-ins"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
+                      No attendance data
+                    </div>
+                  )}
+                </div>
+              </Card>
+            ) : (
+              <Card className="p-4">
+                <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">
+                  Attendance
+                </h3>
+                <EmptyState
+                  title={`Live attendance is only shown for ${runningFiscalYear.label}`}
+                  description="Switch back to the current fiscal year, or open Attendance for a date range in this year."
+                />
+              </Card>
+            )}
 
             {/* Employees by Department */}
             <Card className="p-4">
@@ -385,7 +440,7 @@ export default function DashboardPage() {
             {/* Leave Status Pie Chart */}
             <Card className="p-4">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">
-                Leave Requests (This Month)
+                Leave Requests · {yearLabel}
               </h3>
               <div className="h-40">
                 {data.leavesByStatus && data.leavesByStatus.length > 0 ? (
@@ -521,6 +576,31 @@ export default function DashboardPage() {
             </Card>
           </div>
 
+          {/* Which year the company is counting in — leave balances, allocations and
+              yearly reports are all keyed to it */}
+          {data.fiscalYear && (
+            <Card className="p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4 text-gray-400" />
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                    Active fiscal year {data.fiscalYear.label}
+                  </h3>
+                  <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                    resets {data.fiscalYear.resetsOn}
+                  </span>
+                </div>
+                <Link
+                  href="/dashboard/settings/organization"
+                  className="text-xs text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  Change
+                </Link>
+              </div>
+              <FiscalYearProgress fiscalYear={data.fiscalYear} timezone={data.timezone} />
+            </Card>
+          )}
+
           {/* Upcoming Holidays */}
           {data.upcomingHolidays && data.upcomingHolidays.length > 0 && (
             <Card className="p-4">
@@ -546,7 +626,7 @@ export default function DashboardPage() {
                   >
                     <div className="flex h-10 w-10 flex-col items-center justify-center rounded-md bg-gray-100 dark:bg-gray-800 mb-2">
                       <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400">
-                        {new Date(holiday.date).toLocaleDateString("en-US", { month: "short" })}
+                        {formatDate(holiday.date)}
                       </span>
                       <span className="text-sm font-semibold text-gray-900 dark:text-white">
                         {new Date(holiday.date).getDate()}
@@ -660,7 +740,7 @@ export default function DashboardPage() {
             <Card className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                  Recent Leave Requests
+                  Leave Requests · {yearLabel}
                 </h3>
                 <Link
                   href="/dashboard/leaves/requests"
@@ -712,7 +792,7 @@ export default function DashboardPage() {
             <Card className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                  Recent Hires
+                  Joined in {yearLabel}
                 </h3>
                 <Link
                   href="/dashboard/users"
@@ -737,7 +817,7 @@ export default function DashboardPage() {
                       </div>
                       {hire.joiningDate && (
                         <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {new Date(hire.joiningDate).toLocaleDateString()}
+                          {formatDate(hire.joiningDate)}
                         </span>
                       )}
                     </Link>
@@ -756,7 +836,7 @@ export default function DashboardPage() {
       {/* Manager/Team Lead Dashboard */}
       {hasPermission("APPROVE_LEAVES") && !hasPermission("VIEW_STATS") && (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
             <StatCard
               label="Pending Leaves"
               value={stats?.pendingLeaves || 0}
@@ -764,17 +844,12 @@ export default function DashboardPage() {
               color="bg-orange-600"
               href="/dashboard/leaves/requests"
             />
-            <Link href="/dashboard/leaves">
-              <Card className="flex items-center gap-3 p-3 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
-                <div className="rounded-md p-2.5 bg-gray-900 dark:bg-white">
-                  <CalendarIcon className="h-5 w-5 text-white dark:text-gray-900" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">My Leaves</p>
-                  <p className="text-base font-semibold text-gray-900 dark:text-white">View</p>
-                </div>
-              </Card>
-            </Link>
+            <StatCard
+              label="My Leaves"
+              value="View"
+              icon={<CalendarIcon className="h-5 w-5" />}
+              href="/dashboard/leaves"
+            />
           </div>
 
           <Card className="p-4">
@@ -808,20 +883,13 @@ export default function DashboardPage() {
       {/* Employee Dashboard */}
       {!hasPermission("APPROVE_LEAVES") && (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Link href="/dashboard/leaves">
-              <Card className="flex items-center gap-3 p-3 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
-                <div className="rounded-md p-2.5 bg-gray-900 dark:bg-white">
-                  <CalendarIcon className="h-5 w-5 text-white dark:text-gray-900" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">My Leaves</p>
-                  <p className="text-base font-semibold text-gray-900 dark:text-white">
-                    View Balance
-                  </p>
-                </div>
-              </Card>
-            </Link>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+            <StatCard
+              label="My Leaves"
+              value="View balance"
+              icon={<CalendarIcon className="h-5 w-5" />}
+              href="/dashboard/leaves"
+            />
           </div>
 
           {/* My Recent Leaves */}
@@ -849,7 +917,7 @@ export default function DashboardPage() {
                       <div>
                         <p className="text-sm text-gray-900 dark:text-white">{leave.type}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {new Date(leave.startDate).toLocaleDateString()} · {leave.days} day
+                          {formatDate(leave.startDate)} · {leave.days} day
                           {leave.days > 1 ? "s" : ""}
                         </p>
                       </div>
@@ -906,36 +974,46 @@ export default function DashboardPage() {
           </Card>
         </>
       )}
-
     </div>
   );
 }
 
-function StatCard({
-  label,
-  value,
-  icon,
-  color,
-  href,
+/** Reuses the same progress maths the Organization settings summary uses, so the
+ *  two screens can never disagree about how far into the year the company is. */
+function FiscalYearProgress({
+  fiscalYear,
+  timezone,
 }: {
-  label: string;
-  value: number;
-  icon: React.ReactNode;
-  color: string;
-  href: string;
+  fiscalYear: { year: number; label: string; start: string; end: string; resetsOn: string };
+  timezone?: string;
 }) {
+  const zone = timezone || "UTC";
+  const fy = {
+    year: fiscalYear.year,
+    label: fiscalYear.label,
+    start: new Date(fiscalYear.start),
+    end: new Date(fiscalYear.end),
+    resetsOn: fiscalYear.resetsOn,
+  };
+  const progress = fiscalYearProgress(fy);
+
   return (
-    <Link href={href} className="block h-full">
-      <Card className="flex h-full items-center gap-3 p-3 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer">
-        <div className={`shrink-0 rounded-md p-2.5 ${color}`}>
-          <div className="text-white">{icon}</div>
-        </div>
-        <div>
-          <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{label}</p>
-          <p className="text-lg font-semibold text-gray-900 dark:text-white">{value}</p>
-        </div>
-      </Card>
-    </Link>
+    <div>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          {formatFiscalYearRange(fy, zone)}
+        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Day {progress.dayNumber} of {progress.totalDays} · {progress.daysRemaining} left
+        </p>
+      </div>
+      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">
+        <div
+          className="h-full rounded-full bg-gray-900 dark:bg-white"
+          style={{ width: `${progress.percent}%` }}
+        />
+      </div>
+    </div>
   );
 }
 

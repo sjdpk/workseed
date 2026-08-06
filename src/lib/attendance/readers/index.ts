@@ -10,7 +10,11 @@ import {
 
 export type DeviceReader = (host: string, port: number, timeoutMs?: number) => Promise<Punch[]>;
 export type DeviceProbe = (host: string, port: number, timeoutMs?: number) => Promise<ProbeResult>;
-export type DeviceUserReader = (host: string, port: number, timeoutMs?: number) => Promise<DeviceUser[]>;
+export type DeviceUserReader = (
+  host: string,
+  port: number,
+  timeoutMs?: number
+) => Promise<DeviceUser[]>;
 
 // Default protocol when a device doesn't specify one. ZK protocol is the most
 // common (ZKTeco, eSSL, and many clones).

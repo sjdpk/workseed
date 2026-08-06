@@ -1,6 +1,11 @@
 // Database
 export { prisma } from "./prisma";
 
+// Public home page content
+export { getHomepageContent } from "./homepage-server";
+export { DEFAULT_HOMEPAGE, mergeHomepage } from "./homepage";
+export type { HomepageContent, HomepageCard } from "./homepage";
+
 // Authentication
 export {
   hashPassword,
@@ -25,6 +30,25 @@ export {
   ROLE_HIERARCHY,
 } from "./permissions";
 export type { Permission, Role } from "./permissions";
+
+// Authorization (roles are rows; see src/lib/rbac.ts)
+export {
+  can,
+  canAll,
+  canAny,
+  listRoles,
+  resolveRole,
+  outranks,
+  permissionsFor,
+  invalidateRoleCache,
+} from "./rbac";
+export {
+  ALL_PERMISSIONS,
+  PERMISSION_GROUPS,
+  permissionLabel,
+  seedPermissionsFor,
+} from "./permission-catalog";
+export type { ResolvedRole } from "./rbac";
 
 // Audit Logging
 export { createAuditLog, getRequestMeta } from "./audit";

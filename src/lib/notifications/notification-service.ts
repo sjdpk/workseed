@@ -332,22 +332,17 @@ export async function sendAnnouncementNotification(options: {
   recipientIds?: string[];
 }): Promise<void> {
   const typeLabel =
-    options.type === "URGENT"
-      ? "Urgent"
-      : options.type === "IMPORTANT"
-        ? "Important"
-        : "General";
+    options.type === "URGENT" ? "Urgent" : options.type === "IMPORTANT" ? "Important" : "General";
 
   const preview =
-    options.content.length > 200
-      ? options.content.substring(0, 200) + "..."
-      : options.content;
+    options.content.length > 200 ? options.content.substring(0, 200) + "..." : options.content;
 
   await sendNotification("ANNOUNCEMENT_PUBLISHED", {
     entityType: "NOTICE",
     entityId: options.noticeId,
     customRecipientIds: options.recipientIds,
-    priority: options.type === "URGENT" ? "URGENT" : options.type === "IMPORTANT" ? "HIGH" : "NORMAL",
+    priority:
+      options.type === "URGENT" ? "URGENT" : options.type === "IMPORTANT" ? "HIGH" : "NORMAL",
     variables: {
       typeLabel,
       title: options.title,

@@ -1,7 +1,17 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Card, Avatar } from "@/components";
+import {
+  Avatar,
+  Card,
+  OrgChartCanvas,
+  PageHeader,
+  SearchBar,
+  useConfirm,
+  useRoles,
+  useToast,
+} from "@/components";
 
 interface User {
   id: string;
@@ -15,16 +25,57 @@ interface User {
   department?: { id: string; name: string };
   team?: { id: string; name: string };
   managerId?: string;
+  roleRecord?: { name: string; color: string | null; rank: number } | null;
 }
 
-interface TreeNode extends User {
-  children: TreeNode[];
-}
+/** Role badge colour → Tailwind class. Roles carry a colour token chosen in
+ *  Settings → Roles; anything unknown falls back to grey. */
+/** Colours for the five seeded roles, for rows saved before roles had a colour. */
+const DEFAULT_ROLE_COLOR: Record<string, string> = {
+  ADMIN: "red",
+  HR: "purple",
+  MANAGER: "blue",
+  TEAM_LEAD: "green",
+  EMPLOYEE: "gray",
+};
+
+const COLOR_CLASS: Record<string, string> = {
+  red: "bg-red-500",
+  purple: "bg-purple-500",
+  blue: "bg-blue-500",
+  green: "bg-green-500",
+  orange: "bg-orange-500",
+  gray: "bg-gray-500",
+};
 
 export default function OrgChartPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"hierarchy" | "department">("hierarchy");
+  const { roles } = useRoles();
+  const router = useRouter();
+  const toast = useToast();
+  const confirm = useConfirm();
+  /* Only someone who may edit people can redraw reporting lines. */
+  const [canEditPeople, setCanEditPeople] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((me) => {
+        if (me.success) setCanEditPeople(!!me.data.user.permissions?.includes("USER_EDIT"));
+      });
+  }, []);
+  const [search, setSearch] = useState("");
+
+  const highlightId =
+    search.trim().length > 1
+      ? (users.find((u) =>
+          `${u.firstName} ${u.lastName} ${u.designation ?? ""}`
+            .toLowerCase()
+            .includes(search.trim().toLowerCase())
+        )?.id ?? null)
+      : null;
 
   useEffect(() => {
     fetch("/api/users/org-chart")
@@ -36,24 +87,6 @@ export default function OrgChartPage() {
         setLoading(false);
       });
   }, []);
-
-  const buildHierarchy = (users: User[]): TreeNode[] => {
-    const userMap = new Map<string, TreeNode>();
-    users.forEach((user) => {
-      userMap.set(user.id, { ...user, children: [] });
-    });
-
-    const roots: TreeNode[] = [];
-    userMap.forEach((user) => {
-      if (user.managerId && userMap.has(user.managerId)) {
-        userMap.get(user.managerId)!.children.push(user);
-      } else {
-        roots.push(user);
-      }
-    });
-
-    return roots;
-  };
 
   const groupByDepartment = (users: User[]) => {
     return users.reduce(
@@ -67,19 +100,17 @@ export default function OrgChartPage() {
     );
   };
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case "ADMIN":
-        return "bg-purple-500";
-      case "HR":
-        return "bg-pink-500";
-      case "MANAGER":
-        return "bg-gray-600";
-      case "TEAM_LEAD":
-        return "bg-green-500";
-      default:
-        return "bg-gray-500";
-    }
+  const getRoleColor = (user: { role: string; roleRecord?: { color: string | null } | null }) => {
+    if (user.roleRecord?.color) return COLOR_CLASS[user.roleRecord.color] ?? "bg-gray-500";
+    // roles created before colours existed, and the seeded five
+    return (
+      {
+        ADMIN: "bg-red-500",
+        HR: "bg-purple-500",
+        MANAGER: "bg-blue-500",
+        TEAM_LEAD: "bg-green-500",
+      }[user.role] ?? "bg-gray-500"
+    );
   };
 
   const LinkedInIcon = () => (
@@ -88,73 +119,81 @@ export default function OrgChartPage() {
     </svg>
   );
 
-  const TreeNodeCard = ({ node }: { node: TreeNode }) => {
-    const roleColor = getRoleColor(node.role);
-    const hasChildren = node.children.length > 0;
+  /**
+   * One node of the tree.
+   *
+   * The connectors are rounded elbows drawn with borders rather than straight
+   * 1px bars: a child hangs from a curve off the parent's spine, with a dot where
+   * it meets the card, which is what makes a deep chart readable. A branch with
+   * reports can be collapsed to a "+N" pill so a large company fits on screen.
+   */
 
-    return (
-      <div className="flex flex-col items-center">
-        <div className="relative">
-          <div className="flex items-center gap-3 rounded border border-gray-200 bg-white px-4 py-3 shadow-sm dark:border-gray-700 dark:bg-gray-800 min-w-[220px]">
-            <Avatar
-              src={node.profilePicture}
-              name={`${node.firstName} ${node.lastName}`}
-              size="md"
-              colorClass={roleColor}
-            />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <p className="font-medium text-gray-900 dark:text-white truncate">
-                  {node.firstName} {node.lastName}
-                </p>
-                {node.linkedIn && (
-                  <a
-                    href={node.linkedIn}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300"
-                    title="LinkedIn Profile"
-                  >
-                    <LinkedInIcon />
-                  </a>
-                )}
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                {node.designation || node.role.replace("_", " ")}
-              </p>
-              {node.team && (
-                <p className="text-xs text-gray-400 dark:text-gray-500 truncate">
-                  {node.team.name}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
+  /* The canvas needs each person plus the colour of their role. */
+  const chartPeople = users.map((u) => ({
+    id: u.id,
+    firstName: u.firstName,
+    lastName: u.lastName,
+    designation: u.designation,
+    profilePicture: u.profilePicture,
+    managerId: u.managerId,
+    department: u.department ?? null,
+    roleName: u.roleRecord?.name ?? u.role.replace(/_/g, " "),
+    color: u.roleRecord?.color ?? DEFAULT_ROLE_COLOR[u.role] ?? "gray",
+  }));
 
-        {hasChildren && (
-          <div className="flex flex-col items-center">
-            <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
-            {node.children.length > 1 && (
-              <div
-                className="h-px bg-gray-300 dark:bg-gray-600"
-                style={{ width: `${(node.children.length - 1) * 240}px` }}
-              />
-            )}
-            <div className="flex gap-8">
-              {node.children.map((child) => (
-                <div key={child.id} className="flex flex-col items-center">
-                  <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />
-                  <TreeNodeCard node={child} />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+  /**
+   * Re-parent a person after they confirm. A drag is easy to do by accident and
+   * this rewrites a real reporting line, so the change is stated in full — who
+   * moves, to whom, and from where — before anything is saved.
+   */
+  const reassignManager = async (personId: string, newManagerId: string) => {
+    const moving = users.find((u) => u.id === personId);
+    const newManager = users.find((u) => u.id === newManagerId);
+    const currentManager = users.find((u) => u.id === moving?.managerId);
+    if (!moving || !newManager) return;
+
+    const ok = await confirm({
+      title: "Change reporting line?",
+      message: (
+        <>
+          <strong>
+            {moving.firstName} {moving.lastName}
+          </strong>{" "}
+          will report to{" "}
+          <strong>
+            {newManager.firstName} {newManager.lastName}
+          </strong>
+          {currentManager ? (
+            <>
+              , instead of {currentManager.firstName} {currentManager.lastName}.
+            </>
+          ) : (
+            <>, and will no longer sit at the top of the chart.</>
+          )}
+        </>
+      ),
+      confirmText: "Change it",
+    });
+    if (!ok) return;
+
+    const res = await fetch(`/api/users/${personId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ managerId: newManagerId }),
+    });
+    const data = await res.json();
+    if (!data.success) {
+      toast.error(data.error || "Could not change the reporting line");
+      return;
+    }
+    const moved = users.find((u) => u.id === personId);
+    const to = users.find((u) => u.id === newManagerId);
+    toast.success(`${moved?.firstName ?? "Employee"} now reports to ${to?.firstName ?? "them"}`);
+    setUsers((prev) =>
+      prev.map((u) => (u.id === personId ? { ...u, managerId: newManagerId } : u))
     );
   };
 
-  const hierarchy = buildHierarchy(users);
   const departments = groupByDepartment(users);
 
   if (loading) {
@@ -167,39 +206,44 @@ export default function OrgChartPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Organization Chart
-          </h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            View company structure and reporting lines
-          </p>
-        </div>
-
-        <div className="flex rounded border border-gray-200 bg-gray-50 p-1 dark:border-gray-700 dark:bg-gray-800">
-          <button
-            onClick={() => setViewMode("hierarchy")}
-            className={`rounded px-4 py-1.5 text-sm font-medium transition-colors ${
-              viewMode === "hierarchy"
-                ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white"
-                : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-            }`}
-          >
-            Hierarchy
-          </button>
-          <button
-            onClick={() => setViewMode("department")}
-            className={`rounded px-4 py-1.5 text-sm font-medium transition-colors ${
-              viewMode === "department"
-                ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white"
-                : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-            }`}
-          >
-            By Department
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Organization Chart"
+        subtitle="View company structure and reporting lines"
+        actions={
+          <>
+            {viewMode === "hierarchy" && (
+              <>
+                <SearchBar
+                  value={search}
+                  onChange={setSearch}
+                  placeholder="Find a colleague…"
+                  className="w-52"
+                />
+              </>
+            )}
+            <button
+              onClick={() => setViewMode("hierarchy")}
+              className={`rounded px-4 py-1.5 text-sm font-medium transition-colors ${
+                viewMode === "hierarchy"
+                  ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white"
+                  : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+              }`}
+            >
+              Hierarchy
+            </button>
+            <button
+              onClick={() => setViewMode("department")}
+              className={`rounded px-4 py-1.5 text-sm font-medium transition-colors ${
+                viewMode === "department"
+                  ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white"
+                  : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+              }`}
+            >
+              By Department
+            </button>
+          </>
+        }
+      />
 
       {users.length === 0 ? (
         <Card>
@@ -221,16 +265,21 @@ export default function OrgChartPage() {
           </div>
         </Card>
       ) : viewMode === "hierarchy" ? (
-        <Card className="overflow-x-auto">
-          <div className="min-w-max p-8">
-            <div className="flex flex-col items-center gap-0">
-              {hierarchy.map((root, idx) => (
-                <div key={root.id} className={idx > 0 ? "mt-12" : ""}>
-                  <TreeNodeCard node={root} />
-                </div>
-              ))}
-            </div>
-          </div>
+        <Card className="p-2">
+          {/* Pan/zoom canvas. Layout is computed from managerId, so the chart is
+              never stale, and HR can re-parent someone by dragging a handle. */}
+          <OrgChartCanvas
+            people={chartPeople}
+            highlightId={highlightId}
+            onOpen={(id) => router.push(`/dashboard/users/${id}/view`)}
+            onReassign={canEditPeople ? reassignManager : undefined}
+          />
+          <p className="px-2 pb-1 pt-2 text-xs text-gray-500 dark:text-gray-400">
+            Drag to pan, scroll to zoom, double-click a card to open the profile
+            {canEditPeople
+              ? " — or drag the dot under a card onto someone to make them report there."
+              : "."}
+          </p>
         </Card>
       ) : (
         <div className="grid gap-6 lg:grid-cols-2">
@@ -264,7 +313,7 @@ export default function OrgChartPage() {
 
                 <div className="space-y-2">
                   {deptUsers.map((user) => {
-                    const roleColor = getRoleColor(user.role);
+                    const roleColor = getRoleColor(user);
                     return (
                       <div
                         key={user.id}
@@ -310,16 +359,13 @@ export default function OrgChartPage() {
       {users.length > 0 && (
         <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
           <span className="font-medium">Roles:</span>
-          {[
-            { color: "bg-purple-500", label: "Admin" },
-            { color: "bg-pink-500", label: "HR" },
-            { color: "bg-gray-600", label: "Manager" },
-            { color: "bg-green-500", label: "Team Lead" },
-            { color: "bg-gray-500", label: "Employee" },
-          ].map((item) => (
-            <div key={item.label} className="flex items-center gap-1.5">
-              <span className={`h-2.5 w-2.5 rounded-full ${item.color}`} />
-              <span>{item.label}</span>
+          {/* the roster itself, so a role added in Settings shows up here */}
+          {roles.map((role) => (
+            <div key={role.id} className="flex items-center gap-1.5">
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${COLOR_CLASS[role.color || "gray"] ?? "bg-gray-500"}`}
+              />
+              <span>{role.name}</span>
             </div>
           ))}
         </div>

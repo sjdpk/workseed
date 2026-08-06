@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  prisma,
-  getCurrentUser,
-  isHROrAbove,
-  hashPassword,
-  createAuditLog,
-  getRequestMeta,
-} from "@/lib";
+import { prisma, getCurrentUser, hashPassword, createAuditLog, getRequestMeta } from "@/lib";
 import { logger } from "@/lib/logger";
+import { can, legacyRoleFor, resolveRole } from "@/lib/rbac";
+import { dateOnlyToUtcDate } from "@/lib/time";
 import { z } from "@/lib/validation";
 
 const updateUserSchema = z.object({
@@ -22,6 +17,7 @@ const updateUserSchema = z.object({
   github: z.string().url().optional().nullable().or(z.literal("")),
   website: z.string().url().optional().nullable().or(z.literal("")),
   role: z.enum(["ADMIN", "HR", "MANAGER", "TEAM_LEAD", "EMPLOYEE"]).optional(),
+  roleId: z.string().uuid().optional(),
   status: z.enum(["ACTIVE", "INACTIVE", "SUSPENDED"]).optional(),
   dateOfBirth: z.string().optional().nullable(),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional().nullable(),
@@ -32,8 +28,20 @@ const updateUserSchema = z.object({
   state: z.string().optional().nullable(),
   country: z.string().optional().nullable(),
   postalCode: z.string().optional().nullable(),
-  emergencyContact: z.string().optional().nullable(),
-  emergencyContactPhone: z.string().optional().nullable(),
+  emergencyContacts: z
+    .array(
+      z.object({
+        name: z.string().min(1),
+        relation: z.string().optional().nullable(),
+        phone: z.string().optional().nullable(),
+        altPhone: z.string().optional().nullable(),
+        email: z.string().email().optional().nullable().or(z.literal("")),
+        address: z.string().optional().nullable(),
+        notes: z.string().optional().nullable(),
+        isPrimary: z.boolean().optional(),
+      })
+    )
+    .optional(),
   employmentType: z.enum(["FULL_TIME", "PART_TIME", "CONTRACT", "INTERN"]).optional(),
   joiningDate: z.string().optional().nullable(),
   designation: z.string().optional().nullable(),
@@ -69,6 +77,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         github: true,
         website: true,
         role: true,
+        roleId: true,
+        roleRecord: { select: { id: true, name: true, key: true, color: true, rank: true } },
         status: true,
         dateOfBirth: true,
         gender: true,
@@ -79,8 +89,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         state: true,
         country: true,
         postalCode: true,
-        emergencyContact: true,
-        emergencyContactPhone: true,
+        emergencyContacts: {
+          orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
+        },
         employmentType: true,
         joiningDate: true,
         designation: true,
@@ -100,7 +111,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
     }
 
-    if (user.id !== currentUser.id && !isHROrAbove(currentUser.role)) {
+    if (user.id !== currentUser.id && !(await can(currentUser, "USER_VIEW_ALL"))) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
@@ -134,7 +145,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const isSelf = currentUser.id === id;
-    const isHRAdmin = isHROrAbove(currentUser.role);
+    const isHRAdmin = await can(currentUser, "USER_EDIT");
 
     if (!isSelf && !isHRAdmin) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
@@ -157,9 +168,28 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (data.state !== undefined) updateData.state = data.state;
     if (data.country !== undefined) updateData.country = data.country;
     if (data.postalCode !== undefined) updateData.postalCode = data.postalCode;
-    if (data.emergencyContact !== undefined) updateData.emergencyContact = data.emergencyContact;
-    if (data.emergencyContactPhone !== undefined)
-      updateData.emergencyContactPhone = data.emergencyContactPhone;
+    // Emergency contacts are sent as the full list and replace what is stored,
+    // so removing a row in the UI removes it here. Rows without a name are
+    // dropped rather than saved blank.
+    if (data.emergencyContacts !== undefined) {
+      const contacts = data.emergencyContacts.filter((c) => c.name.trim());
+      const primaryIndex = contacts.findIndex((c) => c.isPrimary);
+      updateData.emergencyContacts = {
+        deleteMany: {},
+        create: contacts.map((c, i) => ({
+          name: c.name.trim(),
+          relation: c.relation || null,
+          phone: c.phone || null,
+          altPhone: c.altPhone || null,
+          email: c.email || null,
+          address: c.address || null,
+          notes: c.notes || null,
+          // exactly one primary: the ticked one, else the first row
+          isPrimary: primaryIndex === -1 ? i === 0 : i === primaryIndex,
+          sortOrder: i,
+        })),
+      };
+    }
 
     // HR/Admin only fields
     if (isHRAdmin) {
@@ -197,14 +227,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     // HR/Admin only fields (not for self)
     if (isHRAdmin && !isSelf) {
       if (data.dateOfBirth !== undefined) {
-        updateData.dateOfBirth = data.dateOfBirth ? new Date(data.dateOfBirth) : null;
+        updateData.dateOfBirth = data.dateOfBirth ? dateOnlyToUtcDate(data.dateOfBirth) : null;
       }
       if (data.gender !== undefined) updateData.gender = data.gender;
       if (data.maritalStatus !== undefined) updateData.maritalStatus = data.maritalStatus;
       if (data.nationality !== undefined) updateData.nationality = data.nationality;
       if (data.employmentType) updateData.employmentType = data.employmentType;
       if (data.joiningDate !== undefined) {
-        updateData.joiningDate = data.joiningDate ? new Date(data.joiningDate) : null;
+        updateData.joiningDate = data.joiningDate ? dateOnlyToUtcDate(data.joiningDate) : null;
       }
       if (data.designation !== undefined) updateData.designation = data.designation;
       if (data.branchId !== undefined) updateData.branchId = data.branchId;
@@ -213,12 +243,23 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       if (data.managerId !== undefined) updateData.managerId = data.managerId;
 
       // Role changes
-      if (data.role && currentUser.role === "ADMIN") {
-        updateData.role = data.role;
-      } else if (data.role && currentUser.role === "HR") {
-        if (!["ADMIN", "HR"].includes(data.role)) {
-          updateData.role = data.role;
+      const requestedRole =
+        data.roleId || data.role
+          ? await resolveRole({ roleId: data.roleId, role: data.role })
+          : null;
+      if (requestedRole) {
+        const actorRole = await resolveRole(currentUser);
+        if (actorRole && requestedRole.rank > actorRole.rank) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `You cannot assign the ${requestedRole.name} role — it outranks yours`,
+            },
+            { status: 403 }
+          );
         }
+        updateData.roleId = requestedRole.id;
+        updateData.role = legacyRoleFor(requestedRole);
       }
 
       // Status changes (ADMIN only)
@@ -234,6 +275,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         id: true,
         employeeId: true,
         deviceUserId: true,
+        emergencyContacts: {
+          orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
+        },
         email: true,
         firstName: true,
         lastName: true,

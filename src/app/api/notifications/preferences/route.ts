@@ -76,7 +76,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     logger.error("Get notification preferences error", { error });
-    return NextResponse.json({ success: false, error: "Failed to fetch preferences" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch preferences" },
+      { status: 500 }
+    );
   }
 }
 
@@ -125,6 +128,9 @@ export async function PUT(request: NextRequest) {
       );
     }
     logger.error("Update notification preferences error", { error });
-    return NextResponse.json({ success: false, error: "Failed to update preferences" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to update preferences" },
+      { status: 500 }
+    );
   }
 }

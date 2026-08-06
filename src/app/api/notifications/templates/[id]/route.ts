@@ -15,10 +15,7 @@ const templateUpdateSchema = z.object({
 });
 
 // GET /api/notifications/templates/[id] - Get a template by ID
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -42,15 +39,15 @@ export async function GET(
     return NextResponse.json({ success: true, data: { template } });
   } catch (error) {
     logger.error("Get template error", { error });
-    return NextResponse.json({ success: false, error: "Failed to fetch template" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch template" },
+      { status: 500 }
+    );
   }
 }
 
 // PUT /api/notifications/templates/[id] - Update a template
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -106,7 +103,10 @@ export async function PUT(
       );
     }
     logger.error("Update template error", { error });
-    return NextResponse.json({ success: false, error: "Failed to update template" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to update template" },
+      { status: 500 }
+    );
   }
 }
 
@@ -161,6 +161,9 @@ export async function DELETE(
     return NextResponse.json({ success: true, data: { message: "Template deleted" } });
   } catch (error) {
     logger.error("Delete template error", { error });
-    return NextResponse.json({ success: false, error: "Failed to delete template" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to delete template" },
+      { status: 500 }
+    );
   }
 }

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, getCurrentUser } from "@/lib";
-
-const ALLOWED_ROLES = ["ADMIN", "HR"];
+import { can } from "@/lib/rbac";
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -9,7 +8,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (!currentUser) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
-    if (!ALLOWED_ROLES.includes(currentUser.role)) {
+    if (!(await can(currentUser, "ATTENDANCE_DEVICE_MANAGE"))) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
@@ -66,7 +65,7 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!ALLOWED_ROLES.includes(currentUser.role)) {
+    if (!(await can(currentUser, "ATTENDANCE_DEVICE_MANAGE"))) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 

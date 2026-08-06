@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, Input, Select, useToast } from "@/components";
+import { Button, Card, Input, PageHeader, Select, useToast } from "@/components";
 
 interface EmailTemplate {
   id: string;
@@ -170,19 +170,22 @@ export default function TemplateEditorPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {isNew ? "Create Template" : "Edit Template"}
-          </h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            {isNew ? "Create a new email template" : `Editing: ${template?.displayName}`}
-          </p>
-        </div>
-        <Button variant="outline" onClick={() => router.push("/dashboard/notifications/templates")}>
-          Back to Templates
-        </Button>
-      </div>
+      <PageHeader
+        title={isNew ? "Create Template" : "Edit Template"}
+        subtitle={
+          <>{isNew ? "Create a new email template" : `Editing: ${template?.displayName}`}</>
+        }
+        actions={
+          <>
+            <Button
+              variant="outline"
+              onClick={() => router.push("/dashboard/notifications/templates")}
+            >
+              Back to Templates
+            </Button>
+          </>
+        }
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Editor */}
@@ -240,8 +243,8 @@ export default function TemplateEditorPage() {
                 required
               />
               <p className="mt-1 text-xs text-gray-500">
-                Use {"{{variableName}}"} for dynamic content. Available CSS classes: title, subtitle,
-                content, button, badge, info-row, info-label, info-value
+                Use {"{{variableName}}"} for dynamic content. Available CSS classes: title,
+                subtitle, content, button, badge, info-row, info-label, info-value
               </p>
             </div>
 

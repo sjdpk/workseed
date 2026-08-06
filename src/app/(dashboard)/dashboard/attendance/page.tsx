@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, useToast } from "@/components";
+import { Button, Card, PageHeader, useOrgSettings, useToast } from "@/components";
+import { formatInZone } from "@/lib/time";
 
 interface AttendanceRecord {
   id: string;
@@ -17,6 +18,7 @@ interface CurrentStatus {
 }
 
 export default function AttendancePage() {
+  const { formatDate, formatTime, timezone } = useOrgSettings();
   const router = useRouter();
   const toast = useToast();
   const [loading, setLoading] = useState(true);
@@ -119,18 +121,6 @@ export default function AttendancePage() {
     }
   };
 
-  const formatTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  };
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString([], {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
   const calculateDuration = (checkIn: string, checkOut: string | null) => {
     const start = new Date(checkIn);
     const end = checkOut ? new Date(checkOut) : new Date();
@@ -150,31 +140,33 @@ export default function AttendancePage() {
 
   if (!hasAccess) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Attendance</h1>
-        </div>
-        <div className="py-12 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-            <svg
-              className="h-8 w-8 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-              />
-            </svg>
-          </div>
-          <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-            Online attendance is not available for you
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Attendance"
+        actions={
+          <>
+            <div className="py-12 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+                <svg
+                  className="h-8 w-8 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  />
+                </svg>
+              </div>
+              <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+                Online attendance is not available for you
+              </p>
+            </div>
+          </>
+        }
+      />
     );
   }
 
@@ -187,14 +179,21 @@ export default function AttendancePage() {
       {/* Current Time & Action */}
       <div className="max-w-md mx-auto text-center">
         <p className="text-4xl font-light text-gray-900 dark:text-white tabular-nums">
-          {currentTime.toLocaleTimeString([], {
+          {/* the clock reads in the company timezone, so it matches what a
+              check-in will be filed against */}
+          {formatInZone(currentTime, timezone, {
             hour: "2-digit",
             minute: "2-digit",
             second: "2-digit",
+            hourCycle: "h23",
           })}
         </p>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          {currentTime.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })}
+          {formatInZone(currentTime, timezone, {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+          })}
         </p>
 
         <div className="mt-8">

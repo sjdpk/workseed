@@ -202,6 +202,53 @@ The ${appName} Team
   }
 
   /**
+   * Invite a new employee to choose their own password.
+   *
+   * Deliberately separate from the reset email: the wording differs, and nobody
+   * should ever be sent a password in plaintext — the link is how an account is
+   * activated, so an admin never knows the employee's password.
+   */
+  async sendInviteEmail(
+    email: string,
+    firstName: string,
+    inviteLink: string,
+    expiresInHours: number
+  ): Promise<string | null> {
+    const appName = env.APP_NAME;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="max-width: 560px; margin: 0 auto; padding: 24px;">
+          <h2 style="margin: 0 0 16px;">Welcome to ${appName}, ${firstName}</h2>
+          <p>An account has been created for you. Choose a password to get started —
+             only you will know it.</p>
+          <p style="margin: 28px 0;">
+            <a href="${inviteLink}"
+               style="background:#111827;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;">
+              Set your password
+            </a>
+          </p>
+          <p style="color:#6b7280;font-size:14px;">
+            This link works once and expires in ${expiresInHours} hours. If it has expired,
+            use “Forgot password” on the sign-in page.
+          </p>
+          <p style="color:#6b7280;font-size:14px;">If you were not expecting this, ignore this email.</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject: `Set your ${appName} password`,
+      html,
+      text: `Welcome to ${appName}, ${firstName}. Set your password: ${inviteLink} (expires in ${expiresInHours} hours)`,
+    });
+  }
+
+  /**
    * Send welcome email
    */
   async sendWelcomeEmail(email: string, firstName: string): Promise<string | null> {

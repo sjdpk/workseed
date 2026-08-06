@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma, getCurrentUser } from "@/lib";
 import { probeDevice } from "@/lib/attendance/readers";
 import { logger } from "@/lib/logger";
-
-const ALLOWED_ROLES = ["ADMIN", "HR"];
+import { can } from "@/lib/rbac";
 
 /**
  * Test connectivity to a LAN-direct attendance device without persisting
@@ -22,7 +21,7 @@ export async function POST(request: NextRequest) {
     if (!currentUser) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
-    if (!ALLOWED_ROLES.includes(currentUser.role)) {
+    if (!(await can(currentUser, "ATTENDANCE_DEVICE_MANAGE"))) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 

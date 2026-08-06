@@ -1,0 +1,867 @@
+/* ============================================================
+   WORKSEED LANDING — light/dark on one token set
+   Display+body: Figtree · Data/labels: DM Mono
+
+   Theme comes from next-themes, exactly like the app: the provider puts
+   `.dark` on <html>, so the dark block below keys off `.dark`. Light/Dark/Auto
+   is driven by the shared <ThemeToggle />; there is no landing-only theme state.
+
+   Ported from the standalone HTML prototype. Every selector is scoped
+   under .ws-landing so the home page cannot leak styles into the
+   authenticated app (which is Tailwind-driven).
+   ============================================================ */
+
+/* html-level paint so overscroll matches the landing tokens rather than the
+   app's --background (which is a different pair of neutrals) */
+html:has(.ws-landing) {
+  background: #eff1f4;
+  scroll-behavior: smooth;
+}
+html.dark:has(.ws-landing) {
+  background: #0c0e13;
+}
+/* the hero rails are wider than the viewport by design — kept on body (not on
+   .ws-landing) because overflow on the wrapper would turn it into a scroll
+   container and break every position:sticky in it */
+html:has(.ws-landing) body {
+  overflow-x: hidden;
+}
+
+/* ---- LIGHT: soft paper, dot grid, layered shadows (default) ---- */
+.ws-landing {
+  color-scheme: light;
+  --bg: #eff1f4;
+  --bg-2: #f7f8fa;
+  --surface: #ffffff;
+  --surface-2: #f4f6f8;
+  --ink: #101319;
+  --ink-2: #4a515c;
+  --ink-3: #8a919d;
+  --line: rgba(16, 19, 25, 0.09);
+  --line-strong: rgba(16, 19, 25, 0.16);
+  --dot: rgba(16, 19, 25, 0.075);
+  --accent: #2f55ff;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(47, 85, 255, 0.1);
+  --ok: #12a150;
+  --ok-soft: rgba(18, 161, 80, 0.12);
+  --warn: #e08700;
+  --warn-soft: rgba(224, 135, 0, 0.14);
+  --sh-1: 0 1px 2px rgba(16, 24, 40, 0.05), 0 10px 26px -10px rgba(16, 24, 40, 0.14);
+  --sh-2: 0 2px 4px rgba(16, 24, 40, 0.05), 0 30px 60px -18px rgba(16, 24, 40, 0.22);
+  --ring: rgba(47, 85, 255, 0.28);
+}
+/* ---- DARK ---- */
+.dark .ws-landing {
+  color-scheme: dark;
+  --bg: #0c0e13;
+  --bg-2: #10131a;
+  --surface: #171b23;
+  --surface-2: #1d222b;
+  --ink: #f1f2f4;
+  --ink-2: #a8aeb9;
+  --ink-3: #6e757f;
+  --line: rgba(241, 242, 244, 0.11);
+  --line-strong: rgba(241, 242, 244, 0.22);
+  --dot: rgba(241, 242, 244, 0.07);
+  --accent: #5c7cff;
+  --accent-ink: #08090c;
+  --accent-soft: rgba(92, 124, 255, 0.16);
+  --ok: #3ecf84;
+  --ok-soft: rgba(62, 207, 132, 0.14);
+  --warn: #ffb23f;
+  --warn-soft: rgba(255, 178, 63, 0.14);
+  --sh-1: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 30px -12px rgba(0, 0, 0, 0.7);
+  --sh-2: 0 2px 6px rgba(0, 0, 0, 0.55), 0 34px 70px -20px rgba(0, 0, 0, 0.8);
+  --ring: rgba(92, 124, 255, 0.45);
+}
+
+.ws-landing * {
+  box-sizing: border-box;
+}
+
+.ws-landing {
+  min-height: 100svh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family:
+    var(--font-figtree),
+    Figtree,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  font-size: clamp(15px, 1.02vw, 16.5px);
+  line-height: 1.55;
+  letter-spacing: -0.008em;
+  -webkit-font-smoothing: antialiased;
+  transition:
+    background 0.45s ease,
+    color 0.45s ease;
+}
+.ws-landing h1,
+.ws-landing h2,
+.ws-landing h3,
+.ws-landing h4 {
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+}
+.ws-landing a {
+  color: inherit;
+  text-decoration: none;
+}
+.ws-landing p {
+  margin: 0;
+}
+.ws-landing .mono {
+  font-family: var(--font-dm-mono), ui-monospace, monospace;
+  font-size: 11.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.ws-landing .wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 clamp(18px, 4vw, 48px);
+}
+.ws-landing :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+.ws-landing .muted {
+  color: var(--ink-3);
+}
+
+/* ---------- buttons ---------- */
+.ws-landing .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.93rem;
+  line-height: 1.15;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.3s,
+    background 0.3s,
+    border-color 0.3s;
+  box-shadow: var(--sh-1);
+}
+.ws-landing .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sh-2);
+}
+.ws-landing .btn.pri {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.ws-landing .btn.ghost {
+  background: transparent;
+  box-shadow: none;
+}
+.ws-landing .btn.ghost:hover {
+  background: var(--accent-soft);
+  box-shadow: none;
+  transform: none;
+}
+.ws-landing .btn.lg {
+  padding: 12px 26px;
+  font-size: 0.97rem;
+  border-radius: 11px;
+}
+
+/* ---------- nav ---------- */
+.ws-landing header {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 70;
+  transition: background 0.4s;
+  backdrop-filter: blur(16px);
+}
+.ws-landing header.stuck {
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+}
+/* grid, not flex: logo pinned left, links centred, controls pinned right —
+   so hiding the links can never drag the right-hand group inwards */
+.ws-landing .nav {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  height: 72px;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 4vw, 48px);
+}
+.ws-landing .logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 1.2rem;
+  letter-spacing: -0.04em;
+  justify-self: start;
+  user-select: none;
+  white-space: nowrap;
+}
+.ws-landing .logo img {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  object-fit: contain;
+}
+.ws-landing .nav-links {
+  display: flex;
+  gap: 2px;
+  justify-self: center;
+}
+.ws-landing .nav-links a {
+  padding: 9px 13px;
+  border-radius: 9px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: var(--ink-2);
+  transition:
+    background 0.25s,
+    color 0.25s;
+  white-space: nowrap;
+}
+.ws-landing .nav-links a:hover {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.ws-landing .nav-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: end;
+}
+
+/* burger + drawer. Fixed gap means the converge distance is knowable —
+   bar centres are (height + gap) apart, so ±6.5px lands them on top of
+   each other. Sized 38px to match the theme switcher beside it. */
+.ws-landing .burger {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 11px;
+  border: 0;
+  background: var(--surface-2);
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    background 0.3s,
+    border-color 0.3s;
+}
+.ws-landing .burger:hover {
+  background: var(--surface);
+  box-shadow: var(--sh-1);
+}
+.ws-landing .burger span {
+  display: block;
+  width: 16px;
+  height: 1.5px;
+  background: currentColor;
+  border-radius: 2px;
+  transition:
+    transform 0.38s cubic-bezier(0.5, 0, 0.2, 1),
+    opacity 0.16s linear;
+}
+.ws-landing .burger[aria-expanded="true"] span:nth-child(1) {
+  transform: translateY(6.5px) rotate(45deg);
+}
+.ws-landing .burger[aria-expanded="true"] span:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0.3);
+}
+.ws-landing .burger[aria-expanded="true"] span:nth-child(3) {
+  transform: translateY(-6.5px) rotate(-45deg);
+}
+.ws-landing .drawer {
+  position: fixed;
+  top: 72px;
+  left: 0;
+  right: 0;
+  z-index: 69;
+  height: 0;
+  overflow: hidden;
+  background: var(--bg);
+  transition: background 0.45s;
+}
+.ws-landing .drawer.open {
+  box-shadow: var(--sh-2);
+}
+.ws-landing .drawer-in {
+  padding: 6px clamp(16px, 4vw, 48px) 22px;
+  max-width: 1280px;
+  margin: 0 auto;
+  display: grid;
+}
+.ws-landing .drawer a.dl {
+  padding: 15px 4px;
+  font-weight: 600;
+  font-size: 1.06rem;
+  letter-spacing: -0.02em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition:
+    padding-left 0.28s,
+    color 0.28s;
+}
+.ws-landing .drawer a.dl:hover {
+  padding-left: 10px;
+  color: var(--accent);
+}
+.ws-landing .drawer a.dl svg {
+  color: var(--ink-3);
+}
+.ws-landing .drawer .two-up {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+@media (max-width: 1060px) {
+  .ws-landing .nav {
+    grid-template-columns: auto 1fr;
+  }
+  .ws-landing .nav-links,
+  .ws-landing .signin,
+  .ws-landing .start-nav {
+    display: none;
+  }
+  .ws-landing .burger {
+    display: flex;
+  }
+}
+@media (max-width: 430px) {
+  .ws-landing .logo {
+    font-size: 1.08rem;
+  }
+}
+
+/* ---------- custom cursor ----------
+   Added by <Cursor />, which also adds .cursor-custom — so the native cursor is
+   only hidden once the replacement is actually running. Text fields keep their
+   caret cursor: typing without one is miserable. */
+.ws-landing.cursor-custom,
+.ws-landing.cursor-custom * {
+  cursor: none;
+}
+.ws-landing.cursor-custom :is(input, textarea) {
+  cursor: text;
+}
+.ws-cursor-dot,
+.ws-cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 200;
+  pointer-events: none;
+  border-radius: 50%;
+  visibility: hidden;
+  opacity: 0;
+  mix-blend-mode: difference;
+  will-change: transform;
+}
+.ws-cursor-dot {
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  background: #fff;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.ws-cursor-dot.hot {
+  transform: scale(0);
+}
+.ws-cursor-ring {
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  border: 1.5px solid #fff;
+  transition:
+    width 0.32s cubic-bezier(0.2, 0.8, 0.2, 1),
+    height 0.32s cubic-bezier(0.2, 0.8, 0.2, 1),
+    margin 0.32s cubic-bezier(0.2, 0.8, 0.2, 1),
+    background 0.32s,
+    border-color 0.32s;
+}
+.ws-cursor-ring.hot {
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  background: rgba(255, 255, 255, 0.16);
+}
+.ws-cursor-ring.down {
+  background: rgba(255, 255, 255, 0.34);
+}
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .ws-cursor-dot,
+  .ws-cursor-ring {
+    display: none;
+  }
+}
+
+/* The theme control is the shared <ThemeToggle /> (Light / Dark / Auto), the
+   same component the auth and dashboard screens use — it carries its own
+   Tailwind styling, so there is no landing-specific switcher CSS here. */
+
+/* ---------- hero ----------
+   The centre column owns a fixed width (--center). The two card rails are
+   sized from whatever is left over, so a floating card physically cannot
+   reach the text at any viewport. Under 1300px the gutters are too narrow
+   for that to work, so the same cards reflow into a swipeable strip. */
+.ws-landing .hero {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  --center: 800px;
+  --inset: clamp(6px, 1.5vw, 30px);
+  padding: calc(72px + clamp(24px, 5vh, 64px)) 0 clamp(26px, 5vh, 64px);
+}
+.ws-landing .hero-plate {
+  position: relative;
+  min-height: min(700px, 84svh);
+  display: grid;
+  align-content: center;
+  padding: clamp(20px, 4vh, 52px) 0;
+}
+.ws-landing .hero-plate::before {
+  content: "";
+  position: absolute;
+  inset: -10% 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(var(--dot) 1.1px, transparent 1.1px);
+  background-size: 20px 20px;
+  -webkit-mask-image: radial-gradient(108% 82% at 50% 40%, #000 24%, transparent 74%);
+  mask-image: radial-gradient(108% 82% at 50% 40%, #000 24%, transparent 74%);
+}
+.ws-landing .hero-mid {
+  position: relative;
+  z-index: 5;
+  text-align: center;
+  width: min(var(--center), 100%);
+  margin: 0 auto;
+  padding: 0 clamp(16px, 4vw, 24px);
+}
+.ws-landing h1 {
+  font-size: clamp(2.05rem, 4.8vw, 4.5rem);
+}
+.ws-landing h1 .line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.05em;
+}
+.ws-landing h1 .line > span {
+  display: block;
+}
+.ws-landing h1 .soft {
+  color: var(--ink-3);
+}
+/* rotating word. The container's width is set in JS to the incoming word and
+   CSS transitions it, so "by Friday." slides across rather than jumping. */
+.ws-landing .rot {
+  display: inline-block;
+  position: relative;
+  overflow: hidden;
+  vertical-align: top;
+  color: var(--ink);
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+  transition: width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.ws-landing .rot i {
+  display: inline-block;
+  font-style: normal;
+  white-space: nowrap;
+  will-change: transform;
+}
+.ws-landing .rot .rot-m {
+  position: absolute;
+  left: 0;
+  top: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.ws-landing .sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.ws-landing .sub {
+  margin: clamp(16px, 2.6vh, 24px) auto 0;
+  max-width: 48ch;
+  color: var(--ink-2);
+  font-size: clamp(0.98rem, 1.25vw, 1.14rem);
+}
+.ws-landing .hero-cta {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: clamp(22px, 3.4vh, 34px);
+}
+.ws-landing .hero-note {
+  margin-top: clamp(20px, 2.8vh, 30px);
+  font-size: 0.85rem;
+  max-width: 46ch;
+  margin-inline: auto;
+}
+
+/* ---------- card rails ---------- */
+.ws-landing .rails {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.ws-landing .rail {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: calc((100% - var(--center)) / 2);
+}
+.ws-landing .rail-l {
+  left: 0;
+}
+.ws-landing .rail-r {
+  right: 0;
+}
+.ws-landing .float {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  pointer-events: auto;
+  width: min(var(--w, 262px), calc(100% - var(--inset) * 2));
+  will-change: transform;
+}
+.ws-landing .float .in {
+  animation: ws-bob 7s ease-in-out infinite;
+  will-change: transform;
+}
+/* scale lives in the keyframes: the JS parallax owns .float's transform, so a
+   media-query scale there would be overwritten on every frame */
+@keyframes ws-bob {
+  0%,
+  100% {
+    transform: translateY(0) scale(var(--sc, 1));
+  }
+  50% {
+    transform: translateY(-11px) rotate(var(--r2, 0deg)) scale(var(--sc, 1));
+  }
+}
+.ws-landing .float .note {
+  max-width: none;
+}
+/* one note per rail, level with the headline */
+.ws-landing .f2 {
+  top: 32%;
+  --w: 246px;
+}
+.ws-landing .f6 {
+  top: 36%;
+  --w: 246px;
+}
+.ws-landing .note-r {
+  transform: rotate(3deg);
+}
+@media (max-width: 1560px) {
+  .ws-landing .float {
+    --sc: 0.94;
+  }
+}
+
+/* under 1300px: rails become a horizontal strip under the copy */
+@media (max-width: 1299px) {
+  .ws-landing .hero {
+    padding-bottom: clamp(16px, 3vh, 36px);
+  }
+  .ws-landing .hero-plate {
+    min-height: auto;
+    padding-bottom: 0;
+  }
+  .ws-landing .hero-mid {
+    order: 1;
+  }
+  .ws-landing .rails {
+    order: 2;
+    position: static;
+    display: flex;
+    gap: 14px;
+    pointer-events: auto;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding: clamp(26px, 4vh, 44px) clamp(16px, 4vw, 48px) 10px;
+    scrollbar-width: none;
+  }
+  .ws-landing .rails::-webkit-scrollbar {
+    display: none;
+  }
+  .ws-landing .rail {
+    position: static;
+    display: flex;
+    gap: 14px;
+    width: auto;
+    flex: 0 0 auto;
+  }
+  .ws-landing .float {
+    position: relative;
+    top: auto;
+    bottom: auto;
+    left: auto;
+    right: auto;
+    margin: 0;
+    width: auto;
+    flex: 0 0 auto;
+    transform: none;
+  }
+  .ws-landing .float .in {
+    animation: none;
+  }
+  .ws-landing .float .note {
+    width: min(74vw, 258px);
+    transform: none;
+  }
+}
+
+.ws-landing .note {
+  background: #fff3b8;
+  color: #3b3211;
+  border-radius: 4px;
+  padding: 16px 15px;
+  box-shadow: var(--sh-2);
+  max-width: 230px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  transform: rotate(-3deg);
+  border: 0;
+}
+.dark .ws-landing .note {
+  background: #f2e9a8;
+}
+.ws-landing .note .pin {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #e5484d;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* ---------- sections ---------- */
+.ws-landing section {
+  position: relative;
+}
+.ws-landing .sec-head {
+  padding: clamp(60px, 11vh, 132px) 0 clamp(28px, 4.6vh, 54px);
+  max-width: 760px;
+}
+.ws-landing .sec-head.center {
+  margin: 0 auto;
+  text-align: center;
+}
+.ws-landing .sec-head h2 {
+  font-size: clamp(1.85rem, 4.3vw, 3.5rem);
+  margin: 14px 0 0;
+}
+.ws-landing .sec-head p {
+  margin-top: 16px;
+  color: var(--ink-2);
+  font-size: clamp(1rem, 1.3vw, 1.12rem);
+  max-width: 56ch;
+}
+.ws-landing .sec-head.center p {
+  margin-inline: auto;
+}
+
+/* ---------- info cards ---------- */
+.ws-landing .cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: clamp(12px, 1.4vw, 20px);
+  padding-bottom: clamp(56px, 10vh, 120px);
+}
+.ws-landing .step {
+  background: var(--surface);
+  border-radius: 18px;
+  padding: clamp(18px, 2.2vw, 28px);
+  box-shadow: var(--sh-1);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 170px;
+  transition:
+    transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.4s,
+    background 0.45s;
+}
+.ws-landing .step:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--sh-2);
+}
+.ws-landing .step .idx {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 12px;
+  font-weight: 500;
+}
+.ws-landing .step h3 {
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+}
+.ws-landing .step p {
+  color: var(--ink-2);
+  font-size: 0.94rem;
+}
+.ws-landing .step .mono {
+  margin-top: auto;
+}
+@media (max-width: 560px) {
+  .ws-landing .step {
+    min-height: auto;
+  }
+}
+
+/* ---------- cta band ---------- */
+.ws-landing .cta {
+  border-radius: 26px;
+  background: var(--surface);
+  box-shadow: var(--sh-2);
+  padding: clamp(26px, 4.4vw, 68px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.88fr);
+  gap: clamp(26px, 4vw, 60px);
+  margin-bottom: clamp(56px, 10vh, 110px);
+  position: relative;
+  overflow: hidden;
+  transition: background 0.45s;
+}
+.ws-landing .cta::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(var(--dot) 1.1px, transparent 1.1px);
+  background-size: 20px 20px;
+  mask-image: radial-gradient(80% 90% at 92% 4%, #000, transparent 70%);
+}
+.ws-landing .info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 20px 28px;
+  margin: 28px 0 0;
+}
+.ws-landing .info dt {
+  margin-bottom: 5px;
+}
+.ws-landing .info dd {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.ws-landing .info dd a:hover {
+  color: var(--accent);
+}
+.ws-landing .cta.cta-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+.ws-landing .cta > * {
+  position: relative;
+  z-index: 2;
+}
+.ws-landing .cta h2 {
+  font-size: clamp(1.85rem, 4vw, 3.2rem);
+  max-width: 18ch;
+  margin: 14px 0 16px;
+}
+.ws-landing .cta .lede {
+  color: var(--ink-2);
+  max-width: 40ch;
+}
+@media (max-width: 900px) {
+  .ws-landing .cta {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- footer ---------- */
+.ws-landing footer {
+  padding: clamp(38px, 6vh, 64px) 0 34px;
+}
+.ws-landing .foot {
+  display: grid;
+  grid-template-columns: 1.4fr auto;
+  gap: 34px;
+  align-items: start;
+}
+.ws-landing .foot-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px clamp(16px, 2vw, 28px);
+}
+.ws-landing .foot-links a {
+  font-size: 0.93rem;
+  color: var(--ink-2);
+}
+.ws-landing .foot-links a:hover {
+  color: var(--ink);
+}
+.ws-landing .foot-end {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 34px;
+  padding-top: 24px;
+}
+@media (max-width: 760px) {
+  .ws-landing .foot {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:has(.ws-landing) {
+    scroll-behavior: auto;
+  }
+  .ws-landing .t-row,
+  .ws-landing .float .in {
+    animation: none;
+  }
+  .ws-landing .mod {
+    position: static;
+  }
+}

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, getCurrentUser } from "@/lib";
-
-const ALLOWED_ROLES = ["ADMIN", "HR", "MANAGER", "TEAM_LEAD"];
+import { dateOnlyToUtcDate, isDateOnly } from "@/lib/time";
+import { getOrgToday } from "@/lib/time-server";
+import { can } from "@/lib/rbac";
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!ALLOWED_ROLES.includes(currentUser.role)) {
+    if (!(await can(currentUser, "ATTENDANCE_VIEW_TEAM"))) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
@@ -24,10 +25,13 @@ export async function GET(request: NextRequest) {
     const source = searchParams.get("source");
     const deviceId = searchParams.get("deviceId");
 
-    const fromDate = fromParam ? new Date(fromParam) : new Date();
-    fromDate.setHours(0, 0, 0, 0);
-    const toDate = toParam ? new Date(toParam) : new Date();
-    toDate.setHours(0, 0, 0, 0);
+    /* `date` is a DATE column, so the bounds are calendar days (UTC midnight),
+       never local midnight — and "no filter" means today in the company zone. */
+    const today = await getOrgToday();
+    const asDay = (value: string | null) =>
+      dateOnlyToUtcDate(value && isDateOnly(value.slice(0, 10)) ? value.slice(0, 10) : today);
+    const fromDate = asDay(fromParam);
+    const toDate = asDay(toParam);
     const isRange = fromDate.getTime() !== toDate.getTime();
 
     // Build where clause based on role and filters

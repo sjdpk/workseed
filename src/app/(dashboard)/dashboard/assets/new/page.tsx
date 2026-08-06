@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Button, Card, Input, Select, useToast } from "@/components";
+import { Button, Card, Input, PageHeader, Select, useToast } from "@/components";
 
 const CATEGORY_OPTIONS = [
   { value: "LAPTOP", label: "Laptop" },
@@ -93,17 +93,17 @@ export default function NewAssetPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Add New Asset</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Register a new company asset
-          </p>
-        </div>
-        <Button variant="outline" onClick={() => router.back()}>
-          Cancel
-        </Button>
-      </div>
+      <PageHeader
+        title="Add New Asset"
+        subtitle="Register a new company asset"
+        actions={
+          <>
+            <Button variant="outline" onClick={() => router.back()}>
+              Cancel
+            </Button>
+          </>
+        }
+      />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>

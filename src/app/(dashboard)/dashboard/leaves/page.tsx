@@ -2,41 +2,61 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button, Card, useToast, useConfirm } from "@/components";
+import {
+  Button,
+  Card,
+  FiscalYearSelect,
+  PageHeader,
+  useConfirm,
+  useOrgSettings,
+  useToast,
+} from "@/components";
 import type { LeaveAllocation, LeaveRequest } from "@/types";
 
 type TabType = "all" | "pending" | "approved" | "rejected" | "cancelled";
 
 export default function MyLeavesPage() {
+  const { formatDate, fiscalYear } = useOrgSettings();
   const router = useRouter();
   const searchParams = useSearchParams();
   const toast = useToast();
   const confirm = useConfirm();
   const [allocations, setAllocations] = useState<(LeaveAllocation & { balance: number })[]>([]);
+  /* which year these balances belong to — the API answers with the running
+     fiscal year, which is only the calendar year for a 1 January start */
+  const [fiscalYearLabel, setFiscalYearLabel] = useState("");
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>("all");
 
   // Filter states
+  const [selectedYear, setSelectedYear] = useState(fiscalYear.year);
   const [search, setSearch] = useState("");
   const [leaveTypeFilter, setLeaveTypeFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
   const fetchData = async () => {
+    /* One year drives both halves of this page: the balance and the requests that
+       spent it. Reading a balance from one year against requests from another is
+       the classic way to get a confusing answer. */
     const [allocRes, reqRes] = await Promise.all([
-      fetch("/api/leave-allocations").then((r) => r.json()),
-      fetch("/api/leave-requests").then((r) => r.json()),
+      fetch(`/api/leave-allocations?year=${selectedYear}`).then((r) => r.json()),
+      fetch(`/api/leave-requests?year=${selectedYear}`).then((r) => r.json()),
     ]);
 
-    if (allocRes.success) setAllocations(allocRes.data.allocations);
+    if (allocRes.success) {
+      setAllocations(allocRes.data.allocations);
+      setFiscalYearLabel(allocRes.data.fiscalYear?.label || "");
+    }
     if (reqRes.success) setRequests(reqRes.data.leaveRequests);
     setLoading(false);
   };
 
   useEffect(() => {
     fetchData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch when the year changes
+  }, [selectedYear]);
 
   // Handle success message from redirect
   useEffect(() => {
@@ -165,28 +185,37 @@ export default function MyLeavesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">My Leaves</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Manage your leave balance and requests
-          </p>
-        </div>
-        <Button onClick={() => router.push("/dashboard/leaves/apply")}>
-          <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Apply Leave
-        </Button>
-      </div>
+      <PageHeader
+        title="My Leaves"
+        subtitle="Manage your leave balance and requests"
+        actions={
+          <>
+            <FiscalYearSelect
+              id="myLeavesYear"
+              value={selectedYear}
+              onChange={setSelectedYear}
+              wrapperClassName="w-40 shrink-0"
+            />
+            <Button onClick={() => router.push("/dashboard/leaves/apply")}>
+              <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              Apply Leave
+            </Button>
+          </>
+        }
+      />
 
       {/* Compact Leave Balance */}
       <Card className="p-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Leave Balance</h2>
-          <span className="text-xs text-gray-500 dark:text-gray-400">
-            {new Date().getFullYear()}
-          </span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">{fiscalYearLabel || ""}</span>
         </div>
         {allocations.length === 0 ? (
           <p className="text-sm text-gray-500 dark:text-gray-400">No leave allocations</p>
@@ -380,20 +409,8 @@ export default function MyLeavesPage() {
                           </div>
                         </td>
                         <td className="py-3 pr-4 text-sm text-gray-600 dark:text-gray-400">
-                          {new Date(req.startDate).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                          })}
-                          {req.startDate !== req.endDate && (
-                            <>
-                              {" "}
-                              -{" "}
-                              {new Date(req.endDate).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                              })}
-                            </>
-                          )}
+                          {formatDate(req.startDate)}
+                          {req.startDate !== req.endDate && <> - {formatDate(req.endDate)}</>}
                           {req.isHalfDay && (
                             <span className="ml-1 text-xs text-gray-500">
                               ({req.halfDayType === "FIRST_HALF" ? "AM" : "PM"})

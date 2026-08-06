@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, getCurrentUser } from "@/lib";
+import { can } from "@/lib/rbac";
+import { isDateOnly, zonedDayRange } from "@/lib/time";
+import { getOrgTimeZone } from "@/lib/time-server";
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,13 +11,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check permissions from organization settings
-    const orgSettings = await prisma.organizationSettings.findFirst();
-    const permissions = (orgSettings?.permissions as Record<string, unknown>) || {};
-    const roleAccess = (permissions.roleAccess as Record<string, string[]>) || {};
-    const auditLogsAccess = roleAccess.auditLogs || ["ADMIN"];
-
-    if (!auditLogsAccess.includes(currentUser.role)) {
+    // one enforcement path: the role's own permissions
+    if (!(await can(currentUser, "AUDIT_LOG_VIEW"))) {
       return NextResponse.json(
         { success: false, error: "Not authorized to view audit logs" },
         { status: 403 }
@@ -42,12 +40,23 @@ export async function GET(request: NextRequest) {
       where.userId = userId;
     }
     if (startDate || endDate) {
+      /* Both bounds are company-timezone days. Previously the lower bound was UTC
+         midnight and the upper bound server-local end-of-day, so the same filter
+         covered a different span depending on where the app ran. */
+      const timeZone = await getOrgTimeZone();
       where.createdAt = {};
-      if (startDate) {
-        (where.createdAt as Record<string, Date>).gte = new Date(startDate);
+      if (startDate && isDateOnly(startDate)) {
+        (where.createdAt as Record<string, Date>).gte = zonedDayRange(
+          new Date(`${startDate}T12:00:00Z`),
+          timeZone
+        ).start;
       }
-      if (endDate) {
-        (where.createdAt as Record<string, Date>).lte = new Date(endDate + "T23:59:59");
+      if (endDate && isDateOnly(endDate)) {
+        // exclusive upper bound: everything before the next day begins
+        (where.createdAt as Record<string, Date>).lt = zonedDayRange(
+          new Date(`${endDate}T12:00:00Z`),
+          timeZone
+        ).end;
       }
     }
 

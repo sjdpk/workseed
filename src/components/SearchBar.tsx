@@ -10,7 +10,12 @@ interface SearchBarProps {
 }
 
 // Reusable search input with a leading icon. No outer card — drop it in directly.
-export function SearchBar({ value, onChange, placeholder = "Search...", className }: SearchBarProps) {
+export function SearchBar({
+  value,
+  onChange,
+  placeholder = "Search...",
+  className,
+}: SearchBarProps) {
   return (
     <div className={cn("relative", className)}>
       <svg

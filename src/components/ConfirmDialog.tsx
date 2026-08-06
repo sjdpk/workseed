@@ -44,8 +44,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ConfirmState>({ open: false });
 
   const confirm = useCallback<ConfirmFn>((options) => {
-    const opts: ConfirmOptions =
-      typeof options === "string" ? { message: options } : options;
+    const opts: ConfirmOptions = typeof options === "string" ? { message: options } : options;
     return new Promise<boolean>((resolve) => {
       setState({ ...opts, open: true, resolve });
     });

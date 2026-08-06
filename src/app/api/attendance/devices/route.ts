@@ -1,8 +1,7 @@
 import { randomBytes } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, getCurrentUser } from "@/lib";
-
-const ALLOWED_ROLES = ["ADMIN", "HR"];
+import { can } from "@/lib/rbac";
 
 export async function GET() {
   try {
@@ -11,7 +10,7 @@ export async function GET() {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!ALLOWED_ROLES.includes(currentUser.role)) {
+    if (!(await can(currentUser, "ATTENDANCE_DEVICE_MANAGE"))) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
@@ -51,7 +50,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!ALLOWED_ROLES.includes(currentUser.role)) {
+    if (!(await can(currentUser, "ATTENDANCE_DEVICE_MANAGE"))) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 

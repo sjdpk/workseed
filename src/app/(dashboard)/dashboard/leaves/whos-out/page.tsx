@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Card } from "@/components";
+import { Card, PageHeader, useOrgSettings } from "@/components";
 import type { LeaveRequest } from "@/types";
 
 interface CurrentUser {
@@ -15,6 +15,7 @@ interface CurrentUser {
 type ViewMode = "team" | "department";
 
 export default function WhosOutPage() {
+  const { formatDate } = useOrgSettings();
   const router = useRouter();
   const [teamLeaves, setTeamLeaves] = useState<LeaveRequest[]>([]);
   const [departmentLeaves, setDepartmentLeaves] = useState<LeaveRequest[]>([]);
@@ -124,13 +125,8 @@ export default function WhosOutPage() {
   });
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Who&apos;s Out</h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          See when your colleagues are on leave
-        </p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader title="Who's Out" subtitle="See when your colleagues are on leave" />
 
       {/* View Toggle */}
       {canViewTeam && canViewDepartment && (
@@ -164,7 +160,9 @@ export default function WhosOutPage() {
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
               <CheckIcon className="h-6 w-6 text-green-600 dark:text-green-400" />
             </div>
-            <h3 className="text-sm font-medium text-gray-900 dark:text-white">Everyone&apos;s here!</h3>
+            <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+              Everyone&apos;s here!
+            </h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               No {viewMode === "team" ? "team" : "department"} members are currently on leave
             </p>
@@ -235,6 +233,7 @@ function LeaveCard({
   isToday?: boolean;
   isPast?: boolean;
 }) {
+  const { formatDate } = useOrgSettings();
   return (
     <Card className={`p-4 ${isPast ? "opacity-60" : ""}`}>
       <div className="flex items-center gap-3">
@@ -262,20 +261,8 @@ function LeaveCard({
       <div className="mt-3 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
         <CalendarIcon className="h-3.5 w-3.5" />
         <span>
-          {new Date(leave.startDate).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-          })}
-          {leave.startDate !== leave.endDate && (
-            <>
-              {" "}
-              -{" "}
-              {new Date(leave.endDate).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-              })}
-            </>
-          )}
+          {formatDate(leave.startDate)}
+          {leave.startDate !== leave.endDate && <> - {formatDate(leave.endDate)}</>}
         </span>
         <span className="text-gray-400">({leave.days}d)</span>
       </div>

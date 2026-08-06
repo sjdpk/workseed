@@ -51,6 +51,9 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     logger.error("Get email logs error", { error });
-    return NextResponse.json({ success: false, error: "Failed to fetch email logs" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch email logs" },
+      { status: 500 }
+    );
   }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PageHeader, useOrgSettings } from "@/components";
 
 interface Notice {
   id: string;
@@ -13,6 +14,7 @@ interface Notice {
 }
 
 export default function AnnouncementsPage() {
+  const { formatDate } = useOrgSettings();
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
@@ -26,7 +28,7 @@ export default function AnnouncementsPage() {
       });
   }, []);
 
-  const formatDate = (dateStr: string) => {
+  const relativeDate = (dateStr: string) => {
     const date = new Date(dateStr);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
@@ -35,7 +37,7 @@ export default function AnnouncementsPage() {
     if (diffDays === 0) return "Today";
     if (diffDays === 1) return "Yesterday";
     if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    return formatDate(dateStr);
   };
 
   if (loading) {
@@ -48,10 +50,7 @@ export default function AnnouncementsPage() {
 
   return (
     <div className="max-w-xl">
-      <div className="mb-6">
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Announcements</h1>
-        <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Company news and updates</p>
-      </div>
+      <PageHeader title="Announcements" subtitle="Company news and updates" />
 
       {notices.length === 0 ? (
         <div className="py-16 text-center">
@@ -83,7 +82,7 @@ export default function AnnouncementsPage() {
                 </p>
               </div>
               <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
-                {formatDate(notice.publishedAt)}
+                {relativeDate(notice.publishedAt)}
               </span>
               <ChevronRightIcon className="h-4 w-4 text-gray-300 dark:text-gray-600 flex-shrink-0" />
             </button>
@@ -136,13 +135,7 @@ export default function AnnouncementsPage() {
                     {selectedNotice.createdBy.firstName} {selectedNotice.createdBy.lastName}
                   </span>
                   <span>·</span>
-                  <span>
-                    {new Date(selectedNotice.publishedAt).toLocaleDateString("en-US", {
-                      month: "long",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </span>
+                  <span>{formatDate(selectedNotice.publishedAt)}</span>
                 </div>
 
                 <div className="mt-6 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
@@ -151,7 +144,7 @@ export default function AnnouncementsPage() {
 
                 {selectedNotice.expiresAt && (
                   <div className="mt-6 text-xs text-gray-400 dark:text-gray-500">
-                    Expires: {new Date(selectedNotice.expiresAt).toLocaleDateString()}
+                    Expires: {formatDate(selectedNotice.expiresAt)}
                   </div>
                 )}
               </div>

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma, getCurrentUser } from "@/lib";
+import { dateOnlyToUtcDate } from "@/lib/time";
+import { getOrgToday } from "@/lib/time-server";
 
 export async function GET() {
   try {
@@ -8,8 +10,7 @@ export async function GET() {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = dateOnlyToUtcDate(await getOrgToday());
 
     const todayRecord = await prisma.attendance.findUnique({
       where: {

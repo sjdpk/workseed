@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
-import { Button, Card, Input, useToast } from "@/components";
+import { Button, Card, Input, PageHeader, useToast } from "@/components";
 
 const ALLOWED_ROLES = ["ADMIN", "HR"];
 
@@ -123,12 +123,7 @@ export default function MobileSetupPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Mobile App Setup</h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Configure mobile app settings
-        </p>
-      </div>
+      <PageHeader title="Mobile App Setup" subtitle="Configure mobile app settings" />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <form onSubmit={handleSubmit} className="space-y-6">

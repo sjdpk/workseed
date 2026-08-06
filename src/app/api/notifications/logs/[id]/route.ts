@@ -6,10 +6,7 @@ import { logger } from "@/lib/logger";
 import { retryEmail, getEmailLog } from "@/lib/notifications";
 
 // GET /api/notifications/logs/[id] - Get a specific email log
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -31,15 +28,15 @@ export async function GET(
     return NextResponse.json({ success: true, data: { log } });
   } catch (error) {
     logger.error("Get email log error", { error });
-    return NextResponse.json({ success: false, error: "Failed to fetch email log" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch email log" },
+      { status: 500 }
+    );
   }
 }
 
 // POST /api/notifications/logs/[id] - Retry a failed email
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -56,7 +53,10 @@ export async function POST(
 
     if (!success) {
       return NextResponse.json(
-        { success: false, error: "Failed to retry email. It may not exist or is not in FAILED status." },
+        {
+          success: false,
+          error: "Failed to retry email. It may not exist or is not in FAILED status.",
+        },
         { status: 400 }
       );
     }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { dateOnlyToUtcDate } from "@/lib/time";
 
 // PUT - Update holiday
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -27,7 +28,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       where: { id },
       data: {
         ...(name && { name }),
-        ...(date && { date: new Date(date) }),
+        ...(date && { date: dateOnlyToUtcDate(date) }),
         ...(type && { type }),
         ...(description !== undefined && { description }),
         ...(isActive !== undefined && { isActive }),

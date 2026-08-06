@@ -14,6 +14,39 @@ enum Role {
   EMPLOYEE
 }
 
+// A role is data, not code: an admin can add "Senior Team Lead" or "Accountant"
+// and choose exactly what it may see and do. The five original roles are seeded
+// with isSystem = true, so they cannot be renamed or deleted and authorization
+// always has a floor.
+model UserRole {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique // stable slug, e.g. ADMIN or senior-team-lead
+  name        String   @unique // what people see
+  description String?
+  rank        Int      @default(0) // seniority: higher outranks lower
+  color       String? // badge colour token, e.g. "blue"
+  isSystem    Boolean  @default(false)
+  isDefault   Boolean  @default(false) // given to new employees
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  permissions RolePermission[]
+  users       User[]
+
+  @@map("user_roles")
+}
+
+model RolePermission {
+  id         String   @id @default(uuid()) @db.Uuid
+  roleId     String   @db.Uuid
+  role       UserRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission String
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([roleId, permission])
+  @@map("role_permissions")
+}
+
 enum UserStatus {
   ACTIVE
   INACTIVE
@@ -92,15 +125,18 @@ enum AssetCondition {
 
 // Organization Settings
 model OrganizationSettings {
-  id                    String   @id @default(uuid()) @db.Uuid
-  name                  String   @default("Organization")
-  logoUrl               String?  // URL to organization logo
-  fiscalYearStart       Int      @default(1) // Month (1-12)
-  workingDaysPerWeek    Int      @default(5)
-  defaultLeaveAllocation Json?   // Default leave allocation for new employees
-  permissions           Json?    // Configurable permissions for roles
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                     String   @id @default(uuid()) @db.Uuid
+  name                   String   @default("Organization")
+  logoUrl                String? // URL to organization logo
+  timezone               String   @default("UTC") // IANA name; every day boundary and display resolves here
+  fiscalYearStart        Int      @default(1) // Fiscal year start month (1-12)
+  fiscalYearStartDay     Int      @default(1) // Fiscal year start day of that month (1-31)
+  workingDaysPerWeek     Int      @default(5)
+  defaultLeaveAllocation Json? // Default leave allocation for new employees
+  permissions            Json? // Configurable permissions for roles
+  homepage               Json? // Public home page content (see src/lib/homepage.ts)
+  createdAt              DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime @updatedAt @db.Timestamptz(3)
 
   @@map("organization_settings")
 }
@@ -117,8 +153,8 @@ model Branch {
   phone     String?
   email     String?
   isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
   users       User[]
   departments Department[]
@@ -137,8 +173,8 @@ model Department {
   headId      String?  @db.Uuid
   head        User?    @relation("DepartmentHead", fields: [headId], references: [id])
   isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
 
   users User[]
   teams Team[]
@@ -148,17 +184,17 @@ model Department {
 
 // Team
 model Team {
-  id           String      @id @default(uuid()) @db.Uuid
+  id           String     @id @default(uuid()) @db.Uuid
   name         String
-  code         String      @unique
+  code         String     @unique
   description  String?
-  departmentId String      @db.Uuid
-  department   Department  @relation(fields: [departmentId], references: [id])
-  leadId       String?     @db.Uuid
-  lead         User?       @relation("TeamLead", fields: [leadId], references: [id])
-  isActive     Boolean     @default(true)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  departmentId String     @db.Uuid
+  department   Department @relation(fields: [departmentId], references: [id])
+  leadId       String?    @db.Uuid
+  lead         User?      @relation("TeamLead", fields: [leadId], references: [id])
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime   @updatedAt @db.Timestamptz(3)
 
   users User[]
 
@@ -167,143 +203,165 @@ model Team {
 
 // User/Employee
 model User {
-  id             String          @id @default(uuid()) @db.Uuid
-  employeeId     String          @unique
-  deviceUserId   String?         @unique // Biometric/RFID device enrollment PIN (optional)
-  email          String          @unique
+  id             String     @id @default(uuid()) @db.Uuid
+  employeeId     String     @unique
+  deviceUserId   String?    @unique // Biometric/RFID device enrollment PIN (optional)
+  email          String     @unique
   password       String
   firstName      String
   lastName       String
   phone          String?
-  profilePicture String?         // URL to profile picture
-  role           Role            @default(EMPLOYEE)
-  status         UserStatus      @default(ACTIVE)
+  profilePicture String? // URL to profile picture
+  role           Role       @default(EMPLOYEE) // legacy; superseded by roleId
+  roleId         String?    @db.Uuid
+  roleRecord     UserRole?  @relation(fields: [roleId], references: [id])
+  status         UserStatus @default(ACTIVE)
 
   // Social Links
-  linkedIn       String?
-  twitter        String?
-  github         String?
-  website        String?
+  linkedIn String?
+  twitter  String?
+  github   String?
+  website  String?
 
   // Personal Info
-  dateOfBirth    DateTime?
-  gender         Gender?
-  maritalStatus  MaritalStatus?
-  nationality    String?
-  address        String?
-  city           String?
-  state          String?
-  country        String?
-  postalCode     String?
-  emergencyContact     String?
-  emergencyContactPhone String?
+  dateOfBirth   DateTime?      @db.Date
+  gender        Gender?
+  maritalStatus MaritalStatus?
+  nationality   String?
+  address       String?
+  city          String?
+  state         String?
+  country       String?
+  postalCode    String?
 
   // Employment Info
-  employmentType EmploymentType  @default(FULL_TIME)
-  joiningDate    DateTime?
-  probationEndDate DateTime?
-  confirmationDate DateTime?
-  resignationDate  DateTime?
-  lastWorkingDate  DateTime?
+  employmentType   EmploymentType @default(FULL_TIME)
+  joiningDate      DateTime?      @db.Date
+  probationEndDate DateTime?      @db.Date
+  confirmationDate DateTime?      @db.Date
+  resignationDate  DateTime?      @db.Date
+  lastWorkingDate  DateTime?      @db.Date
 
   // Organization
-  branchId       String?         @db.Uuid
-  branch         Branch?         @relation(fields: [branchId], references: [id])
-  departmentId   String?         @db.Uuid
-  department     Department?     @relation(fields: [departmentId], references: [id])
-  teamId         String?         @db.Uuid
-  team           Team?           @relation(fields: [teamId], references: [id])
-  managerId      String?         @db.Uuid
-  manager        User?           @relation("ManagerEmployee", fields: [managerId], references: [id])
-  subordinates   User[]          @relation("ManagerEmployee")
-  designation    String?
+  branchId     String?     @db.Uuid
+  branch       Branch?     @relation(fields: [branchId], references: [id])
+  departmentId String?     @db.Uuid
+  department   Department? @relation(fields: [departmentId], references: [id])
+  teamId       String?     @db.Uuid
+  team         Team?       @relation(fields: [teamId], references: [id])
+  managerId    String?     @db.Uuid
+  manager      User?       @relation("ManagerEmployee", fields: [managerId], references: [id])
+  subordinates User[]      @relation("ManagerEmployee")
+  designation  String?
 
   // Metadata
-  lastLoginAt    DateTime?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  createdBy      String?         @db.Uuid
+  lastLoginAt DateTime? @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  createdBy   String?   @db.Uuid
 
   // Relations
-  documents       UserDocument[]
-  leaveAllocations LeaveAllocation[]
-  leaveRequests   LeaveRequest[]
-  leaveApprovals  LeaveRequest[]  @relation("LeaveApprover")
-  notices         Notice[]        @relation("NoticeCreator")
-  teamsLed        Team[]          @relation("TeamLead")
-  departmentsLed  Department[]    @relation("DepartmentHead")
-  assignedAssets  Asset[]         @relation("AssetAssignee")
-  assetHistory    AssetAssignment[]
-  attendance      Attendance[]
-  employeeRequests EmployeeRequest[]
-  requestApprovals EmployeeRequest[] @relation("RequestApprover")
+  documents               UserDocument[]
+  emergencyContacts       EmergencyContact[]
+  leaveAllocations        LeaveAllocation[]
+  leaveRequests           LeaveRequest[]
+  leaveApprovals          LeaveRequest[]           @relation("LeaveApprover")
+  notices                 Notice[]                 @relation("NoticeCreator")
+  teamsLed                Team[]                   @relation("TeamLead")
+  departmentsLed          Department[]             @relation("DepartmentHead")
+  assignedAssets          Asset[]                  @relation("AssetAssignee")
+  assetHistory            AssetAssignment[]
+  attendance              Attendance[]
+  employeeRequests        EmployeeRequest[]
+  requestApprovals        EmployeeRequest[]        @relation("RequestApprover")
   notificationPreferences NotificationPreference[]
-  passwordResetTokens PasswordResetToken[]
+  passwordResetTokens     PasswordResetToken[]
 
   @@map("users")
 }
 
+// Emergency / next-of-kin contacts. A person can have as many as they need —
+// only the name is required, everything else is optional.
+model EmergencyContact {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  relation  String? // Spouse, Father, Friend, Doctor, …
+  phone     String?
+  altPhone  String?
+  email     String?
+  address   String?
+  notes     String?
+  isPrimary Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@map("emergency_contacts")
+}
+
 // User Documents
 model UserDocument {
-  id          String       @id @default(uuid()) @db.Uuid
-  userId      String       @db.Uuid
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type        DocumentType
-  name        String
-  fileName    String
-  filePath    String
-  fileSize    Int?
-  mimeType    String?
-  expiryDate  DateTime?
-  isVerified  Boolean      @default(false)
-  verifiedBy  String?      @db.Uuid
-  verifiedAt  DateTime?
-  notes       String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id         String       @id @default(uuid()) @db.Uuid
+  userId     String       @db.Uuid
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       DocumentType
+  name       String
+  fileName   String
+  filePath   String
+  fileSize   Int?
+  mimeType   String?
+  expiryDate DateTime?    @db.Date
+  isVerified Boolean      @default(false)
+  verifiedBy String?      @db.Uuid
+  verifiedAt DateTime?    @db.Timestamptz(3)
+  notes      String?
+  createdAt  DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime     @updatedAt @db.Timestamptz(3)
 
   @@map("user_documents")
 }
 
 // Leave Type (Organization-wide)
 model LeaveType {
-  id                String   @id @default(uuid()) @db.Uuid
-  name              String   @unique
-  code              String   @unique
-  description       String?
-  defaultDays       Float    @default(0)  // Default annual allocation
-  maxDays           Float?   // Max days that can be allocated
-  carryForward      Boolean  @default(false)
-  maxCarryForward   Float?   // Max days that can be carried forward
-  isPaid            Boolean  @default(true)
-  isActive          Boolean  @default(true)
-  requiresApproval  Boolean  @default(true)
-  minDaysNotice     Int      @default(0)  // Minimum days in advance to apply
-  color             String?  // For UI display
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id               String   @id @default(uuid()) @db.Uuid
+  name             String   @unique
+  code             String   @unique
+  description      String?
+  defaultDays      Float    @default(0) // Default annual allocation
+  maxDays          Float? // Max days that can be allocated
+  carryForward     Boolean  @default(false)
+  maxCarryForward  Float? // Max days that can be carried forward
+  isPaid           Boolean  @default(true)
+  isActive         Boolean  @default(true)
+  requiresApproval Boolean  @default(true)
+  minDaysNotice    Int      @default(0) // Minimum days in advance to apply
+  color            String? // For UI display
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @db.Timestamptz(3)
 
-  allocations  LeaveAllocation[]
-  requests     LeaveRequest[]
+  allocations LeaveAllocation[]
+  requests    LeaveRequest[]
 
   @@map("leave_types")
 }
 
 // Leave Allocation (Per User, Per Year)
 model LeaveAllocation {
-  id            String    @id @default(uuid()) @db.Uuid
-  userId        String    @db.Uuid
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  leaveTypeId   String    @db.Uuid
-  leaveType     LeaveType @relation(fields: [leaveTypeId], references: [id])
-  year          Int
-  allocated     Float     // Total allocated days
-  used          Float     @default(0)  // Days used
-  carriedOver   Float     @default(0)  // Days carried from previous year
-  adjusted      Float     @default(0)  // Manual adjustments
-  notes         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leaveTypeId String    @db.Uuid
+  leaveType   LeaveType @relation(fields: [leaveTypeId], references: [id])
+  year        Int
+  allocated   Float // Total allocated days
+  used        Float     @default(0) // Days used
+  carriedOver Float     @default(0) // Days carried from previous year
+  adjusted    Float     @default(0) // Manual adjustments
+  notes       String?
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
 
   @@unique([userId, leaveTypeId, year])
   @@map("leave_allocations")
@@ -311,25 +369,25 @@ model LeaveAllocation {
 
 // Leave Request
 model LeaveRequest {
-  id            String      @id @default(uuid()) @db.Uuid
-  userId        String      @db.Uuid
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  leaveTypeId   String      @db.Uuid
-  leaveType     LeaveType   @relation(fields: [leaveTypeId], references: [id])
-  startDate     DateTime
-  endDate       DateTime
-  days          Float       // Number of days (can be 0.5 for half day)
-  isHalfDay     Boolean     @default(false)
-  halfDayType   String?     // "FIRST_HALF" or "SECOND_HALF"
-  reason        String?
-  status        LeaveStatus @default(PENDING)
-  approverId    String?     @db.Uuid
-  approver      User?       @relation("LeaveApprover", fields: [approverId], references: [id])
-  approvedAt    DateTime?
+  id              String      @id @default(uuid()) @db.Uuid
+  userId          String      @db.Uuid
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leaveTypeId     String      @db.Uuid
+  leaveType       LeaveType   @relation(fields: [leaveTypeId], references: [id])
+  startDate       DateTime    @db.Date
+  endDate         DateTime    @db.Date
+  days            Float // Number of days (can be 0.5 for half day)
+  isHalfDay       Boolean     @default(false)
+  halfDayType     String? // "FIRST_HALF" or "SECOND_HALF"
+  reason          String?
+  status          LeaveStatus @default(PENDING)
+  approverId      String?     @db.Uuid
+  approver        User?       @relation("LeaveApprover", fields: [approverId], references: [id])
+  approvedAt      DateTime?   @db.Timestamptz(3)
   rejectionReason String?
-  cancelReason  String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  cancelReason    String?
+  createdAt       DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime    @updatedAt @db.Timestamptz(3)
 
   @@map("leave_requests")
 }
@@ -344,7 +402,7 @@ model AuditLog {
   details   Json?
   ipAddress String?
   userAgent String?
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
 
   @@map("audit_logs")
 }
@@ -356,66 +414,66 @@ model Notice {
   content     String
   type        String    @default("GENERAL") // GENERAL, IMPORTANT, URGENT
   isActive    Boolean   @default(true)
-  publishedAt DateTime  @default(now())
-  expiresAt   DateTime?
+  publishedAt DateTime  @default(now()) @db.Timestamptz(3)
+  expiresAt   DateTime? @db.Timestamptz(3)
   createdById String    @db.Uuid
   createdBy   User      @relation("NoticeCreator", fields: [createdById], references: [id])
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
 
   @@map("notices")
 }
 
 // Asset (Company Property)
 model Asset {
-  id              String         @id @default(uuid()) @db.Uuid
-  assetTag        String         @unique // Unique identifier like AST-00001
-  name            String
-  category        AssetCategory
-  brand           String?
-  model           String?
-  serialNumber    String?        @unique
-  description     String?
-  purchaseDate    DateTime?
-  purchasePrice   Float?
-  warrantyExpiry  DateTime?
-  status          AssetStatus    @default(AVAILABLE)
-  condition       AssetCondition @default(NEW)
-  location        String?        // Storage location when not assigned
-  notes           String?
-  specifications  Json?          // Flexible specs like RAM, storage, etc.
+  id             String         @id @default(uuid()) @db.Uuid
+  assetTag       String         @unique // Unique identifier like AST-00001
+  name           String
+  category       AssetCategory
+  brand          String?
+  model          String?
+  serialNumber   String?        @unique
+  description    String?
+  purchaseDate   DateTime?      @db.Date
+  purchasePrice  Float?
+  warrantyExpiry DateTime?      @db.Date
+  status         AssetStatus    @default(AVAILABLE)
+  condition      AssetCondition @default(NEW)
+  location       String? // Storage location when not assigned
+  notes          String?
+  specifications Json? // Flexible specs like RAM, storage, etc.
 
   // Current assignment
-  assignedToId    String?        @db.Uuid
-  assignedTo      User?          @relation("AssetAssignee", fields: [assignedToId], references: [id])
-  assignedAt      DateTime?
+  assignedToId String?   @db.Uuid
+  assignedTo   User?     @relation("AssetAssignee", fields: [assignedToId], references: [id])
+  assignedAt   DateTime? @db.Timestamptz(3)
 
   // Metadata
-  isActive        Boolean        @default(true)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
   // Relations
-  assignments     AssetAssignment[]
+  assignments AssetAssignment[]
 
   @@map("assets")
 }
 
 // Asset Assignment History
 model AssetAssignment {
-  id            String    @id @default(uuid()) @db.Uuid
-  assetId       String    @db.Uuid
-  asset         Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  userId        String    @db.Uuid
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  assignedAt    DateTime  @default(now())
-  returnedAt    DateTime?
-  assignedById  String    @db.Uuid // Who assigned the asset
-  returnedById  String?   @db.Uuid // Who processed the return
-  condition     AssetCondition // Condition at time of assignment
+  id              String          @id @default(uuid()) @db.Uuid
+  assetId         String          @db.Uuid
+  asset           Asset           @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  userId          String          @db.Uuid
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedAt      DateTime        @default(now()) @db.Timestamptz(3)
+  returnedAt      DateTime?       @db.Timestamptz(3)
+  assignedById    String          @db.Uuid // Who assigned the asset
+  returnedById    String?         @db.Uuid // Who processed the return
+  condition       AssetCondition // Condition at time of assignment
   returnCondition AssetCondition? // Condition at return
-  notes         String?
-  returnNotes   String?
+  notes           String?
+  returnNotes     String?
 
   @@map("asset_assignments")
 }
@@ -442,38 +500,38 @@ enum DeviceSyncMode {
 
 // Attendance Device (Biometric, RFID, etc.)
 model AttendanceDevice {
-  id          String         @id @default(uuid()) @db.Uuid
-  name        String
-  type        String[]       @default([]) // capabilities: BIOMETRIC, FACE, RFID (a device can support several)
-  deviceId    String         @unique // Serial or unique ID
-  location    String?
-  status      DeviceStatus   @default(ACTIVE)
-  syncMode    DeviceSyncMode @default(LAN_DIRECT)
-  protocol    String         @default("zkteco") // reader driver (zkteco, ...)
-  ipAddress   String?        // Device IP for SDK pull
-  port        Int            @default(4370) // device SDK TCP port
-  apiKey      String?        // For device authentication
-  lastSync    DateTime?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id        String         @id @default(uuid()) @db.Uuid
+  name      String
+  type      String[]       @default([]) // capabilities: BIOMETRIC, FACE, RFID (a device can support several)
+  deviceId  String         @unique // Serial or unique ID
+  location  String?
+  status    DeviceStatus   @default(ACTIVE)
+  syncMode  DeviceSyncMode @default(LAN_DIRECT)
+  protocol  String         @default("zkteco") // reader driver (zkteco, ...)
+  ipAddress String? // Device IP for SDK pull
+  port      Int            @default(4370) // device SDK TCP port
+  apiKey    String? // For device authentication
+  lastSync  DateTime?      @db.Timestamptz(3)
+  createdAt DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime       @updatedAt @db.Timestamptz(3)
 
   @@map("attendance_devices")
 }
 
 // Attendance Record
 model Attendance {
-  id          String           @id @default(uuid()) @db.Uuid
-  userId      String           @db.Uuid
-  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  date        DateTime         @db.Date
-  checkIn     DateTime
-  checkOut    DateTime?
-  notes       String?
-  source      AttendanceSource @default(WEB)
-  deviceId    String?          // For biometric/RFID device identification
-  location    String?          // Location info if available
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime         @db.Date
+  checkIn   DateTime         @db.Timestamptz(3)
+  checkOut  DateTime?        @db.Timestamptz(3)
+  notes     String?
+  source    AttendanceSource @default(WEB)
+  deviceId  String? // For biometric/RFID device identification
+  location  String? // Location info if available
+  createdAt DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime         @updatedAt @db.Timestamptz(3)
 
   @@unique([userId, date])
   @@map("attendance")
@@ -487,8 +545,8 @@ model Holiday {
   type        String   @default("PUBLIC") // PUBLIC, OPTIONAL, RESTRICTED
   description String?
   isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
 
   @@unique([date, name])
   @@map("holidays")
@@ -539,29 +597,29 @@ enum EmailStatus {
 
 // Employee Self-Service Requests
 model EmployeeRequest {
-  id            String        @id @default(uuid()) @db.Uuid
-  userId        String        @db.Uuid
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type          RequestType
-  subject       String
-  description   String
-  priority      String        @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
-  status        RequestStatus @default(PENDING)
+  id          String        @id @default(uuid()) @db.Uuid
+  userId      String        @db.Uuid
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        RequestType
+  subject     String
+  description String
+  priority    String        @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  status      RequestStatus @default(PENDING)
 
   // For asset requests
   assetCategory String?
 
   // For document requests
-  documentType  String?
+  documentType String?
 
   // Approval
-  approverId    String?       @db.Uuid
-  approver      User?         @relation("RequestApprover", fields: [approverId], references: [id])
-  approvedAt    DateTime?
-  response      String?       // Admin response/notes
+  approverId String?   @db.Uuid
+  approver   User?     @relation("RequestApprover", fields: [approverId], references: [id])
+  approvedAt DateTime? @db.Timestamptz(3)
+  response   String? // Admin response/notes
 
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
   @@map("employee_requests")
 }
@@ -574,17 +632,17 @@ model EmployeeRequest {
 model EmailTemplate {
   id          String           @id @default(uuid()) @db.Uuid
   name        String           @unique // Internal name e.g., "leave_request_submitted"
-  displayName String           // Human-readable name
+  displayName String // Human-readable name
   type        NotificationType
-  subject     String           // Email subject (supports variables like {{employeeName}})
+  subject     String // Email subject (supports variables like {{employeeName}})
   htmlBody    String           @db.Text // HTML template body
-  variables   Json?            // Available template variables with descriptions
+  variables   Json? // Available template variables with descriptions
   isActive    Boolean          @default(true)
   isSystem    Boolean          @default(false) // System templates cannot be deleted
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  createdAt   DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime         @updatedAt @db.Timestamptz(3)
 
-  emailLogs   EmailLog[]
+  emailLogs EmailLog[]
 
   @@map("email_templates")
 }
@@ -600,15 +658,15 @@ model EmailLog {
   subject        String
   status         EmailStatus      @default(PENDING)
   type           NotificationType
-  entityType     String?          // e.g., "LEAVE_REQUEST", "EMPLOYEE_REQUEST"
+  entityType     String? // e.g., "LEAVE_REQUEST", "EMPLOYEE_REQUEST"
   entityId       String?          @db.Uuid // Related entity ID
-  sentAt         DateTime?
-  failedAt       DateTime?
+  sentAt         DateTime?        @db.Timestamptz(3)
+  failedAt       DateTime?        @db.Timestamptz(3)
   errorMessage   String?
   retryCount     Int              @default(0)
-  metadata       Json?            // Additional context data
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  metadata       Json? // Additional context data
+  createdAt      DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime         @updatedAt @db.Timestamptz(3)
 
   @@index([status])
   @@index([type])
@@ -627,9 +685,9 @@ model NotificationRule {
   // Recipient configuration JSON:
   // { notifyRequester, notifyManager, notifyTeamLead, notifyHR, notifyAdmin, customRecipients[] }
   recipientConfig Json
-  conditions      Json?            // Optional conditions for when to trigger
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  conditions      Json? // Optional conditions for when to trigger
+  createdAt       DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime         @updatedAt @db.Timestamptz(3)
 
   @@map("notification_rules")
 }
@@ -641,8 +699,8 @@ model NotificationPreference {
   user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   type         NotificationType
   emailEnabled Boolean          @default(true)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  createdAt    DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime         @updatedAt @db.Timestamptz(3)
 
   @@unique([userId, type])
   @@map("notification_preferences")
@@ -654,9 +712,9 @@ model PasswordResetToken {
   userId    String    @db.Uuid
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   token     String    @unique
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
+  expiresAt DateTime  @db.Timestamptz(3)
+  usedAt    DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
 
   @@index([token])
   @@index([expiresAt])

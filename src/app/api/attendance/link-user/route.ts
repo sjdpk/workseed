@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma, getCurrentUser, isHROrAbove, createAuditLog, getRequestMeta } from "@/lib";
+import { prisma, getCurrentUser, createAuditLog, getRequestMeta } from "@/lib";
 import { logger } from "@/lib/logger";
+import { can } from "@/lib/rbac";
 
 /**
  * Link an EXISTING employee to a device enrollment PIN by setting their
@@ -13,7 +14,7 @@ import { logger } from "@/lib/logger";
 export async function POST(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
-    if (!currentUser || !isHROrAbove(currentUser.role)) {
+    if (!currentUser || !(await can(currentUser, "ATTENDANCE_MANAGE"))) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
