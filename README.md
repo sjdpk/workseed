@@ -70,11 +70,17 @@ Open [http://localhost:3000](http://localhost:3000)
 `npm run setup` is one idempotent command — safe to re-run. It runs:
 
 ```bash
-npm install
+npm install           # postinstall runs `prisma generate` automatically
 npm run db:generate   # Prisma client
 npm run db:deploy     # apply migrations
 npm run db:seed       # admin user + leave types
 ```
+
+> **Prisma Client is generated, not committed.** A `postinstall` hook runs
+> `prisma generate` after every `npm install`, so a fresh clone or CI checkout
+> gets a real client. If a build ever fails with
+> `Module '"@prisma/client"' has no exported member 'PrismaClient'`, the client
+> was not generated — run `npm run db:generate`.
 
 ### Default Admin Login
 

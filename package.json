@@ -10,6 +10,7 @@
     "build": "next build",
     "start": "node scripts/with-env.mjs start",
     "setup": "bash scripts/setup.sh",
+    "postinstall": "prisma generate",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
